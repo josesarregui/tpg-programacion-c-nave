@@ -56,6 +56,4 @@ public abstract class Tripulante implements Liquidacion {
     @Override public int getAntiguedad() { return this.antiguedad; }
     @Override public Origen getOrigen() { return this.origen; }
 
-    // Por defecto, un tripulante no tiene consejos. Las subclases lo sobreescribirán de ser necesario.
-    @Override public int getConsejos() { return 0; }
 }

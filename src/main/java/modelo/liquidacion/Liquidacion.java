@@ -8,7 +8,6 @@ import modelo.tripulacion.Origen;
  */
 public interface Liquidacion {
     double calcularSueldo();
-    int getConsejos();
     int getAntiguedad();
     double getAdicionalCargo();
     Origen getOrigen();

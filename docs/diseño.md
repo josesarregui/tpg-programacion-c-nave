@@ -22,7 +22,7 @@ En lugar de organizar el código por tipos de componentes técnicos (capas horiz
 * **Responsabilidad:** Administra el estado global de la nave, sus recursos (combustible, energía, desgaste) y sus componentes (`MotorWarp`, lista de `Tripulante`). La fábrica centraliza la creación garantizando invariantes iniciales según la ficha técnica sin que el cliente use `new` sobre clases concretas.
 
 ### `liquidacion` (Patrón Decorator - E1-08)
-* **Contenido:** `ComponenteSueldo` (interfaz), `SueldoBase`, `SueldoDecorator` (abstracto), `AntiguedadDecorator`, `OrigenDecorator`, `ConsejosDecorator`.
+* **Contenido:** `ComponenteSueldo` (interfaz), `SueldoBase`, `SueldoDecorator` (abstracto), `AntiguedadDecorator`, `OrigenDecorator`.
 * **Responsabilidad:** Calcula la remuneración mensual de los tripulantes mediante composición dinámica recursiva. Evita la proliferación de subclases rígidas combinando libremente complementos sobre el haber base.
 
 ### `mision` (Patrón Template Method - E1-06)

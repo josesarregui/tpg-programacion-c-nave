@@ -32,7 +32,6 @@ public abstract class Decorator implements Liquidacion {
     }
 
     @Override public double calcularSueldo() { return trip.calcularSueldo(); }
-    @Override public int getConsejos() { return trip.getConsejos(); }
     @Override public int getAntiguedad() { return trip.getAntiguedad(); }
     @Override public double getAdicionalCargo() { return trip.getAdicionalCargo(); }
     @Override public Origen getOrigen() { return trip.getOrigen(); }
