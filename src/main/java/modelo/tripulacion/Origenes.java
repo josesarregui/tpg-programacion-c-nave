@@ -25,6 +25,7 @@ public enum Origenes {
      * @post Se almacena el porcentaje de bonificacion asociado al origen.
      */
     Origenes(double porcentajeBono) {
+        assert porcentajeBono >= 0 && porcentajeBono <= 1 : "El porcentaje de bono debe estar entre 0 y 1.";
         this.porcentajeBono = porcentajeBono;
     }
 
@@ -32,7 +33,6 @@ public enum Origenes {
     /**
      * Consulta el porcentaje del bono segun el origen.
      * 
-     * @pre true (sin precondiciones adicionales, el enum siempre esta inicializado).
      * @post El valor retornado es mayor o igual a 0 y menor o igual a 1.
      * @return Porcentaje de bono correspondiente segun el origen.
      */
@@ -50,7 +50,12 @@ public enum Origenes {
      * @return Valor del adicional por origen
      */
     public double calcularBonoPorOrigen(double haberBase) {
-        return haberBase * this.porcentajeBono;
+        // Se calcula el adicional correspondiente por el Origen
+        assert haberBase >= 0 : "El haber base no puede ser negativo.";
+        double adicional = haberBase * this.porcentajeBono;
+        
+        assert adicional >= 0 : "El resultado del bono no puede ser negativo.";
+        return adicional;
     }
     
 }

@@ -48,6 +48,7 @@ public class OrigenDecorator extends Decorator{
 
         // Consulta el origen del tripulante base
         Origenes origenTripulante = this.getOrigen();
+        assert origenTripulante != null : "El origen del tripulante no puede ser null.";
         
         // Aplica la bonificacion correspondiente segun el Origen
         double adicional = origenTripulante.calcularBonoPorOrigen(haberBase);

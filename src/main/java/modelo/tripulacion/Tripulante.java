@@ -167,12 +167,12 @@ public abstract class Tripulante implements Liquidacion{
      * origen != null
      */
     private boolean validarNombre(String nombre) {
-        return nombre == null || nombre.isBlank();
+        return nombre != null && !nombre.isBlank();
     }
     private boolean validarAntiguedad(int antiguedad) {
-        return antiguedad < 0;
+        return antiguedad >= 0;
     }
     private boolean validarOrigen(Origenes origen) {
-        return origen == null;
+        return origen != null;
     }
 }
