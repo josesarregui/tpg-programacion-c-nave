@@ -43,6 +43,7 @@ public class Consejero extends Tripulante{
      */
     public Consejero(String nombre, int antiguedad, Origenes origen, int cantConsejos) {
         super(nombre, antiguedad, origen);
+        assert cantConsejos >= 0 : "La cantidad de consejos no puede ser negativa.";
         this.cantConsejos = cantConsejos;
     }
     
@@ -51,7 +52,6 @@ public class Consejero extends Tripulante{
     /**
      * Consulta el sueldo base del Consejero.
      * 
-     * @pre true (metodo estatico, siempre disponible).
      * @post El valor retornado es igual a SUELDOBASECONSEJHERO (600.0).
      * @return sueldo base del rango Consejero.
      */
@@ -62,7 +62,6 @@ public class Consejero extends Tripulante{
     /**
      * Retorna el sueldo base del Consejero.
      * 
-     * @pre true (el Consejero esta correctamente inicializado).
      * @post El valor retornado es igual a SUELDOBASECONSEJHERO (600.0).
      * @return monto del sueldo base.
      */

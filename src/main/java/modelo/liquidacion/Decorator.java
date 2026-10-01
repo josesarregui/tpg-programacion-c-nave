@@ -24,6 +24,7 @@ public abstract class Decorator implements Liquidacion{
      * @param liquidacion Objeto que implementa la interfase Liquidacion
      */
     public Decorator(Liquidacion liquidacion) {
+        assert liquidacion != null : "La liquidacion no puede ser null.";
         this.liquidacion = liquidacion;
     }
 
@@ -46,6 +47,7 @@ public abstract class Decorator implements Liquidacion{
      * @param liquidacion Objeto que implementa Liquidacion que se guarda para ser decorado.
      */
     public void setLiquidacion(Liquidacion liquidacion) {
+        assert liquidacion != null : "La liquidacion no puede ser null.";
         this.liquidacion = liquidacion;
     }
     
