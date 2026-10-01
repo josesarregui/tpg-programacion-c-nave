@@ -18,6 +18,12 @@ public abstract class Tripulante implements Liquidacion{
     protected Origenes origen;
 
     
+    /**
+     * Constructor que crea un instancia de un Tripulante recibien un nombre, antiguedad y origen
+     * @param nombre nombre correspondiente al tripulante.
+     * @param antiguedad años de antiguedad del tripulante.
+     * @param origen planeta de origen del tripulante.
+     */
     public Tripulante(String nombre, int antiguedad, Origenes origen) {
         this.id = siguienteId();
         this.nombre = nombre;
@@ -45,8 +51,7 @@ public abstract class Tripulante implements Liquidacion{
     }
 
     
-    
-    @Override
+
     public int getAntiguedad() {
         return this.antiguedad;
     }
@@ -67,12 +72,6 @@ public abstract class Tripulante implements Liquidacion{
         this.origen = origen;
     }
 
-    
-    @Override
-    public int getConsejos() {
-        return 0;
-    }
-    
     
     @Override
     public String toString() {

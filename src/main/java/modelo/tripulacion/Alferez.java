@@ -12,7 +12,7 @@ public class Alferez extends Tripulante{
     // Sueldo base del rango de Alferez
     private static final double SUELDOBASEALFEREZ = 200.0;
     // Adicional por cada año de antiguedad
-    private static final double ADICIONALALFEREZ = 0.05;
+    private static final double ADICIONALALFEREZ = 0.005;
 
     
     
@@ -20,12 +20,6 @@ public class Alferez extends Tripulante{
         super(nombre, antiguedad, origen);
     }
 
-
-    
-    public static double getSUELDOBASEALFEREZ() {
-        return SUELDOBASEALFEREZ;
-    }
-    
     
     @Override
     public double calcularSueldo() {
@@ -33,8 +27,12 @@ public class Alferez extends Tripulante{
     }
     
     @Override
-    public double getAdicionalCargo() {
-        return this.ADICIONALALFEREZ;
+    public double getAdicionalAntiguedad() {
+        // Consulta el adicional por cargo de Alferez
+        double adicional = this.SUELDOBASEALFEREZ * this.ADICIONALALFEREZ;
+        // Calcula el adicional total por año de antiguedad
+        adicional = adicional * super.antiguedad;
+        return adicional;
     }
     
     @Override

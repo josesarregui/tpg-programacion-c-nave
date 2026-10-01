@@ -13,7 +13,7 @@ import modelo.tripulacion.Origenes;
 public class OrigenDecorator extends Decorator{
     /**
      * Constructor que solo recibe el objeto a decorar.
-     * @param liquidacion Objeto que implementa Liquidacion
+     * @param liquidacion Objeto que implementa la interfase Liquidacion
      */
     public OrigenDecorator(Liquidacion liquidacion) {
         super(liquidacion);
@@ -22,45 +22,32 @@ public class OrigenDecorator extends Decorator{
     
     @Override
     public double calcularSueldo() {
-        // Obtiene el sueldo acumulado de la capa previa
-        double haberAcumulado = super.getLiquidacion().calcularSueldo();
+        // Obtiene el objeto a ser envuelto por esta capa
+        Liquidacion liqBase = super.getLiquidacion();
+        assert liqBase != null : "Error de Invariante: La referencia a 'Liquidacion' no puede ser null";
+        
+        // Obtiene el haber acumulado de las capas internas
+        double haberBase = liqBase.calcularSueldo();
+        assert haberBase >= 0 : "Invariante violado: El haber base acumulado no puede ser negativo";
 
         // Consulta el origen del tripulante base
         Origenes origenTripulante = this.getOrigen();
-
+        
         // Aplica la bonificacion correspondiente segun el Origen
-        double bonoOrigen = calcularBonoPorOrigen(origenTripulante, haberAcumulado);
+        double adicional = origenTripulante.calcularBonoPorOrigen(haberBase);
+        assert adicional >= 0 : "Invariante violado: El adicional no puede ser negativo";
 
         // Retorna la suma del sueldo acumulado mas el adicional por origen
-        return haberAcumulado + bonoOrigen;
+        return haberBase + adicional;
     }
-
+    
+    
     /**
-     * Logica auxiliar para determinar el monto del bono segun el Origen.
+     * Consulta y retorna el origen correspondiente al tripulante.
+     * @return el origen del tripulante
      */
-    private double calcularBonoPorOrigen(Origenes origen, double haberBase) {
-        double adicional;
-        switch (origen){ 
-            case MARCIANO:
-                adicional = haberBase * 0.15; // 15% de bonificacion por ser de Marte
-            break;
-            case VULCANO:
-                adicional =  haberBase * 0.10; // 10% de bonificacion por ser de Vulcano
-            break;
-            case TERRICOLA:
-                adicional =  haberBase * 0.0; // Sin adicional
-            break;
-            default:
-                adicional =  0.0; // Sin adicional
-            break;
-        }
-        return adicional;
-    }
-
     @Override
     public Origenes getOrigen() {
         return super.getOrigen();
     }
-
-    
 }

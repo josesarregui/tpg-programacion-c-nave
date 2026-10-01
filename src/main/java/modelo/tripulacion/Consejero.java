@@ -12,7 +12,7 @@ public class Consejero extends Tripulante{
     // Sueldo base del rango de Consejero
     private static final double SUELDOBASECONSEJHERO = 600.0;
     // Adicional por cada año de antiguedad
-    private static final double ADICIONALCONSEJERO = 0.5;
+    private static final double ADICIONALCONSEJERO = 0.05;
     // Cantidad de consejos registrados
     private int cantConsejos;
 
@@ -39,18 +39,18 @@ public class Consejero extends Tripulante{
     }
     
     @Override
-    public double getAdicionalCargo() {
-        return this.ADICIONALCONSEJERO;
-    }
-    
-    @Override
-    public int getConsejos() {
-        return this.cantConsejos;
-    }
-    
-    @Override
-    public String toString() {
-        return super.toString(); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
+    public double getAdicionalAntiguedad() {        
+        // Consulta el adicional por cargo de Consejero
+        double adicional = this.SUELDOBASECONSEJHERO * this.ADICIONALCONSEJERO;
+        // Calcula el adicional total por año de antiguedad
+        adicional = adicional * super.antiguedad;
+        // Se le agrega el adicional por cada consejo realizado
+        adicional = adicional + this.cantConsejos * 2;
+        return adicional;
     }
 
+    @Override
+    public String toString() {
+        return "Consejero{" + "cantConsejos=" + cantConsejos + super.toString() +'}';
+    }
 }

@@ -16,40 +16,44 @@ public abstract class Decorator implements Liquidacion{
 
     /**
      * Constructor que recibe el componente a envolver.
-     * @param liquidacion Objeto que implementa Liquidacion
+     * @param liquidacion Objeto que implementa la interfase Liquidacion
      */
     public Decorator(Liquidacion liquidacion) {
         this.liquidacion = liquidacion;
     }
 
     
-    
+    /**
+     * Metodo que retorna el obejeto a ser decorado.
+     * @return Objeto a ser decorado.
+     */
     public Liquidacion getLiquidacion() {
         return liquidacion;
     }
-
+    /**
+     * Metodo que setea el objeto a ser decorado.
+     * @param Objeto que implementa Liquidacion que se guarda para ser decorado.
+     */
     public void setLiquidacion(Liquidacion liquidacion) {
         this.liquidacion = liquidacion;
     }
     
     
-    @Override
-    public int getConsejos() {
-        return this.liquidacion.getConsejos();
-    }
     
+    /**
+     * Calcula y retorna el sueldo adicional correspondiente del tripulante.
+     * @return monto de sueldo adicional.
+     */
     @Override
-    public int getAntiguedad() {
-        return this.liquidacion.getAntiguedad();
+    public double getAdicionalAntiguedad() {
+        return this.liquidacion.getAdicionalAntiguedad();
     }
-
+    /**
+     * Consulta y retorna el origen correspondiente al tripulante.
+     * @return el origen del tripulante
+     */
     @Override
     public Origenes getOrigen() {
         return this.liquidacion.getOrigen();
-    }
-
-    @Override
-    public double getAdicionalCargo() {
-        return this.liquidacion.getAdicionalCargo();
     }
 }

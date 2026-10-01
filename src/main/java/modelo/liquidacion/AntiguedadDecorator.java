@@ -12,7 +12,7 @@ public class AntiguedadDecorator extends Decorator{
     
     /**
      * Constructor que solo recibe el objeto a envolver.
-     * @param liquidacion Objeto que implementa Liquidacion
+     * @param liquidacion Objeto que implementa la interfase Liquidacion
      */
     public AntiguedadDecorator(Liquidacion liquidacion) {
         super(liquidacion);
@@ -20,31 +20,28 @@ public class AntiguedadDecorator extends Decorator{
 
     @Override
     public double calcularSueldo() {
-        // Obtiene el haber acumulado de las capas internas
-        double haberBase = super.getLiquidacion().calcularSueldo();
-
-        // Consulta los años de antiguedad
-        int anios = this.getAntiguedad();
+        // Obtiene el objeto a ser envuelto por esta capa
+        Liquidacion liqBase = super.getLiquidacion();
+        assert liqBase != null : "Error de Invariante: La referencia a 'Liquidacion' no puede ser null";
         
-        // Consulta el adicional por año de antiguedad
-        double adicional = this.getAdicionalCargo();
-
-        //  Calcula la bonificacion segun los años de antiguedad
-        adicional = anios * (haberBase * adicional);
+        // Obtiene el haber acumulado de las capas internas
+        double haberBase = liqBase.calcularSueldo();
+        assert haberBase >= 0 : "Invariante violado: El haber base acumulado no puede ser negativo";
+        
+        // Consulta el adicional correspondiente por año de antiguedad
+        double adicional = this.getAdicionalAntiguedad();
+        assert adicional >= 0 : "Invariante violado: El adicional no puede ser negativo";
 
         // Retorna el acumulado con el adicional de antiguedad
         return haberBase + adicional;
     }
     
-    
-
+    /**
+     * Calcula y retorna el sueldo adicional correspondiente del tripulante.
+     * @return monto de sueldo adicional.
+     */
     @Override
-    public int getAntiguedad() {
-        return super.getAntiguedad();
-    }
-
-    @Override
-    public double getAdicionalCargo() {
-        return super.getAdicionalCargo();
+    public double getAdicionalAntiguedad() {
+        return super.getAdicionalAntiguedad();
     }
 }

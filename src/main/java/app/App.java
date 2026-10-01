@@ -5,7 +5,6 @@
 package app;
 
 import modelo.liquidacion.AntiguedadDecorator;
-import modelo.liquidacion.ConsejosDecorator;
 import modelo.liquidacion.Liquidacion;
 import modelo.liquidacion.OrigenDecorator;
 import modelo.tripulacion.Alferez;
@@ -45,9 +44,6 @@ public class App {
 
         consejero = new AntiguedadDecorator(consejero);
         System.out.println("Sueldo con antiguedad: " + consejero.calcularSueldo());
-
-        consejero = new ConsejosDecorator(consejero);
-        System.out.println("Sueldo con consejos: " + consejero.calcularSueldo());
 
         consejero = new OrigenDecorator(consejero);
         System.out.println("Sueldo con adicional de orgien: " + consejero.calcularSueldo());

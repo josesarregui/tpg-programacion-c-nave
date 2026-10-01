@@ -15,16 +15,10 @@ public class Capitan extends Tripulante{
     private static final double ADICIONALCAPITAN = 0.20;
 
     /**
-     * Constructor para instanciar un Capitán.
+     * Constructor para instanciar un Capitan.
      */
     public Capitan(String nombre, int antiguedad, Origenes origen) {
         super(nombre, antiguedad, origen);
-    }
-    
-    
-
-    public static double getSUELDOBASECAPITAN() {
-        return SUELDOBASECAPITAN;
     }
     
     
@@ -34,8 +28,12 @@ public class Capitan extends Tripulante{
     }
     
     @Override
-    public double getAdicionalCargo() {
-        return this.ADICIONALCAPITAN;
+    public double getAdicionalAntiguedad() {        
+        // Consulta el adicional por cargo de Capitan
+        double adicional = this.SUELDOBASECAPITAN * this.ADICIONALCAPITAN;
+        // Calcula el adicional total por año de antiguedad
+        adicional = adicional * super.antiguedad;
+        return adicional;
     }
     
     @Override

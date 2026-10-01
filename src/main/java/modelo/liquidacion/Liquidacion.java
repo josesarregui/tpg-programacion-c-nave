@@ -19,13 +19,14 @@ public interface Liquidacion {
     public double calcularSueldo();
     
     
-    public int getConsejos();
-    
-    
-    public int getAntiguedad();
-    public double getAdicionalCargo();
-    
-    
+    /**
+     * Calcula y retorna el sueldo adicional correspondiente del tripulante.
+     * @return monto de sueldo adicional.
+     */
+    public double getAdicionalAntiguedad();
+    /**
+     * Consulta y retorna el origen correspondiente al tripulante.
+     * @return el origen del tripulante
+     */
     public Origenes getOrigen();
-    
 }
