@@ -22,15 +22,15 @@ public class AntiguedadDecorator extends Decorator{
     public double calcularSueldo() {
         // Obtiene el objeto a ser envuelto por esta capa
         Liquidacion liqBase = super.getLiquidacion();
-        assert liqBase != null : "Error de Invariante: La referencia a 'Liquidacion' no puede ser null";
+        assert liqBase != null : "La referencia a 'Liquidacion' no puede ser null";
         
         // Obtiene el haber acumulado de las capas internas
         double haberBase = liqBase.calcularSueldo();
-        assert haberBase >= 0 : "Invariante violado: El haber base acumulado no puede ser negativo";
+        assert haberBase >= 0 : "El haber base acumulado no puede ser negativo";
         
         // Consulta el adicional correspondiente por año de antiguedad
         double adicional = this.getAdicionalAntiguedad();
-        assert adicional >= 0 : "Invariante violado: El adicional no puede ser negativo";
+        assert adicional >= 0 : "El adicional no puede ser negativo";
 
         // Retorna el acumulado con el adicional de antiguedad
         return haberBase + adicional;

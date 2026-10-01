@@ -24,18 +24,18 @@ public class OrigenDecorator extends Decorator{
     public double calcularSueldo() {
         // Obtiene el objeto a ser envuelto por esta capa
         Liquidacion liqBase = super.getLiquidacion();
-        assert liqBase != null : "Error de Invariante: La referencia a 'Liquidacion' no puede ser null";
+        assert liqBase != null : "La referencia a 'Liquidacion' no puede ser null";
         
         // Obtiene el haber acumulado de las capas internas
         double haberBase = liqBase.calcularSueldo();
-        assert haberBase >= 0 : "Invariante violado: El haber base acumulado no puede ser negativo";
+        assert haberBase >= 0 : "El haber base acumulado no puede ser negativo";
 
         // Consulta el origen del tripulante base
         Origenes origenTripulante = this.getOrigen();
         
         // Aplica la bonificacion correspondiente segun el Origen
         double adicional = origenTripulante.calcularBonoPorOrigen(haberBase);
-        assert adicional >= 0 : "Invariante violado: El adicional no puede ser negativo";
+        assert adicional >= 0 : "El adicional no puede ser negativo";
 
         // Retorna la suma del sueldo acumulado mas el adicional por origen
         return haberBase + adicional;
