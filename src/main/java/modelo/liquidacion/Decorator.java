@@ -7,6 +7,8 @@ package modelo.liquidacion;
 import modelo.tripulacion.Origenes;
 
 /**
+ * Clase abstracta que actua como base del patron Decorator para la liquidacion.
+ * Envuelve un objeto {@link Liquidacion} y delega las operaciones al componente interno.
  *
  * @author Sebastian
  */
@@ -16,6 +18,9 @@ public abstract class Decorator implements Liquidacion{
 
     /**
      * Constructor que recibe el componente a envolver.
+     * 
+     * @pre liquidacion != null.
+     * @post Se almacena la referencia al componente envuelto.
      * @param liquidacion Objeto que implementa la interfase Liquidacion
      */
     public Decorator(Liquidacion liquidacion) {
@@ -25,6 +30,9 @@ public abstract class Decorator implements Liquidacion{
     
     /**
      * Metodo que retorna el obejeto a ser decorado.
+     * 
+     * @pre El decorador fue correctamente inicializado con un componente valido.
+     * @post El valor retornado es distinto de null.
      * @return Objeto a ser decorado.
      */
     public Liquidacion getLiquidacion() {
@@ -32,7 +40,10 @@ public abstract class Decorator implements Liquidacion{
     }
     /**
      * Metodo que setea el objeto a ser decorado.
-     * @param Objeto que implementa Liquidacion que se guarda para ser decorado.
+     * 
+     * @pre liquidacion != null.
+     * @post Se actualiza la referencia al componente envuelto.
+     * @param liquidacion Objeto que implementa Liquidacion que se guarda para ser decorado.
      */
     public void setLiquidacion(Liquidacion liquidacion) {
         this.liquidacion = liquidacion;
@@ -42,6 +53,10 @@ public abstract class Decorator implements Liquidacion{
     
     /**
      * Calcula y retorna el sueldo adicional correspondiente del tripulante.
+     * Delega al componente envuelto.
+     * 
+     * @pre El componente envuelto (liquidacion) es distinto de null.
+     * @post El valor retornado es mayor o igual a 0.
      * @return monto de sueldo adicional.
      */
     @Override
@@ -50,6 +65,10 @@ public abstract class Decorator implements Liquidacion{
     }
     /**
      * Consulta y retorna el origen correspondiente al tripulante.
+     * Delega al componente envuelto.
+     * 
+     * @pre El componente envuelto (liquidacion) es distinto de null.
+     * @post El valor retornado es distinto de null y pertenece al enum {@link Origenes}.
      * @return el origen del tripulante
      */
     @Override
