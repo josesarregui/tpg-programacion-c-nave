@@ -5,6 +5,8 @@
 package modelo.tripulacion;
 
 /**
+ * Enum que representa los posibles origenes de un tripulante.
+ * Cada origen tiene asociado un porcentaje de bonificacion salarial.
  *
  * @author Sebastian
  */
@@ -18,6 +20,9 @@ public enum Origenes {
     
     /**
      * Constructor de Origenes para asociar cada origen con su porcentaje.
+     * 
+     * @pre porcentajeBono >= 0 y porcentajeBono <= 1.
+     * @post Se almacena el porcentaje de bonificacion asociado al origen.
      */
     Origenes(double porcentajeBono) {
         this.porcentajeBono = porcentajeBono;
@@ -25,8 +30,11 @@ public enum Origenes {
 
     
     /**
-     * Consulta el porsentaje del bono segun el origen.
-     * @return Porsentaje de bono correspondinte segun el origen.
+     * Consulta el porcentaje del bono segun el origen.
+     * 
+     * @pre true (sin precondiciones adicionales, el enum siempre esta inicializado).
+     * @post El valor retornado es mayor o igual a 0 y menor o igual a 1.
+     * @return Porcentaje de bono correspondiente segun el origen.
      */
     public double getPorcentajeBono() {
         return this.porcentajeBono;
@@ -34,6 +42,10 @@ public enum Origenes {
 
     /**
      * Calcula el monto del bono segun el haber recibido.
+     * 
+     * @pre haberBase >= 0.
+     * @post El valor retornado es mayor o igual a 0.
+     * @post El valor retornado es igual a haberBase * porcentajeBono.
      * @param haberBase Sueldo sobre el cual se aplica el porcentaje
      * @return Valor del adicional por origen
      */

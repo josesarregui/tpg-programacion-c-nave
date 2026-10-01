@@ -7,6 +7,8 @@ package modelo.tripulacion;
 import modelo.liquidacion.Liquidacion;
 
 /**
+ * Clase abstracta que representa un tripulante de la nave.
+ * Implementa la interfaz {@link Liquidacion} para el calculo de sueldos.
  *
  * @author Sebastian
  */
@@ -20,6 +22,12 @@ public abstract class Tripulante implements Liquidacion{
     
     /**
      * Constructor que crea un instancia de un Tripulante.
+     * 
+     * @pre nombre != null y nombre no esta en blanco.
+     * @pre antiguedad >= 0.
+     * @pre origen != null.
+     * @post Se crea el tripulante con un id unico auto-generado.
+     * @post Los atributos nombre, antiguedad y origen quedan inicializados.
      * @param nombre Nombre correspondiente al tripulante.
      * @param antiguedad Años de antiguedad del tripulante.
      * @param origen Planeta de origen del tripulante.
@@ -38,6 +46,10 @@ public abstract class Tripulante implements Liquidacion{
     
     /**
      * Genera el siguiente id de Tripulante disponible.
+     * 
+     * @pre true (metodo interno estatico).
+     * @post El id retornado es mayor que cualquier id generado previamente.
+     * @post idAuto queda incrementado en 1.
      * @return siguiente id disponible.
      */
     private static int siguienteId(){
@@ -46,6 +58,9 @@ public abstract class Tripulante implements Liquidacion{
     }
     /**
      * Consulta el id correspondiente al Tripulante.
+     * 
+     * @pre true (el tripulante esta correctamente inicializado).
+     * @post El valor retornado es mayor que 0.
      * @return id del Tripulante.
      */
     public int getId() {
@@ -55,6 +70,9 @@ public abstract class Tripulante implements Liquidacion{
     
     /**
      * Consulta el nombre del Tripulante.
+     * 
+     * @pre true (el tripulante esta correctamente inicializado).
+     * @post El valor retornado es distinto de null y no esta en blanco.
      * @return Nombre del Tripulante.
      */
     public String getNombre() {
@@ -62,6 +80,9 @@ public abstract class Tripulante implements Liquidacion{
     }
     /**
      * Modifica el nombre del Tripulante.
+     * 
+     * @pre nombre != null y nombre no esta en blanco.
+     * @post El nombre del tripulante queda actualizado con el nuevo valor.
      * @param nombre nuevo nombre del Tripulante.
      */
     public void setNombre(String nombre) {
@@ -73,6 +94,9 @@ public abstract class Tripulante implements Liquidacion{
 
     /**
      * Consulta la antiguedad del Tripulante.
+     * 
+     * @pre true (el tripulante esta correctamente inicializado).
+     * @post El valor retornado es mayor o igual a 0.
      * @return Antiguedad del Tripulante.
      */
     public int getAntiguedad() {
@@ -80,6 +104,9 @@ public abstract class Tripulante implements Liquidacion{
     }
     /**
      * Modifica la antiguedad del Tripulante.
+     * 
+     * @pre antiguedad >= 0.
+     * @post La antiguedad del tripulante queda actualizada con el nuevo valor.
      * @param antiguedad Nueva antiguedad del Tripulante.
      */
     public void setAntiguedad(int antiguedad) {
@@ -88,14 +115,20 @@ public abstract class Tripulante implements Liquidacion{
     }
     /**
      * Agrega un año a la antiguedad del Tripulante.
+     * 
+     * @pre true (siempre se puede incrementar la antiguedad).
+     * @post La antiguedad del tripulante se incrementa en 1.
      */
     public void agregarAntiguedad() {
         this.antiguedad += 1;
     }
 
     
-     /**
+    /**
      * Consulta el origen del Tripulante.
+     * 
+     * @pre true (el tripulante esta correctamente inicializado).
+     * @post El valor retornado es distinto de null y pertenece al enum {@link Origenes}.
      * @return Origen del Tripulante.
      */
     @Override
@@ -104,6 +137,9 @@ public abstract class Tripulante implements Liquidacion{
     }
     /**
      * Modifica el origen del tripulante.
+     * 
+     * @pre origen != null.
+     * @post El origen del tripulante queda actualizado con el nuevo valor.
      * @param origen nuevo origen del Tripulante
      */
     public void setOrigen(Origenes origen) {

@@ -5,6 +5,8 @@
 package modelo.tripulacion;
 
 /**
+ * Clase concreta que representa a un tripulante con rango de Alferez.
+ * Sueldo base: 200.0 | Adicional por antiguedad: 0.5% del sueldo base por año.
  *
  * @author Sebastian
  */
@@ -16,16 +18,39 @@ public class Alferez extends Tripulante{
 
     
     
+    /**
+     * Constructor para instanciar un Alferez.
+     * 
+     * @pre nombre != null y nombre no esta en blanco.
+     * @pre antiguedad >= 0.
+     * @pre origen != null.
+     * @post Se crea un Alferez con los atributos inicializados.
+     */
     public Alferez(String nombre, int antiguedad, Origenes origen) {
         super(nombre, antiguedad, origen);
     }
 
     
+    /**
+     * Retorna el sueldo base del Alferez.
+     * 
+     * @pre true (el Alferez esta correctamente inicializado).
+     * @post El valor retornado es igual a SUELDOBASEALFEREZ (200.0).
+     * @return monto del sueldo base.
+     */
     @Override
     public double calcularSueldo() {
         return SUELDOBASEALFEREZ;
     }
     
+    /**
+     * Calcula el adicional por antiguedad del Alferez.
+     * 
+     * @pre antiguedad >= 0.
+     * @post El valor retornado es mayor o igual a 0.
+     * @post El valor retornado es igual a SUELDOBASEALFEREZ * ADICIONALALFEREZ * antiguedad.
+     * @return monto del adicional por antiguedad.
+     */
     @Override
     public double getAdicionalAntiguedad() {
         // Consulta el adicional por cargo de Alferez
