@@ -43,7 +43,7 @@ En lugar de organizar el código por tipos de componentes técnicos (capas horiz
 
 ---
 
-## Estrategia de Verificación y Pruebas Unitarias (JUnit 5)
+## 3. Estrategia de Verificación y Pruebas Unitarias (JUnit 5)
 
 Para validar el núcleo de dominio de manera automatizada y reproducible mediante Maven (`mvn test`), se implementaron suites de pruebas unitarias bajo **JUnit 5** (`Jupiter`) en el directorio `src/test/java`.
 
@@ -67,3 +67,7 @@ La suite de pruebas del subsistema de propulsión sigue las directivas del **Esc
       Verifica polimórficamente que el estado actual del motor sea una instancia concreta del tipo esperado, validando el correcto funcionamiento del patrón State tras una transición[cite: 4, 8].
     * **`assertThrows(Excepcion.class, ejecutable);`**  
       Garantiza el cumplimiento del Diseño por Contrato y la regla de no admitir transiciones silenciosas: verifica que el motor interrumpa la ejecución y arroje la excepción correspondiente ante una maniobra inválida, dejando intacto el estado interno de la nave[cite: 4, 9].
+
+## 4. Mejoras y Extensiones Pendientes
+* **modelo.bitacora (Evento):** Incorporar validación defensiva de precondiciones (`if (fecha == null)` o `Objects.requireNonNull`) para blindar la inmutabilidad antes de la entrega final.
+* **modelo.warp (DisponibleState, EnfriamientoState, EnWarpState, MotorWarp, PreparandoSaltoState):** Incorporar validación defensiva de precondiciones (`if (fecha == null)` o `Objects.requireNonNull`) para blindar la inmutabilidad antes de la entrega final.

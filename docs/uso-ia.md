@@ -20,7 +20,7 @@
 * Se corroboró la coincidencia de las rutas locales del sistema de archivos con el directorio clonado en Git.
 
 
-### Consulta: Protección de Invariantes y Validación de Nulos en el Contexto (`MotorWarp`)
+### Consulta: Protección de Invariantes y Validación de Nulos en el Contexto (`MotorWarp`) --> ACTUALMENTE NO ESTA ASI
 
 * **Contexto del debate:**
   Al implementar el método `setEstado(State nuevoEstado)` en la clase de contexto `MotorWarp`, surgió la duda sobre por qué utilizar `Objects.requireNonNull(nuevoEstado, ...)` en lugar de la asignación directa habitual (`estado = nuevoEstado`), tal como figuraba en las diapositivas introductorias de la cátedra.
@@ -33,3 +33,10 @@
 
 * **Decisión de diseño adoptada por el alumno/equipo:**
   Se incorporó `Objects.requireNonNull` en el mutador `setEstado` de `MotorWarp` para cumplir de forma estricta con la rúbrica de diseño por contrato e impedir estados inconsistentes en el modelo sin depender de interfaces gráficas o consola.
+
+
+### Validación de Nulos en el Contexto (`Bitacora.java`)
+* public List<Evento> getEventos() {
+*   return Collections.unmodifiableList(eventos); // 
+* }
+* --> Se uso la libreria java.util.Collections. Si alguien intenta hacer un .add() o .clear() sobre esa lista devuelta, Java lanza una excepción y no permite alterar la bitácora.
