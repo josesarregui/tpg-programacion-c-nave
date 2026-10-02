@@ -1,5 +1,6 @@
 package modelo.tripulacion;
 
+import excepcion.LiquidacionInvalidaException;
 import excepcion.TripulanteInvalidoException;
 import modelo.liquidacion.ConceptoHaber;
 import modelo.liquidacion.TipoConcepto;
@@ -57,12 +58,16 @@ public class Consejero extends Tripulante {
 
     /**
      * Registra un consejo brindado durante el período indicado.
+     * El período llega desde fuera del modelo (el Asistente o, en la E2, un controlador),
+     * por eso se valida con una excepción y no sólo con una aserción.
      *
-     * @pre periodo != null.
+     * @throws LiquidacionInvalidaException si el período es nulo; el concepto rechazado es CONSEJOS.
      * @post getCantidadConsejos(periodo) == cantidad anterior + 1.
      */
-    public void registrarConsejo(YearMonth periodo) {
-        assert periodo != null : "El período del consejo no puede ser nulo.";
+    public void registrarConsejo(YearMonth periodo) throws LiquidacionInvalidaException {
+        if (periodo == null) {
+            throw new LiquidacionInvalidaException("El período del consejo debe estar informado.", TipoConcepto.CONSEJOS);
+        }
         int cantidadAnterior = getCantidadConsejos(periodo);
         consejosPorPeriodo.put(periodo, cantidadAnterior + 1);
         assert getCantidadConsejos(periodo) == cantidadAnterior + 1 : "Fallo postcondición: el consejo no quedó registrado.";

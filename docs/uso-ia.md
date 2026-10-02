@@ -68,3 +68,24 @@
     * rechazos por excepción (antigüedad negativa, tripulación sin capitán o incompleta, concepto nulo o repetido, id inexistente) y por aserción (importe negativo).
 
     Comando: `mvn test`.
+
+### Registro de Asistencia: Análisis comparativo con main y preparación de la integración (02/10/2026)
+
+* **Herramienta utilizada:** Claude Code (Anthropic).
+
+* **Propósito de la consulta:**
+    1. Comparar `modelo.tripulacion` y `modelo.liquidacion` de esta rama con los de `main` frente a la Guía TP Nave (E1-04, E1-08, Ficha de Inicio, Observaciones y Evidencias) y los apuntes de la cátedra.
+    2. Dejar la rama lista para integrarse en `main`.
+
+* **Componente o documento afectado:** `Consejero.registrarConsejo`, `TripulacionTest`, `app/App.java`, `README.md`, `docs/diseño.md`, `docs/diagrama_clases.md` y resolución del merge con `main`.
+
+* **Resultado aprovechado:**
+    * Informe comparativo (PDF) para el equipo: `main` calcula el subsidio por origen como porcentaje (E1-08 fija 20/30/18 PG), no liquida los consejos por período y no deja identificable cada concepto.
+    * `registrarConsejo` rechaza un período nulo con `LiquidacionInvalidaException` en lugar de una aserción, porque el dato llega desde fuera del modelo.
+    * Nueva demostración `App` con la API actual y casos de rechazo.
+    * Merge de `main` en la rama conservando la versión de la rama de ambos módulos y eliminando `Origenes.java`, que ya no se usa.
+    * README con instrucciones de compilación, ejecución y verificación.
+
+* **Revisión o modificación realizada por el equipo:** _(completar por el equipo: qué se revisó, qué se modificó y quién lo hizo)._
+
+* **Forma en que se verificó el resultado:** `mvn test` (51 pruebas en verde) y ejecución de `app.App`, comparando los totales con los calculados a mano según E1-08.

@@ -1,8 +1,10 @@
 package modelo.tripulacion;
 
+import excepcion.LiquidacionInvalidaException;
 import excepcion.TripulacionInvalidaException;
 import excepcion.TripulanteInexistenteException;
 import excepcion.TripulanteInvalidoException;
+import modelo.liquidacion.TipoConcepto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -82,7 +84,7 @@ public class TripulacionTest {
 
     @Test
     @DisplayName("El consejero registra sus consejos por período")
-    public void testConsejosPorPeriodo() {
+    public void testConsejosPorPeriodo() throws Exception {
         YearMonth octubre = YearMonth.of(2026, 10);
         YearMonth noviembre = YearMonth.of(2026, 11);
 
@@ -96,11 +98,12 @@ public class TripulacionTest {
         assertEquals(4.0, consejero.calcularAdicionalConsejos(octubre), 0.0001);
     }
 
-    // Las aserciones se verifican porque Maven Surefire ejecuta las pruebas con -ea por defecto.
     @Test
-    @DisplayName("Aserción: el período de un consejo no puede ser nulo")
+    @DisplayName("Rechazo: el período de un consejo debe estar informado (la excepción indica el concepto)")
     public void testConsejoSinPeriodo() {
-        assertThrows(AssertionError.class, () -> consejero.registrarConsejo(null));
+        LiquidacionInvalidaException e = assertThrows(LiquidacionInvalidaException.class, () -> consejero.registrarConsejo(null));
+        assertEquals(TipoConcepto.CONSEJOS, e.getConceptoRechazado());
+        assertEquals(0, consejero.getCantidadConsejos(YearMonth.of(2026, 10)));
     }
 
     // --- Tripulación ---

@@ -16,9 +16,11 @@ En lugar de organizar el código por tipos de componentes técnicos (capas horiz
     * Cada subclase define la remuneración de su cargo y **calcula su propio adicional por antigüedad** (`calcularAdicionalAntiguedad()`) con el porcentaje que le corresponde.
     * El adicional por consejos es responsabilidad exclusiva de `Consejero`: sus consejos se registran **por período mensual** (`YearMonth`), y redefine `calcularConceptos()` para agregar ese concepto a los de su cargo. Así cada liquidación cobra sólo los consejos de su mes.
     * Se descartó declarar `getConsejos()` en la interfaz `Liquidacion` e implementarlo en `Tripulante` devolviendo 0. Eso violaba el **principio de segregación de interfaces**: obligaba a todos los tripulantes a depender de un método que sólo tiene sentido para el consejero (el mismo caso que el robot obligado a implementar `descansar()`).
+    * **Indicación de la cátedra:** el docente Lucas observó esa violación y propuso trasladar el cálculo del adicional por antigüedad y por consejos a las subclases de `Tripulante`, eliminando `ConsejosDecorator`. Por eso el adicional por consejos (el único "concepto particular" de E1-08) lo agrega el propio `Consejero` y no un decorador.
     * `Origen` conoce su subsidio mensual, de modo que no hace falta un `switch` para calcularlo.
 * **Contratos:**
     * `Tripulante`: nombre no nulo ni vacío, antigüedad >= 0 y origen informado; si no se cumple, se lanza `TripulanteInvalidoException` con los datos rechazados. Invariante verificado con `assert invariante()`; `incrementarAntiguedad()` verifica su postcondición guardando el valor anterior.
+    * `Consejero.registrarConsejo(periodo)`: el período llega desde fuera del modelo, por eso un período nulo se rechaza con `LiquidacionInvalidaException` (concepto `CONSEJOS`) sin registrar nada.
     * `Tripulacion` (invariante): exactamente un/a capitán/a, al menos 1 + 4 integrantes y sin repetidos ni nulos. `incorporar` y `desembarcar` rechazan con `TripulacionInvalidaException` cualquier operación que rompa el invariante, **sin modificar parcialmente** la tripulación. `buscarPorId` lanza `TripulanteInexistenteException` con el id buscado.
 
 ### `warp` (Patrón State - E1-02)
@@ -64,6 +66,11 @@ En lugar de organizar el código por tipos de componentes técnicos (capas horiz
 * **Criterio adoptado en Tripulación y Liquidación:**
     * **Excepciones propias (comprobadas, extienden `Exception`):** se usan cuando el problema no puede resolverse dentro del método y debe propagarse al invocante (el Asistente o, en la E2, un controlador). Cada una guarda el dato que provocó el error, con su getter, para que la zona de recuperación (`catch`) pueda decidir qué hacer. Se declaran con `throws` porque forman parte del contrato del método.
     * **Aserciones (`assert`):** se usan para invariantes de clase (`private boolean invariante()` comprobado al final de constructores y métodos modificadores), postcondiciones (guardando el valor anterior en una variable local, por ejemplo `cantidadAnterior`), invariantes de ciclo y precondiciones cuya violación sólo puede deberse a un error de programación. Se activan con `-ea`; Maven Surefire las activa por defecto al ejecutar `mvn test`.
+    * **Importes de los conceptos:** se verifican con aserciones (`ConceptoHaber`, `Decorator`) y no con excepciones, porque los calcula el propio modelo a partir de datos ya validados (antigüedad >= 0, origen y cargo informados). Un importe negativo sólo puede deberse a un error de programación; el enunciado reserva las excepciones para errores que deban propagarse al coordinador o al cliente.
+
+### `app`
+* **Contenido:** `App`.
+* **Responsabilidad:** Programa de demostración que simula al usuario (E1-03): arma una tripulación válida, liquida sus haberes del mes mostrando el detalle de cada concepto y muestra casos de rechazo. Es la única clase que escribe en consola; el modelo sólo devuelve datos (`ReciboHaberes`, `ConceptoHaber`), de modo que en la E2 puede reemplazarse por una vista Swing sin modificar el modelo.
 
 ---
 

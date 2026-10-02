@@ -178,7 +178,7 @@ classDiagram
         - double IMPORTE_POR_CONSEJO = 2
         - Map~YearMonth, Integer~ consejosPorPeriodo
         + calcularAdicionalAntiguedad() double
-        + registrarConsejo(periodo: YearMonth)
+        + registrarConsejo(periodo: YearMonth) throws LiquidacionInvalidaException
         + getCantidadConsejos(periodo: YearMonth) int
         + calcularAdicionalConsejos(periodo: YearMonth) double
         + calcularConceptos(periodo: YearMonth) List~ConceptoHaber~
