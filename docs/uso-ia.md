@@ -59,7 +59,10 @@
     * Clase `Tripulacion` con el invariante de la Ficha de Inicio (un/a capitán/a + al menos 4 tripulantes).
     * Excepciones propias comprobadas que guardan el dato que provocó el error, y aserciones para invariantes, postcondiciones e invariantes de ciclo.
 
-* **Revisión o modificación realizada por el equipo:** _(completar por el equipo: qué se revisó, qué se modificó y quién lo hizo)._
+* **Revisión o modificación realizada por el equipo:**
+    * La corrección conceptual no surgió de la IA: proviene de la observación del docente Lucas a Sebastian Barrionuebo (quitar `getConsejos()` de la interfaz `Liquidacion` y eliminar `ConsejosDecorator`), que Luca Zuanetti trasladó como consigna de trabajo.
+    * Luca Zuanetti indicó a la IA los requerimientos a cumplir (E1-04, E1-08) y los apuntes de la cátedra como criterio, revisó el código generado y lo incorporó a su rama (commit `b260cd6`).
+    * Los módulos parten del trabajo previo del equipo: la versión inicial de Sebastian Barrionuebo en `main` y la de Luca Zuanetti en su rama.
 
 * **Forma en que se verificó el resultado:** pruebas JUnit 5 que cubren:
     * los 4 cargos con los 3 orígenes (12 casos con importes calculados a mano según E1-08);
@@ -86,6 +89,10 @@
     * Merge de `main` en la rama conservando la versión de la rama de ambos módulos y eliminando `Origenes.java`, que ya no se usa.
     * README con instrucciones de compilación, ejecución y verificación.
 
-* **Revisión o modificación realizada por el equipo:** _(completar por el equipo: qué se revisó, qué se modificó y quién lo hizo)._
+* **Revisión o modificación realizada por el equipo:**
+    * Luca Zuanetti solicitó el análisis y entregó como criterio la Guía TP Nave y los apuntes de la cátedra. Revisó el informe comparativo antes de compartirlo con el equipo y decidió qué cambios aplicar.
+    * Se decidió integrar la rama `rama-luca-Creacion-Liquidacion-Tripulantes` (sin tilde), ya que la tilde del nombre original traía problemas al abrir los archivos desde GitHub web.
+    * Los commits `29d50b6` y `4bca286` figuran con autor "Claude" porque se realizaron con Claude Code desde la sesión de Luca Zuanetti.
+    * La integración a `main` se realiza mediante un Pull Request revisado por el equipo.
 
 * **Forma en que se verificó el resultado:** `mvn test` (51 pruebas en verde) y ejecución de `app.App`, comparando los totales con los calculados a mano según E1-08.
