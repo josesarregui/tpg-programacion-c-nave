@@ -31,7 +31,7 @@ classDiagram
     NaveFactory ..> Nave : instancian
     Nave *-- Recursos : Composición
     Nave *-- MotorWarp : Composición
-    Nave o-- Tripulante : Agregación
+    Nave *-- Tripulacion : Composición
 
     %% Módulo Motor Warp (State)
     class MotorWarp {
@@ -135,89 +135,173 @@ classDiagram
     Bitacora *-- Evento : Composición
     InformeMision *-- Evento : Composición
 
-    %% Módulo Tripulación y Haberes (Decorator)
-    class Liquidacion {
-        <<Interface>>
-        + calcularSueldo() double
-        + getAdicionalAntiguedad() double
-        + getOrigen() Origenes
+    %% Módulo Tripulación (E1-04)
+    class Tripulacion {
+        + int TRIPULANTES_ADICIONALES_MINIMOS = 4
+        + int TAMANIO_MINIMO = 5
+        - List~Tripulante~ tripulantes
+        + Tripulacion(integrantes: List~Tripulante~)
+        + incorporar(tripulante: Tripulante)
+        + desembarcar(tripulante: Tripulante)
+        + buscarPorId(id: int) Tripulante
+        + getCapitan() Tripulante
+        + getTripulantes() List~Tripulante~
+        + getTripulantes(cargo: Cargo) List~Tripulante~
+        + getCantidad() int
+        - invariante() boolean
     }
-    class Origenes {
+    class Tripulante {
+        <<Abstract>>
+        - static int ultimoIdAsignado
+        - int id
+        - String nombre
+        - int antiguedad
+        - Origen origen
+        # Tripulante(nombre, antiguedad, origen)
+        + getCargo() Cargo*
+        # getRemuneracionCargo() double*
+        + calcularAdicionalAntiguedad() double*
+        + calcularConceptos(periodo: YearMonth) List~ConceptoHaber~
+        + calcularHaberTotal(periodo: YearMonth) double
+        + incrementarAntiguedad()
+        + getOrigen() Origen
+        - invariante() boolean
+    }
+    class Capitan {
+        - double REMUNERACION_CARGO = 1000
+        - double PORCENTAJE_ANTIGUEDAD_ANUAL = 0.20
+        + calcularAdicionalAntiguedad() double
+    }
+    class Consejero {
+        - double REMUNERACION_CARGO = 600
+        - double PORCENTAJE_ANTIGUEDAD_ANUAL = 0.05
+        - double IMPORTE_POR_CONSEJO = 2
+        - Map~YearMonth, Integer~ consejosPorPeriodo
+        + calcularAdicionalAntiguedad() double
+        + registrarConsejo(periodo: YearMonth)
+        + getCantidadConsejos(periodo: YearMonth) int
+        + calcularAdicionalConsejos(periodo: YearMonth) double
+        + calcularConceptos(periodo: YearMonth) List~ConceptoHaber~
+    }
+    class Teniente {
+        - double REMUNERACION_CARGO = 400
+        - double PORCENTAJE_ANTIGUEDAD_ANUAL = 0.03
+        + calcularAdicionalAntiguedad() double
+    }
+    class Alferez {
+        - double REMUNERACION_CARGO = 200
+        - double PORCENTAJE_ANTIGUEDAD_ANUAL = 0.005
+        + calcularAdicionalAntiguedad() double
+    }
+    class Cargo {
+        <<enumeration>>
+        CAPITAN
+        CONSEJERO
+        TENIENTE
+        ALFEREZ
+    }
+    class Origen {
         <<enumeration>>
         TERRICOLA
         VULCANO
         MARCIANO
-        - double porcentajeBono
-        + Origenes(double porcentaje)
-        + getPorcentajeBono() double
-        + calcularBonoPorOrigen() double
-    }
-    class Tripulante {
-        - static int idAuto
-        # int id
-        # String nombre
-        # int antiguedad
-        + Tripulante(nombre, sueldoBase, antiguedad, origen)
-        + siguienteId()
-        + getOrigen() Origenes
-    }
-    class Capitan {
-        - static final double SUELDOBASECAPITAN
-        - static final double ADICIONALCAPITAN
-        + Capitan(nombre, antiguedad, origen)
-        + calcularSueldo() double
-        + getAdicionalAntiguedad() double
-    }
-    class Consejero {
-        - static final double SUELDOBASECONSEJERO
-        - static final double ADICIONALCONSEJERO
-        ~ int cantConsejos
-        + Consejero(nombre, antiguedad, origen)
-        + calcularSueldo() double
-        + getAdicionalAntiguedad() double
-    }
-    class Teniente {
-        - static final double SUELDOBASETENIENTE
-        - static final double ADICIONALTENIENTE
-        + Teniente(nombre, antiguedad, origen)
-        + calcularSueldo() double
-        + getAdicionalAntiguedad() double
-    }
-    class Alferez {
-        - static final double SUELDOBASEALFEREZ
-        - static final double ADICIONALALFEREZ
-        + Alferez(nombre, antiguedad, origen)
-        + calcularSueldo() double
-        + getAdicionalAntiguedad() double
-    }
-    class Decorator {
-        <<Abstract>>
-        + Liquidacion trip
-        + Decorator(Liquidacion liq)
-        + getLiquidacion() Liquidacion
-        + setLiquidacion(Liquidacion liq)
-        + getAdicionalAntiguedad() double
-        + getOrigen() Origenes
-    }
-    class AntiguedadDecorator {
-        + AntiguedadDecorator(Liquidacion trip)
-        + getAdicionalAntiguedad() double
-        + calcularSueldo() double
-    }
-    class OrigenDecorator {
-        + OrigenDecorator(Liquidacion trip)
-        + getOrigen() Origenes
-        + calcularSueldo() double
+        - double subsidioMensual
+        + getSubsidioMensual() double
     }
 
-    Liquidacion <|.. Tripulante
-    Liquidacion <|.. Decorator
+    Tripulacion o-- "5..*" Tripulante : Agregación
     Tripulante <|-- Capitan
     Tripulante <|-- Consejero
     Tripulante <|-- Teniente
     Tripulante <|-- Alferez
-    Tripulante *-- Origenes : Composición
+    Tripulante --> Cargo
+    Tripulante --> Origen
+
+    %% Módulo Liquidación de haberes (Decorator - E1-08)
+    class Liquidacion {
+        <<Interface>>
+        + calcularConceptos(periodo: YearMonth) List~ConceptoHaber~
+        + calcularHaberTotal(periodo: YearMonth) double
+        + calcularAdicionalAntiguedad() double
+        + getOrigen() Origen
+    }
+    class Decorator {
+        <<Abstract>>
+        - Liquidacion decorado
+        - TipoConcepto conceptoAgregado
+        # Decorator(decorado: Liquidacion, conceptoAgregado: TipoConcepto)
+        # describirConcepto() String*
+        # calcularImporte() double*
+        # getDecorado() Liquidacion
+        + calcularConceptos(periodo: YearMonth) List~ConceptoHaber~
+        + calcularHaberTotal(periodo: YearMonth) double
+        - conceptoYaAplicado(liquidacion, concepto)$ boolean
+    }
+    class AntiguedadDecorator {
+        # describirConcepto() String
+        # calcularImporte() double
+    }
+    class OrigenDecorator {
+        # describirConcepto() String
+        # calcularImporte() double
+    }
+    class ConceptoHaber {
+        - TipoConcepto tipo
+        - String descripcion
+        - double importe
+    }
+    class TipoConcepto {
+        <<enumeration>>
+        CARGO
+        CONSEJOS
+        ANTIGUEDAD
+        ORIGEN
+    }
+    class LiquidadorHaberes {
+        + liquidar(tripulante: Tripulante, periodo: YearMonth) ReciboHaberes
+        + liquidar(tripulacion: Tripulacion, periodo: YearMonth) LiquidacionTripulacion
+    }
+    class ReciboHaberes {
+        - Tripulante tripulante
+        - YearMonth periodo
+        - List~ConceptoHaber~ conceptos
+        - double total
+    }
+    class LiquidacionTripulacion {
+        - YearMonth periodo
+        - List~ReciboHaberes~ recibos
+        + calcularTotal() double
+    }
+
+    Liquidacion <|.. Tripulante : componente concreto
+    Liquidacion <|.. Decorator
     Decorator <|-- AntiguedadDecorator
     Decorator <|-- OrigenDecorator
-    Decorator --> Liquidacion : decorado
+    Decorator o--> Liquidacion : decorado
+    Liquidacion ..> ConceptoHaber : detalle
+    ConceptoHaber --> TipoConcepto
+    LiquidadorHaberes ..> Decorator : arma la cadena
+    LiquidadorHaberes ..> ReciboHaberes : crea
+    LiquidacionTripulacion o-- ReciboHaberes
+    ReciboHaberes --> Tripulante
+
+    %% Excepciones propias (comprobadas, extienden Exception)
+    class TripulanteInvalidoException {
+        - String nombreRecibido
+        - int antiguedadRecibida
+        - Origen origenRecibido
+    }
+    class TripulacionInvalidaException {
+        - Tripulante tripulanteRechazado
+    }
+    class TripulanteInexistenteException {
+        - int idBuscado
+    }
+    class LiquidacionInvalidaException {
+        - TipoConcepto conceptoRechazado
+    }
+    Exception <|-- TripulanteInvalidoException
+    Exception <|-- TripulacionInvalidaException
+    Exception <|-- TripulanteInexistenteException
+    Exception <|-- LiquidacionInvalidaException
 ```

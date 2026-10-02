@@ -1,30 +1,38 @@
 package modelo.tripulacion;
 
+import excepcion.TripulanteInvalidoException;
+
 /**
- * Clase Hija de Tripulante correspondiente al cargo Teniente.
+ * Tripulante con cargo Teniente.
+ * Remuneración (E1-08): 400 PG y 3 % de adicional por cada año de antigüedad.
  */
 public class Teniente extends Tripulante {
 
-    // Remuneración según E1-08: 400 PG base y 3% adicional por año de antigüedad.
-    private static final double SUELDOBASETENIENTE = 400.0;
-    private static final double ADICIONALTENIENTE = 0.03;
+    private static final double REMUNERACION_CARGO = 400.0;
+    private static final double PORCENTAJE_ANTIGUEDAD_ANUAL = 0.03;
 
-    public Teniente(String nombre, int antiguedad, Origen origen) {
+    /**
+     * @throws TripulanteInvalidoException si el nombre es nulo o vacío, la antigüedad es negativa o el origen es nulo.
+     */
+    public Teniente(String nombre, int antiguedad, Origen origen) throws TripulanteInvalidoException {
         super(nombre, antiguedad, origen);
     }
 
     @Override
-    public double calcularSueldo() {
-        return SUELDOBASETENIENTE;
+    public Cargo getCargo() {
+        return Cargo.TENIENTE;
     }
 
     @Override
-    public double getSUELDOBASE() {
-        return SUELDOBASETENIENTE;
+    protected double getRemuneracionCargo() {
+        return REMUNERACION_CARGO;
     }
 
+    /**
+     * @post El valor retornado es igual a REMUNERACION_CARGO * PORCENTAJE_ANTIGUEDAD_ANUAL * antigüedad.
+     */
     @Override
-    public double getAdicionalCargo() {
-        return ADICIONALTENIENTE;
+    public double calcularAdicionalAntiguedad() {
+        return REMUNERACION_CARGO * PORCENTAJE_ANTIGUEDAD_ANUAL * getAntiguedad();
     }
 }

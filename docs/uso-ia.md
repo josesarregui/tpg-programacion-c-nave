@@ -40,3 +40,31 @@
 *   return Collections.unmodifiableList(eventos); // 
 * }
 * --> Se uso la libreria java.util.Collections. Si alguien intenta hacer un .add() o .clear() sobre esa lista devuelta, Java lanza una excepción y no permite alterar la bitácora.
+
+### Registro de Asistencia: Revisión y corrección de los módulos Tripulación y Liquidación (01/10/2026)
+
+* **Herramienta utilizada:** Claude Code (Anthropic).
+
+* **Propósito de la consulta:**
+    1. Analizar `modelo.tripulacion` y `modelo.liquidacion` contra E1-04, E1-08, las Observaciones y las Evidencias del enunciado.
+    2. Aplicar la corrección sugerida por el profesor Lucas: quitar `getConsejos()` de la interfaz `Liquidacion` (violaba el principio de segregación de interfaces), trasladar el cálculo del adicional por antigüedad y por consejos a las subclases de `Tripulante` y eliminar `ConsejosDecorator`.
+    3. Adaptar el código a los apuntes de la cátedra (Decorator, Interfaces, Excepciones, Aserciones).
+
+* **Componente o documento afectado:** paquetes `modelo.tripulacion` y `modelo.liquidacion`, excepciones `TripulanteInvalidoException`, `TripulacionInvalidaException`, `TripulanteInexistenteException` y `LiquidacionInvalidaException`, pruebas `TripulacionTest` y `LiquidacionTest`, `pom.xml` (plugin Surefire), `docs/diagrama_clases.md` y `docs/diseño.md`.
+
+* **Resultado aprovechado:**
+    * Cada cargo calcula su adicional por antigüedad; `Consejero` calcula y agrega su adicional por consejos, registrados por período mensual.
+    * `Tripulante` como componente concreto del Decorator, con `AntiguedadDecorator` y `OrigenDecorator` como decoradores concretos.
+    * Detalle identificable de cada concepto (`ConceptoHaber`, `ReciboHaberes`), requerido por E1-08.
+    * Clase `Tripulacion` con el invariante de la Ficha de Inicio (un/a capitán/a + al menos 4 tripulantes).
+    * Excepciones propias comprobadas que guardan el dato que provocó el error, y aserciones para invariantes, postcondiciones e invariantes de ciclo.
+
+* **Revisión o modificación realizada por el equipo:** _(completar por el equipo: qué se revisó, qué se modificó y quién lo hizo)._
+
+* **Forma en que se verificó el resultado:** pruebas JUnit 5 que cubren:
+    * los 4 cargos con los 3 orígenes (12 casos con importes calculados a mano según E1-08);
+    * la composición de dos decoradores en distinto orden;
+    * los consejos por período y la liquidación de una tripulación completa;
+    * rechazos por excepción (antigüedad negativa, tripulación sin capitán o incompleta, concepto nulo o repetido, id inexistente) y por aserción (importe negativo).
+
+    Comando: `mvn test`.

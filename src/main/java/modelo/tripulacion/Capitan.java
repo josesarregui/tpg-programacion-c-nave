@@ -1,31 +1,38 @@
 package modelo.tripulacion;
 
+import excepcion.TripulanteInvalidoException;
+
 /**
- * Clase Hija de Tripulante correspondiente al cargo Capitán.
- * Define la remuneración base más alta de la flota y su respectivo porcentaje por antigüedad.
+ * Tripulante con cargo Capitán. Conserva la autoridad general sobre la operación.
+ * Remuneración (E1-08): 1000 PG y 20 % de adicional por cada año de antigüedad.
  */
 public class Capitan extends Tripulante {
 
-    // Remuneración según E1-08: 1000 PG base y 20% adicional por año de antigüedad.
-    private static final double SUELDOBASECAPITAN = 1000.0;
-    private static final double ADICIONALCAPITAN = 0.20;
+    private static final double REMUNERACION_CARGO = 1000.0;
+    private static final double PORCENTAJE_ANTIGUEDAD_ANUAL = 0.20;
 
-    public Capitan(String nombre, int antiguedad, Origen origen) {
+    /**
+     * @throws TripulanteInvalidoException si el nombre es nulo o vacío, la antigüedad es negativa o el origen es nulo.
+     */
+    public Capitan(String nombre, int antiguedad, Origen origen) throws TripulanteInvalidoException {
         super(nombre, antiguedad, origen);
     }
 
     @Override
-    public double calcularSueldo() {
-        return SUELDOBASECAPITAN;
+    public Cargo getCargo() {
+        return Cargo.CAPITAN;
     }
 
     @Override
-    public double getSUELDOBASE() {
-        return SUELDOBASECAPITAN;
+    protected double getRemuneracionCargo() {
+        return REMUNERACION_CARGO;
     }
 
+    /**
+     * @post El valor retornado es igual a REMUNERACION_CARGO * PORCENTAJE_ANTIGUEDAD_ANUAL * antigüedad.
+     */
     @Override
-    public double getAdicionalCargo() {
-        return ADICIONALCAPITAN;
+    public double calcularAdicionalAntiguedad() {
+        return REMUNERACION_CARGO * PORCENTAJE_ANTIGUEDAD_ANUAL * getAntiguedad();
     }
 }

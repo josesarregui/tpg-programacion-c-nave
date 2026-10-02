@@ -1,30 +1,38 @@
 package modelo.tripulacion;
 
+import excepcion.TripulanteInvalidoException;
+
 /**
- * Clase Hija de Tripulante correspondiente al cargo Alférez.
+ * Tripulante con cargo Alférez.
+ * Remuneración (E1-08): 200 PG y 0,5 % de adicional por cada año de antigüedad.
  */
 public class Alferez extends Tripulante {
 
-    // Remuneración según E1-08: 200 PG base y 0.5% adicional por año de antigüedad.
-    private static final double SUELDOBASEALFEREZ = 200.0;
-    private static final double ADICIONALALFEREZ = 0.005;
+    private static final double REMUNERACION_CARGO = 200.0;
+    private static final double PORCENTAJE_ANTIGUEDAD_ANUAL = 0.005;
 
-    public Alferez(String nombre, int antiguedad, Origen origen) {
+    /**
+     * @throws TripulanteInvalidoException si el nombre es nulo o vacío, la antigüedad es negativa o el origen es nulo.
+     */
+    public Alferez(String nombre, int antiguedad, Origen origen) throws TripulanteInvalidoException {
         super(nombre, antiguedad, origen);
     }
 
     @Override
-    public double calcularSueldo() {
-        return SUELDOBASEALFEREZ;
+    public Cargo getCargo() {
+        return Cargo.ALFEREZ;
     }
 
     @Override
-    public double getSUELDOBASE() {
-        return SUELDOBASEALFEREZ;
+    protected double getRemuneracionCargo() {
+        return REMUNERACION_CARGO;
     }
 
+    /**
+     * @post El valor retornado es igual a REMUNERACION_CARGO * PORCENTAJE_ANTIGUEDAD_ANUAL * antigüedad.
+     */
     @Override
-    public double getAdicionalCargo() {
-        return ADICIONALALFEREZ;
+    public double calcularAdicionalAntiguedad() {
+        return REMUNERACION_CARGO * PORCENTAJE_ANTIGUEDAD_ANUAL * getAntiguedad();
     }
 }

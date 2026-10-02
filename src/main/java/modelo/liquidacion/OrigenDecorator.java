@@ -1,31 +1,30 @@
 package modelo.liquidacion;
 
-import excepcion.TripulacionInvalidaException;
+import excepcion.LiquidacionInvalidaException;
 
 /**
- * Decorador Concreto para asignar subsidio por origen planetario.
+ * Decorador concreto: agrega al haber el subsidio mensual por planeta de origen.
+ * El importe lo provee el enum Origen, por lo que no hace falta un switch.
  */
 public class OrigenDecorator extends Decorator {
 
-    // Buenas prácticas: Extracción de "Magic Numbers" a constantes.
-    private static final double SUBSIDIO_TERRICOLA = 20.0;
-    private static final double SUBSIDIO_VULCANO = 30.0;
-    private static final double SUBSIDIO_MARCIANO = 18.0;
-
-    public OrigenDecorator(Liquidacion trip) {
-        super(trip);
+    /**
+     * @throws LiquidacionInvalidaException si decorado es null o ya tiene aplicado el subsidio por origen.
+     */
+    public OrigenDecorator(Liquidacion decorado) throws LiquidacionInvalidaException {
+        super(decorado, TipoConcepto.ORIGEN);
     }
 
     @Override
-    public double calcularSueldo() {
-        // Bloque switch exhaustivo. Lanza excepción de dominio ante fallo.
-        double subsidio = switch (trip.getOrigen()) {
-            case TERRICOLA -> SUBSIDIO_TERRICOLA;
-            case VULCANO -> SUBSIDIO_VULCANO;
-            case MARCIANO -> SUBSIDIO_MARCIANO;
-            default -> throw new TripulacionInvalidaException("Origen planetario desconocido o inválido.");
-        };
+    protected String describirConcepto() {
+        return "Subsidio por origen (" + getOrigen() + ")";
+    }
 
-        return trip.calcularSueldo() + subsidio;
+    /**
+     * @post El valor retornado es igual a getOrigen().getSubsidioMensual().
+     */
+    @Override
+    protected double calcularImporte() {
+        return getOrigen().getSubsidioMensual();
     }
 }
