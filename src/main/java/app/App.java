@@ -1,80 +1,74 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package app;
 
+import excepcion.LiquidacionInvalidaException;
+import excepcion.TripulacionInvalidaException;
+import excepcion.TripulanteInvalidoException;
 import modelo.liquidacion.AntiguedadDecorator;
-import modelo.liquidacion.Liquidacion;
-import modelo.liquidacion.OrigenDecorator;
+import modelo.liquidacion.ConceptoHaber;
+import modelo.liquidacion.LiquidacionTripulacion;
+import modelo.liquidacion.LiquidadorHaberes;
+import modelo.liquidacion.ReciboHaberes;
 import modelo.tripulacion.Alferez;
 import modelo.tripulacion.Capitan;
 import modelo.tripulacion.Consejero;
-import modelo.tripulacion.Origenes;
+import modelo.tripulacion.Origen;
 import modelo.tripulacion.Teniente;
+import modelo.tripulacion.Tripulacion;
+
+import java.time.YearMonth;
+import java.util.List;
 
 /**
+ * Programa de demostración (E1-03): simula al usuario y muestra por consola los resultados del modelo.
+ * Es el único lugar que imprime; las clases del modelo sólo devuelven datos.
  *
- * @author Sebastian
+ * Demuestra E1-04 y E1-08: tripulación mínima, liquidación mensual con el detalle de cada concepto
+ * y casos de rechazo por precondiciones incumplidas.
  */
 public class App {
 
     public static void main(String[] args) {
-        
-        System.out.println("CAPITAN");
+        YearMonth octubre = YearMonth.of(2026, 10);
+        try {
+            Consejero consejero = new Consejero("Troi", 4, Origen.VULCANO);
+            consejero.registrarConsejo(octubre);
+            consejero.registrarConsejo(octubre);
+            consejero.registrarConsejo(octubre);
 
-        Liquidacion capitan = new Capitan("Sebastian", 5, Origenes.TERRICOLA);
-        System.out.println("Sueldo base: " + capitan.calcularSueldo());
+            Tripulacion tripulacion = new Tripulacion(List.of(
+                    new Capitan("Kirk", 3, Origen.TERRICOLA),
+                    consejero,
+                    new Teniente("Uhura", 5, Origen.MARCIANO),
+                    new Alferez("Chekov", 1, Origen.TERRICOLA),
+                    new Alferez("Sulu", 0, Origen.MARCIANO)));
 
-        capitan = new AntiguedadDecorator(capitan);
-        System.out.println("Sueldo con antiguedad: " + capitan.calcularSueldo());
-        
-        capitan = new OrigenDecorator(capitan);
-        System.out.println("Sueldo con adicional de orgien: " + capitan.calcularSueldo());
+            LiquidacionTripulacion liquidacion = new LiquidadorHaberes().liquidar(tripulacion, octubre);
+            System.out.println("LIQUIDACION DE HABERES - " + liquidacion.getPeriodo());
+            for (ReciboHaberes recibo : liquidacion.getRecibos()) {
+                System.out.println();
+                System.out.println(recibo.getTripulante());
+                for (ConceptoHaber concepto : recibo.getConceptos()) {
+                    System.out.println("   " + concepto);
+                }
+                System.out.println("   TOTAL: " + recibo.getTotal() + " PG");
+            }
+            System.out.println();
+            System.out.println("TOTAL DE LA TRIPULACION: " + liquidacion.calcularTotal() + " PG");
+        } catch (TripulanteInvalidoException | TripulacionInvalidaException | LiquidacionInvalidaException e) {
+            System.out.println("Error inesperado en la demostración: " + e.getMessage());
+        }
 
-        
-        
-        
-        
-
-        System.out.println("CONSEJERO");
-
-        Liquidacion consejero = new Consejero("Juan", 4, Origenes.VULCANO,4);
-        System.out.println("Sueldo base: " + consejero.calcularSueldo());
-
-        consejero = new AntiguedadDecorator(consejero);
-        System.out.println("Sueldo con antiguedad: " + consejero.calcularSueldo());
-
-        consejero = new OrigenDecorator(consejero);
-        System.out.println("Sueldo con adicional de orgien: " + consejero.calcularSueldo());
-
-        
-        
-        
-        
-        System.out.println("TENIENTE");
-
-        Liquidacion teniente = new Teniente("Pedro", 3, Origenes.MARCIANO);
-        System.out.println("Sueldo base: " + teniente.calcularSueldo());
-
-        teniente = new AntiguedadDecorator(teniente);
-        System.out.println("Sueldo con antiguedad: " + teniente.calcularSueldo());
-
-        teniente = new OrigenDecorator(teniente);
-        System.out.println("Sueldo con adicional de orgien: " + teniente.calcularSueldo());
-        
-        
-        
-        
-        System.out.println("ALFEREZ");
-
-        Liquidacion alferez = new Alferez("Maria", 8, Origenes.TERRICOLA);
-        System.out.println("Sueldo base: " + alferez.calcularSueldo());
-
-        alferez = new AntiguedadDecorator(alferez);
-        System.out.println("Sueldo con antiguedad: " + alferez.calcularSueldo());
-        
-        alferez = new OrigenDecorator(alferez);
-        System.out.println("Sueldo con adicional de orgien: " + alferez.calcularSueldo());
+        System.out.println();
+        System.out.println("CASOS DE RECHAZO");
+        try {
+            new Teniente("Spock", -2, Origen.VULCANO);
+        } catch (TripulanteInvalidoException e) {
+            System.out.println("Rechazado: " + e.getMessage() + " (antigüedad recibida: " + e.getAntiguedadRecibida() + ")");
+        }
+        try {
+            new AntiguedadDecorator(new AntiguedadDecorator(new Capitan("Pike", 3, Origen.TERRICOLA)));
+        } catch (TripulanteInvalidoException | LiquidacionInvalidaException e) {
+            System.out.println("Rechazado: " + e.getMessage());
+        }
     }
 }

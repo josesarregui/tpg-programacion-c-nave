@@ -1,74 +1,30 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package modelo.liquidacion;
 
-import modelo.tripulacion.Origenes;
+import excepcion.LiquidacionInvalidaException;
 
 /**
- * Decorador concreto que agrega el adicional por origen al sueldo del tripulante.
- * El porcentaje de bonificacion depende del planeta de origen.
- *
- * @author Sebastian
+ * Decorador concreto: agrega al haber el subsidio mensual por planeta de origen.
+ * El importe lo provee el enum Origen, por lo que no hace falta un switch.
  */
-public class OrigenDecorator extends Decorator{
+public class OrigenDecorator extends Decorator {
+
     /**
-     * Constructor que solo recibe el objeto a decorar.
-     * 
-     * @pre liquidacion != null.
-     * @post Se crea el decorador con la referencia al componente envuelto.
-     * @param liquidacion Objeto que implementa la interfase Liquidacion
+     * @throws LiquidacionInvalidaException si decorado es null o ya tiene aplicado el subsidio por origen.
      */
-    public OrigenDecorator(Liquidacion liquidacion) {
-        super(liquidacion);
+    public OrigenDecorator(Liquidacion decorado) throws LiquidacionInvalidaException {
+        super(decorado, TipoConcepto.ORIGEN);
     }
 
-    
-    /**
-     * Calcula el sueldo acumulado sumando el adicional por origen
-     * al sueldo base obtenido del componente envuelto.
-     * 
-     * @pre El componente envuelto (liquidacion) es distinto de null.
-     * @pre El sueldo base del componente envuelto es mayor o igual a 0.
-     * @pre El origen del tripulante es distinto de null.
-     * @post El valor retornado es mayor o igual al sueldo base del componente envuelto.
-     * @post El valor retornado es igual a sueldo_base + (sueldo_base * porcentaje_bono_origen).
-     * @return monto del sueldo acumulado con el adicional por origen.
-     */
     @Override
-    public double calcularSueldo() {
-        // Obtiene el objeto a ser envuelto por esta capa
-        Liquidacion liqBase = super.getLiquidacion();
-        assert liqBase != null : "La referencia a 'Liquidacion' no puede ser null";
-        
-        // Obtiene el haber acumulado de las capas internas
-        double haberBase = liqBase.calcularSueldo();
-        assert haberBase >= 0 : "El haber base acumulado no puede ser negativo";
-
-        // Consulta el origen del tripulante base
-        Origenes origenTripulante = this.getOrigen();
-        assert origenTripulante != null : "El origen del tripulante no puede ser null.";
-        
-        // Aplica la bonificacion correspondiente segun el Origen
-        double adicional = origenTripulante.calcularBonoPorOrigen(haberBase);
-        assert adicional >= 0 : "El adicional no puede ser negativo";
-
-        // Retorna la suma del sueldo acumulado mas el adicional por origen
-        return haberBase + adicional;
+    protected String describirConcepto() {
+        return "Subsidio por origen (" + getOrigen() + ")";
     }
-    
-    
+
     /**
-     * Consulta y retorna el origen correspondiente al tripulante.
-     * Delega al componente envuelto.
-     * 
-     * @pre El componente envuelto (liquidacion) es distinto de null.
-     * @post El valor retornado es distinto de null y pertenece al enum {@link Origenes}.
-     * @return el origen del tripulante
+     * @post El valor retornado es igual a getOrigen().getSubsidioMensual().
      */
     @Override
-    public Origenes getOrigen() {
-        return super.getOrigen();
+    protected double calcularImporte() {
+        return getOrigen().getSubsidioMensual();
     }
 }

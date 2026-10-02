@@ -1,98 +1,121 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package modelo.tripulacion;
 
+import excepcion.LiquidacionInvalidaException;
+import excepcion.TripulanteInvalidoException;
+import modelo.liquidacion.ConceptoHaber;
+import modelo.liquidacion.TipoConcepto;
+
+import java.time.YearMonth;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
- * Clase concreta que representa a un tripulante con rango de Consejero.
- * Sueldo base: 600.0 | Adicional por antiguedad: 5% del sueldo base por año + $2 por consejo.
+ * Tripulante con cargo Consejero.
+ * Remuneración (E1-08): 600 PG, 5 % de adicional por cada año de antigüedad
+ * y 2 PG por cada consejo registrado durante el período liquidado.
  *
- * @author Sebastian
+ * El adicional por consejos es responsabilidad exclusiva de esta clase: ni la interfaz
+ * Liquidacion ni el resto de los tripulantes necesitan conocerlo.
+ *
+ * Invariante: la cantidad de consejos registrada en cada período es mayor o igual a 0.
  */
-public class Consejero extends Tripulante{
-    // Sueldo base del rango de Consejero
-    private static final double SUELDOBASECONSEJHERO = 600.0;
-    // Adicional por cada año de antiguedad
-    private static final double ADICIONALCONSEJERO = 0.05;
-    // Cantidad de consejos registrados
-    private int cantConsejos;
+public class Consejero extends Tripulante {
 
-    
-    
+    private static final double REMUNERACION_CARGO = 600.0;
+    private static final double PORCENTAJE_ANTIGUEDAD_ANUAL = 0.05;
+    private static final double IMPORTE_POR_CONSEJO = 2.0;
+
+    // Los consejos se agrupan por mes para no cobrar en un período los consejos de otro.
+    private final Map<YearMonth, Integer> consejosPorPeriodo = new HashMap<>();
+
     /**
-     * Constructor para instanciar un Consejero sin consejos registrados.
-     * 
-     * @pre nombre != null y nombre no esta en blanco.
-     * @pre antiguedad >= 0.
-     * @pre origen != null.
-     * @post Se crea un Consejero con cantConsejos inicializado en 0.
+     * @throws TripulanteInvalidoException si el nombre es nulo o vacío, la antigüedad es negativa o el origen es nulo.
+     * @post El consejero no tiene consejos registrados en ningún período.
      */
-    public Consejero(String nombre, int antiguedad, Origenes origen) {
+    public Consejero(String nombre, int antiguedad, Origen origen) throws TripulanteInvalidoException {
         super(nombre, antiguedad, origen);
-        this.cantConsejos = 0;
-    }
-    /**
-     * Constructor para instanciar un Consejero con cantidad de consejos inicial.
-     * 
-     * @pre nombre != null y nombre no esta en blanco.
-     * @pre antiguedad >= 0.
-     * @pre origen != null.
-     * @pre cantConsejos >= 0.
-     * @post Se crea un Consejero con la cantidad de consejos especificada.
-     */
-    public Consejero(String nombre, int antiguedad, Origenes origen, int cantConsejos) {
-        super(nombre, antiguedad, origen);
-        assert cantConsejos >= 0 : "La cantidad de consejos no puede ser negativa.";
-        this.cantConsejos = cantConsejos;
-    }
-    
-
-    
-    /**
-     * Consulta el sueldo base del Consejero.
-     * 
-     * @post El valor retornado es igual a SUELDOBASECONSEJHERO (600.0).
-     * @return sueldo base del rango Consejero.
-     */
-    public static double getSUELDOBASECONSEJHERO() {
-        return SUELDOBASECONSEJHERO;
-    }
-
-    /**
-     * Retorna el sueldo base del Consejero.
-     * 
-     * @post El valor retornado es igual a SUELDOBASECONSEJHERO (600.0).
-     * @return monto del sueldo base.
-     */
-    @Override
-    public double calcularSueldo() {
-        return SUELDOBASECONSEJHERO;
-    }
-    
-    /**
-     * Calcula el adicional por antiguedad del Consejero.
-     * Incluye un bonus de $2 por cada consejo registrado.
-     * 
-     * @pre antiguedad >= 0.
-     * @pre cantConsejos >= 0.
-     * @post El valor retornado es mayor o igual a 0.
-     * @post El valor retornado es igual a (SUELDOBASECONSEJHERO * ADICIONALCONSEJERO * antiguedad) + (cantConsejos * 2).
-     * @return monto del adicional por antiguedad mas bonus por consejos.
-     */
-    @Override
-    public double getAdicionalAntiguedad() {        
-        // Consulta el adicional por cargo de Consejero
-        double adicional = this.SUELDOBASECONSEJHERO * this.ADICIONALCONSEJERO;
-        // Calcula el adicional total por año de antiguedad
-        adicional = adicional * super.antiguedad;
-        // Se le agrega el adicional por cada consejo realizado
-        adicional = adicional + this.cantConsejos * 2;
-        return adicional;
+        assert invarianteConsejos() : "Fallo invariante del consejero tras su creación.";
     }
 
     @Override
-    public String toString() {
-        return "Consejero{" + "cantConsejos=" + cantConsejos + super.toString() +'}';
+    public Cargo getCargo() {
+        return Cargo.CONSEJERO;
+    }
+
+    @Override
+    protected double getRemuneracionCargo() {
+        return REMUNERACION_CARGO;
+    }
+
+    /**
+     * @post El valor retornado es igual a REMUNERACION_CARGO * PORCENTAJE_ANTIGUEDAD_ANUAL * antigüedad.
+     */
+    @Override
+    public double calcularAdicionalAntiguedad() {
+        return REMUNERACION_CARGO * PORCENTAJE_ANTIGUEDAD_ANUAL * getAntiguedad();
+    }
+
+    /**
+     * Registra un consejo brindado durante el período indicado.
+     * El período llega desde fuera del modelo (el Asistente o, en la E2, un controlador),
+     * por eso se valida con una excepción y no sólo con una aserción.
+     *
+     * @throws LiquidacionInvalidaException si el período es nulo; el concepto rechazado es CONSEJOS.
+     * @post getCantidadConsejos(periodo) == cantidad anterior + 1.
+     */
+    public void registrarConsejo(YearMonth periodo) throws LiquidacionInvalidaException {
+        if (periodo == null) {
+            throw new LiquidacionInvalidaException("El período del consejo debe estar informado.", TipoConcepto.CONSEJOS);
+        }
+        int cantidadAnterior = getCantidadConsejos(periodo);
+        consejosPorPeriodo.put(periodo, cantidadAnterior + 1);
+        assert getCantidadConsejos(periodo) == cantidadAnterior + 1 : "Fallo postcondición: el consejo no quedó registrado.";
+        assert invarianteConsejos() : "Fallo invariante tras registrar un consejo.";
+    }
+
+    /**
+     * @pre periodo != null.
+     * @post El valor retornado es mayor o igual a 0 (0 si no hubo consejos en el período).
+     */
+    public int getCantidadConsejos(YearMonth periodo) {
+        assert periodo != null : "El período consultado no puede ser nulo.";
+        Integer cantidad = consejosPorPeriodo.get(periodo);
+        if (cantidad == null) {
+            return 0;
+        }
+        return cantidad;
+    }
+
+    /**
+     * @pre periodo != null.
+     * @post El valor retornado es igual a IMPORTE_POR_CONSEJO * getCantidadConsejos(periodo).
+     */
+    public double calcularAdicionalConsejos(YearMonth periodo) {
+        return IMPORTE_POR_CONSEJO * getCantidadConsejos(periodo);
+    }
+
+    /**
+     * Agrega a los conceptos del cargo el adicional por los consejos del período.
+     *
+     * @pre periodo != null.
+     * @post La lista retornada contiene los conceptos de Tripulante más el concepto CONSEJOS.
+     */
+    @Override
+    public List<ConceptoHaber> calcularConceptos(YearMonth periodo) {
+        List<ConceptoHaber> conceptos = super.calcularConceptos(periodo);
+        conceptos.add(new ConceptoHaber(TipoConcepto.CONSEJOS,
+                "Adicional por consejos (" + getCantidadConsejos(periodo) + " en " + periodo + ")",
+                calcularAdicionalConsejos(periodo)));
+        return conceptos;
+    }
+
+    private boolean invarianteConsejos() {
+        boolean cantidadesValidas = true;
+        // Invariante de ciclo: todas las cantidades recorridas hasta ahora son mayores o iguales a 0.
+        for (int cantidad : consejosPorPeriodo.values()) {
+            cantidadesValidas = cantidadesValidas && cantidad >= 0;
+        }
+        return cantidadesValidas;
     }
 }

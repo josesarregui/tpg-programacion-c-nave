@@ -1,178 +1,153 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package modelo.tripulacion;
 
+import excepcion.TripulanteInvalidoException;
+import modelo.liquidacion.ConceptoHaber;
 import modelo.liquidacion.Liquidacion;
+import modelo.liquidacion.TipoConcepto;
+
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Clase abstracta que representa un tripulante de la nave.
- * Implementa la interfaz {@link Liquidacion} para el calculo de sueldos.
+ * Miembro de la tripulación con identidad, cargo, planeta de origen y antigüedad (E1-04).
  *
- * @author Sebastian
+ * Es el Componente Concreto del patrón Decorator de la liquidación de haberes: los decoradores
+ * (AntiguedadDecorator, OrigenDecorator) envuelven a un tripulante para agregarle conceptos.
+ * Cada subclase define la remuneración de su cargo y calcula su propio adicional por antigüedad,
+ * de modo que la interfaz Liquidacion sólo declara operaciones que todo tripulante puede cumplir
+ * (principio de segregación de interfaces).
+ *
+ * Invariante: id > 0, nombre no nulo ni vacío, antigüedad >= 0 y origen no nulo.
  */
-public abstract class Tripulante implements Liquidacion{
-    private static int idAuto = 0;
-    protected int id;
-    protected String nombre;
-    protected int antiguedad;
-    protected Origenes origen;
+public abstract class Tripulante implements Liquidacion {
 
-    
+    private static int ultimoIdAsignado = 0;
+
+    private final int id;
+    private final String nombre;
+    private int antiguedad;
+    private final Origen origen;
+
     /**
-     * Constructor que crea un instancia de un Tripulante.
-     * 
-     * @pre nombre != null y nombre no esta en blanco.
-     * @pre antiguedad >= 0.
-     * @pre origen != null.
-     * @post Se crea el tripulante con un id unico auto-generado.
-     * @post Los atributos nombre, antiguedad y origen quedan inicializados.
-     * @param nombre Nombre correspondiente al tripulante.
-     * @param antiguedad Años de antiguedad del tripulante.
-     * @param origen Planeta de origen del tripulante.
+     * Crea un tripulante con un id único autogenerado.
+     *
+     * @param nombre     nombre del tripulante.
+     * @param antiguedad años de antigüedad.
+     * @param origen     planeta de origen.
+     * @throws TripulanteInvalidoException si el nombre es nulo o vacío, la antigüedad es negativa o el origen es nulo.
+     * @post Se crea el tripulante con los datos recibidos y un id mayor que todos los anteriores.
      */
-    public Tripulante(String nombre, int antiguedad, Origenes origen) {
-        assert this.validarNombre(nombre) : "El nombre del tripulante debe ser valido.";
-        assert this.validarAntiguedad(antiguedad) : "La antiguedad no puede ser un valor negativo.";
-        assert this.validarOrigen(origen) : "El origen debe ser distinto de null.";
-        
+    protected Tripulante(String nombre, int antiguedad, Origen origen) throws TripulanteInvalidoException {
+        if (nombre == null || nombre.isBlank()) {
+            throw new TripulanteInvalidoException("El nombre del tripulante no puede ser nulo ni vacío.", nombre, antiguedad, origen);
+        }
+        if (antiguedad < 0) {
+            throw new TripulanteInvalidoException("La antigüedad del tripulante no puede ser negativa.", nombre, antiguedad, origen);
+        }
+        if (origen == null) {
+            throw new TripulanteInvalidoException("El origen planetario del tripulante debe estar informado.", nombre, antiguedad, origen);
+        }
+
         this.id = siguienteId();
-        this.nombre = nombre;
+        this.nombre = nombre.trim();
         this.antiguedad = antiguedad;
         this.origen = origen;
+
+        assert invariante() : "Fallo invariante: el tripulante quedó en un estado inconsistente tras su creación.";
     }
 
-    
     /**
-     * Genera el siguiente id de Tripulante disponible.
-     * 
-     * @pre true (metodo interno estatico).
      * @post El id retornado es mayor que cualquier id generado previamente.
-     * @post idAuto queda incrementado en 1.
-     * @return siguiente id disponible.
      */
-    private static int siguienteId(){
-        idAuto += 1;
-        return idAuto;
+    private static int siguienteId() {
+        ultimoIdAsignado++;
+        return ultimoIdAsignado;
     }
+
     /**
-     * Consulta el id correspondiente al Tripulante.
-     * 
-     * @pre true (el tripulante esta correctamente inicializado).
-     * @post El valor retornado es mayor que 0.
-     * @return id del Tripulante.
+     * Cada subclase indica su cargo; así no puede existir un tripulante sin cargo.
      */
+    public abstract Cargo getCargo();
+
+    /**
+     * @post El valor retornado es mayor que 0.
+     * @return remuneración mensual correspondiente al cargo, en PG.
+     */
+    protected abstract double getRemuneracionCargo();
+
+    /**
+     * Calcula el adicional por antigüedad según el porcentaje propio de cada cargo,
+     * aplicado sobre la remuneración del cargo por cada año de antigüedad.
+     *
+     * @post El valor retornado es mayor o igual a 0.
+     */
+    @Override
+    public abstract double calcularAdicionalAntiguedad();
+
+    /**
+     * Devuelve los conceptos propios del tripulante: la remuneración de su cargo.
+     * Las subclases con conceptos particulares (Consejero) agregan los suyos redefiniendo este método.
+     *
+     * @pre periodo != null.
+     * @post Retorna una lista nueva cuyo primer elemento es el concepto CARGO.
+     */
+    @Override
+    public List<ConceptoHaber> calcularConceptos(YearMonth periodo) {
+        assert periodo != null : "El período liquidado no puede ser nulo.";
+        List<ConceptoHaber> conceptos = new ArrayList<>();
+        conceptos.add(new ConceptoHaber(TipoConcepto.CARGO, "Remuneración por cargo (" + getCargo() + ")", getRemuneracionCargo()));
+        return conceptos;
+    }
+
+    /**
+     * @pre periodo != null.
+     * @post El valor retornado es igual a la suma de los importes de calcularConceptos(periodo).
+     */
+    @Override
+    public double calcularHaberTotal(YearMonth periodo) {
+        double total = 0;
+        for (ConceptoHaber concepto : calcularConceptos(periodo)) {
+            total += concepto.getImporte();
+        }
+        return total;
+    }
+
+    /**
+     * Suma un año a la antigüedad del tripulante.
+     *
+     * @post antiguedad == antiguedad anterior + 1.
+     */
+    public void incrementarAntiguedad() {
+        int antiguedadAnterior = this.antiguedad;
+        this.antiguedad++;
+        assert this.antiguedad == antiguedadAnterior + 1 : "Fallo postcondición: la antigüedad no aumentó en 1.";
+        assert invariante() : "Fallo invariante tras incrementar la antigüedad.";
+    }
+
     public int getId() {
         return id;
     }
 
-    
-    /**
-     * Consulta el nombre del Tripulante.
-     * 
-     * @pre true (el tripulante esta correctamente inicializado).
-     * @post El valor retornado es distinto de null y no esta en blanco.
-     * @return Nombre del Tripulante.
-     */
     public String getNombre() {
         return nombre;
     }
-    /**
-     * Modifica el nombre del Tripulante.
-     * 
-     * @pre nombre != null y nombre no esta en blanco.
-     * @post El nombre del tripulante queda actualizado con el nuevo valor.
-     * @param nombre nuevo nombre del Tripulante.
-     */
-    public void setNombre(String nombre) {
-        assert this.validarNombre(nombre) : "El nombre del tripulante debe ser valido.";
-        this.nombre = nombre;
-    }
 
-    
-
-    /**
-     * Consulta la antiguedad del Tripulante.
-     * 
-     * @pre true (el tripulante esta correctamente inicializado).
-     * @post El valor retornado es mayor o igual a 0.
-     * @return Antiguedad del Tripulante.
-     */
     public int getAntiguedad() {
-        return this.antiguedad;
-    }
-    /**
-     * Modifica la antiguedad del Tripulante.
-     * 
-     * @pre antiguedad >= 0.
-     * @post La antiguedad del tripulante queda actualizada con el nuevo valor.
-     * @param antiguedad Nueva antiguedad del Tripulante.
-     */
-    public void setAntiguedad(int antiguedad) {
-        assert this.validarAntiguedad(antiguedad) : "La antiguedad no puede ser un valor negativo.";
-        this.antiguedad = antiguedad;
-    }
-    /**
-     * Agrega un año a la antiguedad del Tripulante.
-     * 
-     * @pre true (siempre se puede incrementar la antiguedad).
-     * @post La antiguedad del tripulante se incrementa en 1.
-     */
-    public void agregarAntiguedad() {
-        this.antiguedad += 1;
+        return antiguedad;
     }
 
-    
-    /**
-     * Consulta el origen del Tripulante.
-     * 
-     * @pre true (el tripulante esta correctamente inicializado).
-     * @post El valor retornado es distinto de null y pertenece al enum {@link Origenes}.
-     * @return Origen del Tripulante.
-     */
     @Override
-    public Origenes getOrigen() {
-        return this.origen;
-    }
-    /**
-     * Modifica el origen del tripulante.
-     * 
-     * @pre origen != null.
-     * @post El origen del tripulante queda actualizado con el nuevo valor.
-     * @param origen nuevo origen del Tripulante
-     */
-    public void setOrigen(Origenes origen) {
-        assert this.validarOrigen(origen) : "El origen debe ser distinto de null.";
-        this.origen = origen;
+    public Origen getOrigen() {
+        return origen;
     }
 
-    
-     @Override
+    private boolean invariante() {
+        return id > 0 && nombre != null && !nombre.isBlank() && antiguedad >= 0 && origen != null;
+    }
+
+    @Override
     public String toString() {
-        return "Tripulante{" +
-                    "id=" + id +
-                    ", nombre=" + nombre +
-                    ", antiguedad=" + antiguedad +
-                    ", origen=" + origen +
-                    '}';
-    }
-    
-    
-    
-    /*
-     * Invariantes:
-     * nombre != null && !nombre.isBlank()
-     * antiguedad >= 0
-     * origen != null
-     */
-    private boolean validarNombre(String nombre) {
-        return nombre != null && !nombre.isBlank();
-    }
-    private boolean validarAntiguedad(int antiguedad) {
-        return antiguedad >= 0;
-    }
-    private boolean validarOrigen(Origenes origen) {
-        return origen != null;
+        return "#" + id + " " + nombre + " (" + getCargo() + ", " + origen + ", " + antiguedad + " años)";
     }
 }
