@@ -69,6 +69,16 @@ public class BitacoraTest {
     }
 
     @Test
+    public void testEventoIncompletoSeRechaza() {
+        // Observaciones de la Guía: la Bitácora no aceptará eventos nulos o vacíos.
+        assertThrows(IllegalArgumentException.class, () -> new Evento(TipoEvento.MOTOR, ""));
+        assertThrows(IllegalArgumentException.class, () -> new Evento(TipoEvento.MOTOR, "   "));
+        assertThrows(IllegalArgumentException.class, () -> new Evento(TipoEvento.MOTOR, null));
+        assertThrows(IllegalArgumentException.class, () -> new Evento(null, "Sin tipo."));
+        assertThrows(IllegalArgumentException.class, () -> new Evento(null, TipoEvento.SISTEMA, "Sin fecha."));
+    }
+
+    @Test
     public void testGetEventosRetornaColeccionInmutable() {
         Evento evento = new Evento(TipoEvento.MOTOR, "Prueba de aislamiento.");
         bitacora.registrarEvento(evento);

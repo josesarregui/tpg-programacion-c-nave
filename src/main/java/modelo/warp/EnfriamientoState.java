@@ -11,6 +11,8 @@ import java.util.Objects;
  */
 public class EnfriamientoState implements State {
 
+    private static final String NOMBRE = "Enfriamiento";
+
     private final MotorWarp motor;
 
     public EnfriamientoState(MotorWarp motor) {
@@ -20,21 +22,24 @@ public class EnfriamientoState implements State {
     @Override
     public void prepararSalto() {
         throw new EstadoMotorInvalidoException(
-                "Transición inválida: No se puede preparar un nuevo salto mientras el motor disipa calor en enfriamiento."
+                "Transición inválida: No se puede preparar un nuevo salto mientras el motor disipa calor en enfriamiento.",
+                NOMBRE
         );
     }
 
     @Override
     public void iniciarWarp() {
         throw new EstadoMotorInvalidoException(
-                "Transición inválida: Intento crítico de salto. El motor se encuentra sobrecalentado en fase de enfriamiento."
+                "Transición inválida: Intento crítico de salto. El motor se encuentra sobrecalentado en fase de enfriamiento.",
+                NOMBRE
         );
     }
 
     @Override
     public void desactivarWarp() {
         throw new EstadoMotorInvalidoException(
-                "Transición inválida: El salto Warp ya fue desactivado previamente."
+                "Transición inválida: El salto Warp ya fue desactivado previamente.",
+                NOMBRE
         );
     }
 
@@ -43,5 +48,15 @@ public class EnfriamientoState implements State {
         // Transición válida: disipación térmica completada con éxito.
         // El ciclo se cierra y el motor vuelve a estar operativo.
         this.motor.setEstado(new DisponibleState(this.motor));
+    }
+
+    @Override
+    public boolean estaDisponible() {
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return NOMBRE;
     }
 }

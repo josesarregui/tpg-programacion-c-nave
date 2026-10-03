@@ -1,261 +1,184 @@
 package modelo.nave;
 
+import excepcion.CantidadInvalidaException;
+import excepcion.CapacidadExcedidaException;
+import excepcion.RecursoInsuficienteException;
+
 /**
- * Representa los recursos de una nave espacial.
+ * Recursos de una nave: combustible, energía, desgaste y necesidad de mantenimiento
+ * (E1-09 y Ficha de Inicio, punto 2).
  *
- * Invariante de clase:
- *   - 0 <= combustible <= CAPACIDADMAXCOMBUSTIBLE
- *   - 0 <= energia <= CAPACIDADMAXENERGIA
- *   - 0 <= desgaste <= MAXDESGASTE
+ * La clase no es pública: sólo la usa {@link Nave}, que delega en ella las operaciones
+ * sobre recursos. Así nadie puede modificar los recursos sin pasar por la nave.
  *
+ * Invariante:
+ *  - 0 <= combustible <= CAPACIDAD_MAXIMA_COMBUSTIBLE;
+ *  - 0 <= energia <= CAPACIDAD_MAXIMA_ENERGIA;
+ *  - 0 <= desgaste <= DESGASTE_MAXIMO.
+ *
+ * Toda operación que violaría el invariante se rechaza con una excepción antes de modificar
+ * cualquier valor, de modo que nunca quedan cambios parciales.
  */
-public class Recursos {
-    private static final int CAPACIDADMAXCOMBUSTIBLE = 100;
-    private static final int CAPACIDADMAXENERGIA = 100;
-    private static final int MAXDESGASTE = 100;
-    private static final int UMBRALMANTENIMIENTO = 80;
-    
+class Recursos {
+
+    static final int CAPACIDAD_MAXIMA_COMBUSTIBLE = 100;
+    static final int CAPACIDAD_MAXIMA_ENERGIA = 100;
+    static final int DESGASTE_MAXIMO = 100;
+    static final int UMBRAL_MANTENIMIENTO = 80;
+
     private int combustible;
     private int energia;
     private int desgaste;
 
     /**
-     * Crea una instancia de Recursos con valores iniciales.
+     * Crea los recursos con su configuración inicial.
+     * Los valores los fija cada tipo de nave con sus constantes, por eso un valor fuera de rango
+     * sólo puede deberse a un error de programación y se verifica con aserciones.
      *
-     * @pre combustibleInicial >= 0 y combustibleInicial <= CAPACIDADMAXCOMBUSTIBLE.
-     * @pre energiaInicial >= 0 y energiaInicial <= CAPACIDADMAXENERGIA.
-     * @pre desgasteInicial >= 0 y desgasteInicial <= MAXDESGASTE.
-     * @post Se crean los recursos con los valores indicados.
-     * @param combustibleInicial Cantidad inicial de combustible.
-     * @param energiaInicial Cantidad inicial de energia.
-     * @param desgasteInicial Cantidad inicial de desgaste.
-     * @throws IllegalArgumentException si alguno de los valores iniciales esta fuera de su rango permitido.
+     * @pre 0 <= combustibleInicial <= CAPACIDAD_MAXIMA_COMBUSTIBLE.
+     * @pre 0 <= energiaInicial <= CAPACIDAD_MAXIMA_ENERGIA.
+     * @pre 0 <= desgasteInicial <= DESGASTE_MAXIMO.
+     * @post Los recursos tienen los valores indicados y cumplen el invariante.
      */
-    public Recursos(int combustibleInicial, int energiaInicial, int desgasteInicial) {
-        if (combustibleInicial < 0 || combustibleInicial > CAPACIDADMAXCOMBUSTIBLE) { 
-            throw new IllegalArgumentException("Combustible inicial fuera de rango.");
-        }
-
-        if (energiaInicial < 0 || energiaInicial > CAPACIDADMAXENERGIA) {
-            throw new IllegalArgumentException("Energia inicial fuera de rango.");
-        }
-
-        if (desgasteInicial < 0 || desgasteInicial > MAXDESGASTE) {
-            throw new IllegalArgumentException("Desgaste inicial fuera de rango.");
-        }
+    Recursos(int combustibleInicial, int energiaInicial, int desgasteInicial) {
+        assert combustibleInicial >= 0 && combustibleInicial <= CAPACIDAD_MAXIMA_COMBUSTIBLE : "Combustible inicial fuera de rango.";
+        assert energiaInicial >= 0 && energiaInicial <= CAPACIDAD_MAXIMA_ENERGIA : "Energía inicial fuera de rango.";
+        assert desgasteInicial >= 0 && desgasteInicial <= DESGASTE_MAXIMO : "Desgaste inicial fuera de rango.";
 
         this.combustible = combustibleInicial;
         this.energia = energiaInicial;
         this.desgaste = desgasteInicial;
 
-        assert invariante() : "Fallo invariante tras crear Recursos.";
+        assert invariante() : "Fallo invariante tras crear los recursos.";
     }
 
-
-
-    /**
-     * Invariante de clase: verifica que todos los recursos esten dentro de sus rangos validos.
-     *
-     * @return true si el estado interno es consistente.
-     */
-    private boolean invariante() {
-        return combustible >= 0 && combustible <= CAPACIDADMAXCOMBUSTIBLE
-                && energia >= 0 && energia <= CAPACIDADMAXENERGIA
-                && desgaste >= 0 && desgaste <= MAXDESGASTE;
+    int getCombustible() {
+        return combustible;
     }
 
-    
-    
-    /**
-     * Consulta la cantidad de combustible actual.
-     *
-     * @post El valor retornado esta entre 0 y CAPACIDADMAXCOMBUSTIBLE.
-     * @return cantidad de combustible.
-     */
-    public int getCombustible() { 
-        return combustible; 
+    int getEnergia() {
+        return energia;
+    }
+
+    int getDesgaste() {
+        return desgaste;
     }
 
     /**
-     * Carga combustible a la nave.
-     *
-     * @pre cantidad >= 0.
-     * @pre combustible + cantidad <= CAPACIDADMAXCOMBUSTIBLE.
-     * @post El combustible aumenta en la cantidad indicada
-     * @param cantidad cantidad de combustible a cargar.
-     * @throws IllegalArgumentException si cantidad es negativa.
-     * @throws IllegalStateException si la carga supera la capacidad maxima.
+     * @post Retorna true si desgaste >= UMBRAL_MANTENIMIENTO.
      */
-    public void cargarCombustible(int cantidad) {
-        if (cantidad < 0) {
-            throw new IllegalArgumentException("La cantidad a cargar no puede ser negativa.");
+    boolean requiereMantenimiento() {
+        return desgaste >= UMBRAL_MANTENIMIENTO;
+    }
+
+    /**
+     * Carga combustible.
+     *
+     * @param cantidad combustible a cargar.
+     * @throws CantidadInvalidaException si la cantidad es negativa.
+     * @throws CapacidadExcedidaException si la carga supera CAPACIDAD_MAXIMA_COMBUSTIBLE.
+     * @post combustible == combustible anterior + cantidad. Si se lanza una excepción, nada cambia.
+     */
+    void cargarCombustible(int cantidad) throws CantidadInvalidaException, CapacidadExcedidaException {
+        validarCantidad(TipoRecurso.COMBUSTIBLE, cantidad);
+        // Se compara contra el espacio libre (máximo - actual) y no contra (actual + cantidad):
+        // con cantidades muy grandes la suma de dos int se desborda y da un número negativo.
+        if (cantidad > CAPACIDAD_MAXIMA_COMBUSTIBLE - combustible) {
+            throw new CapacidadExcedidaException(TipoRecurso.COMBUSTIBLE, combustible, cantidad, CAPACIDAD_MAXIMA_COMBUSTIBLE);
         }
-
-        if (this.combustible + cantidad > CAPACIDADMAXCOMBUSTIBLE) {
-            throw new IllegalStateException("La carga supera la capacidad maxima de combustible.");
-        }
-
-        int combustibleAnterior = this.combustible;
-        this.combustible += cantidad;
-
-        assert this.combustible == combustibleAnterior + cantidad : "Fallo postcondicion al cargar combustible.";
+        int combustibleAnterior = combustible;
+        combustible = combustible + cantidad;
+        assert combustible == combustibleAnterior + cantidad : "Fallo postcondición al cargar combustible.";
         assert invariante() : "Fallo invariante tras cargar combustible.";
     }
 
     /**
-     * Consume combustible de la nave.
+     * Carga energía.
      *
-     * @pre cantidad >= 0.
-     * @pre combustible - cantidad >= 0.
-     * @post El combustible disminuye en la cantidad indicada.
-     * @param cantidad Cantidad de combustible a consumir.
+     * @param cantidad energía a cargar.
+     * @throws CantidadInvalidaException si la cantidad es negativa.
+     * @throws CapacidadExcedidaException si la carga supera CAPACIDAD_MAXIMA_ENERGIA.
+     * @post energia == energia anterior + cantidad. Si se lanza una excepción, nada cambia.
      */
-    public void consumirCombustible(int cantidad) {
+    void cargarEnergia(int cantidad) throws CantidadInvalidaException, CapacidadExcedidaException {
+        validarCantidad(TipoRecurso.ENERGIA, cantidad);
+        if (cantidad > CAPACIDAD_MAXIMA_ENERGIA - energia) {
+            throw new CapacidadExcedidaException(TipoRecurso.ENERGIA, energia, cantidad, CAPACIDAD_MAXIMA_ENERGIA);
+        }
+        int energiaAnterior = energia;
+        energia = energia + cantidad;
+        assert energia == energiaAnterior + cantidad : "Fallo postcondición al cargar energía.";
+        assert invariante() : "Fallo invariante tras cargar energía.";
+    }
+
+    /**
+     * Aplica el costo de una operación: consume combustible y energía y suma desgaste.
+     * Primero verifica las tres condiciones y recién después modifica los valores, de modo que
+     * una operación rechazada no deja cambios parciales (Ficha de Inicio, punto 2; Escenario B).
+     *
+     * @param combustibleConsumido combustible que consume la operación.
+     * @param energiaConsumida energía que consume la operación.
+     * @param desgasteProducido desgaste que produce la operación.
+     * @throws CantidadInvalidaException si alguna cantidad es negativa.
+     * @throws RecursoInsuficienteException si no hay combustible o energía suficientes.
+     * @throws CapacidadExcedidaException si el desgaste superaría DESGASTE_MAXIMO.
+     * @post combustible y energia disminuyen y desgaste aumenta en las cantidades indicadas.
+     *       Si se lanza una excepción, nada cambia.
+     */
+    void consumir(int combustibleConsumido, int energiaConsumida, int desgasteProducido)
+            throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException {
+        validarCantidad(TipoRecurso.COMBUSTIBLE, combustibleConsumido);
+        validarCantidad(TipoRecurso.ENERGIA, energiaConsumida);
+        validarCantidad(TipoRecurso.DESGASTE, desgasteProducido);
+        if (combustibleConsumido > combustible) {
+            throw new RecursoInsuficienteException(TipoRecurso.COMBUSTIBLE, combustible, combustibleConsumido);
+        }
+        if (energiaConsumida > energia) {
+            throw new RecursoInsuficienteException(TipoRecurso.ENERGIA, energia, energiaConsumida);
+        }
+        if (desgasteProducido > DESGASTE_MAXIMO - desgaste) {
+            throw new CapacidadExcedidaException(TipoRecurso.DESGASTE, desgaste, desgasteProducido, DESGASTE_MAXIMO);
+        }
+
+        int combustibleAnterior = combustible;
+        int energiaAnterior = energia;
+        int desgasteAnterior = desgaste;
+        combustible = combustible - combustibleConsumido;
+        energia = energia - energiaConsumida;
+        desgaste = desgaste + desgasteProducido;
+
+        assert combustible == combustibleAnterior - combustibleConsumido : "Fallo postcondición al consumir combustible.";
+        assert energia == energiaAnterior - energiaConsumida : "Fallo postcondición al consumir energía.";
+        assert desgaste == desgasteAnterior + desgasteProducido : "Fallo postcondición al aumentar el desgaste.";
+        assert invariante() : "Fallo invariante tras consumir recursos.";
+    }
+
+    /**
+     * Realiza el mantenimiento: lleva el desgaste a 0 (Ficha de Inicio, punto 2).
+     * Puede hacerse aunque la nave todavía no lo requiera.
+     *
+     * @post desgaste == 0 y requiereMantenimiento() == false.
+     */
+    void realizarMantenimiento() {
+        desgaste = 0;
+        assert desgaste == 0 && !requiereMantenimiento() : "Fallo postcondición al realizar el mantenimiento.";
+        assert invariante() : "Fallo invariante tras realizar el mantenimiento.";
+    }
+
+    private void validarCantidad(TipoRecurso recurso, int cantidad) throws CantidadInvalidaException {
         if (cantidad < 0) {
-            throw new IllegalArgumentException("La cantidad a consumir no puede ser negativa.");
+            throw new CantidadInvalidaException(recurso, cantidad);
         }
-
-        if (cantidad > this.combustible) {
-            throw new IllegalStateException("Combustible insuficiente.");
-        }
-
-        int combustibleAnterior = this.combustible;
-        this.combustible -= cantidad;
-
-        assert this.combustible == combustibleAnterior - cantidad : "Fallo postcondicion al consumir combustible.";
-        assert invariante() : "Fallo invariante tras consumir combustible.";
     }
 
-    
-    
-    /**
-     * Consulta la cantidad de energia actual.
-     *
-     * @post El valor retornado esta entre 0 y CAPACIDADMAXENERGIA.
-     * @return cantidad de energia.
-     */
-    public int getEnergia() { 
-        return energia; 
-    }
-
-    /**
-     * Carga energia a la nave.
-     *
-     * @pre cantidad >= 0.
-     * @pre energia + cantidad <= CAPACIDADMAXENERGIA.
-     * @post La energia aumenta en la cantidad indicada.
-     * @param cantidad Cantidad de energia a cargar.
-     */
-    public void cargarEnergia(int cantidad) {
-        if (cantidad < 0) {
-            throw new IllegalArgumentException("La cantidad a cargar no puede ser negativa.");
-        }
-
-        if (this.energia + cantidad > CAPACIDADMAXENERGIA) {
-            throw new IllegalStateException("La carga supera la capacidad maxima de energia.");
-        }
-
-        int energiaAnterior = this.energia;
-        this.energia += cantidad;
-
-        assert this.energia == energiaAnterior + cantidad : "Fallo postcondicion al cargar energia.";
-        assert invariante() : "Fallo invariante tras cargar energia.";
-    }
-
-    /**
-     * Consume energia de la nave.
-     *
-     * @pre cantidad >= 0.
-     * @pre energia - cantidad >= 0.
-     * @post La energia disminuye en la cantidad indicada.
-     * @param cantidad Cantidad de energia a consumir.
-     */
-    public void consumirEnergia(int cantidad) {
-        if (cantidad < 0) {
-            throw new IllegalArgumentException("La cantidad a consumir no puede ser negativa.");
-        }
-
-        if (cantidad > this.energia) {
-            throw new IllegalStateException("Energia insuficiente.");
-        }
-
-        int energiaAnterior = this.energia;
-        this.energia -= cantidad;
-
-        assert this.energia == energiaAnterior - cantidad : "Fallo postcondicion al consumir energia.";
-        assert invariante() : "Fallo invariante tras consumir energia.";
-    }
-    
-    
-
-    /**
-     * Consulta la cantidad de desgaste actual.
-     *
-     * @post El valor retornado esta entre 0 y MAXDESGASTE.
-     * @return cantidad de desgaste.
-     */
-    public int getDesgaste() { 
-        return desgaste; 
-    }
-
-    /**
-     * Aumenta el desgaste de la nave.
-     *
-     * @pre cantidad >= 0.
-     * @pre desgaste + cantidad <= MAXDESGASTE.
-     * @post El desgaste aumenta en la cantidad indicada.
-     * @param cantidad Cantidad de desgaste a agregar.
-     */
-    public void aumentarDesgaste(int cantidad) {
-        if (cantidad < 0) {
-            throw new IllegalArgumentException("La cantidad de desgaste no puede ser negativa.");
-        }
-
-        if (this.desgaste + cantidad > MAXDESGASTE) {
-            throw new IllegalStateException("El desgaste superaria el maximo permitido.");
-        }
-
-        int desgasteAnterior = this.desgaste;
-        this.desgaste += cantidad;
-
-        assert this.desgaste == desgasteAnterior + cantidad : "Fallo postcondicion al aumentar desgaste.";
-        assert invariante() : "Fallo invariante tras aumentar desgaste.";
-    }
-
-
-
-    /**
-     * Realiza mantenimiento sobre la nave, reiniciando el desgaste a 0.
-     *
-     * @pre desgaste >= UMBRALMANTENIMIENTO.
-     * @post desgaste == 0.
-     * @throws IllegalStateException si la nave no requiere mantenimiento.
-     */
-    public void realizarMantenimiento() {
-        if (!requiereMantenimiento()) {
-            throw new IllegalStateException("La nave no requiere mantenimiento.");
-        }
-
-        this.desgaste = 0;
-        assert invariante() : "Fallo invariante tras realizar mantenimiento.";
-    }
-
-    
-    /**
-     * Consulta si la nave requiere mantenimiento.
-     *
-     * @post Retorna true si desgaste >= UMBRALMANTENIMIENTO, false en caso contrario.
-     * @return true si requiere mantenimiento.
-     */
-    public boolean requiereMantenimiento() {
-        return this.desgaste >= UMBRALMANTENIMIENTO;
+    private boolean invariante() {
+        return combustible >= 0 && combustible <= CAPACIDAD_MAXIMA_COMBUSTIBLE
+                && energia >= 0 && energia <= CAPACIDAD_MAXIMA_ENERGIA
+                && desgaste >= 0 && desgaste <= DESGASTE_MAXIMO;
     }
 
     @Override
     public String toString() {
-        return "Recursos{" 
-                + "combustible=" + combustible + ", "
-                + "energia=" + energia + ", "
-                + "desgaste=" + desgaste + '}';
+        return "combustible=" + combustible + ", energía=" + energia + ", desgaste=" + desgaste;
     }
 }
