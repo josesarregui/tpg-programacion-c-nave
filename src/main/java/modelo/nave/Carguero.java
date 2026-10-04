@@ -1,41 +1,24 @@
 package modelo.nave;
 
 /**
- * Nave de tipo Carguero.
- *
+ * Nave de tipo carguero (E1-01). Se diferencia de las demás por su configuración inicial de recursos
+ * (Ficha de Inicio, punto 2). Sólo puede crearse mediante {@link NaveFactory}.
  */
 public class Carguero extends Nave {
-    
-    /**
-     * Crea un Carguero con los recursos indicados.
-     *
-     * @pre recursos != null.
-     * @post Se crea el carguero con un id unico, recursos asignados, motor inicializado y sin tripulacion.
-     * @param recursos recursos de la nave.
-     */
-    public Carguero(Recursos recursos) {
-        super(recursos);
-    }
+
+    private static final int COMBUSTIBLE_INICIAL = 100;
+    private static final int ENERGIA_INICIAL = 60;
+    private static final int DESGASTE_INICIAL = 0;
 
     /**
-     * Retorna el tipo de nave.
-     *
-     * @post El valor retornado es "Carguero".
-     * @return tipo de nave.
+     * @post La nave tiene combustible 100, energía 60 y desgaste 0.
      */
-    @Override
-    public String getTipo() {
-        return "Carguero";
+    Carguero() {
+        super(COMBUSTIBLE_INICIAL, ENERGIA_INICIAL, DESGASTE_INICIAL);
     }
 
-    /**
-     * Representacion en texto del carguero.
-     *
-     * @post El valor retornado es distinto de null.
-     * @return representacion en texto del carguero.
-     */
     @Override
-    public String toString() {
-        return super.toString();
+    public TipoNave getTipo() {
+        return TipoNave.CARGUERO;
     }
 }

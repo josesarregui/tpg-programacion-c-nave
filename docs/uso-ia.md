@@ -96,3 +96,27 @@
     * La integración a `main` se realiza mediante un Pull Request revisado por el equipo.
 
 * **Forma en que se verificó el resultado:** `mvn test` (51 pruebas en verde) y ejecución de `app.App`, comparando los totales con los calculados a mano según E1-08.
+
+### Registro de Asistencia: Análisis y corrección del módulo Nave, y revisión de Warp y Bitácora (03/10/2026)
+
+* **Herramienta utilizada:** Claude Code (Anthropic).
+
+* **Propósito de la consulta:** analizar el módulo Nave de `main` según la Guía TP Nave y los apuntes de la cátedra, aplicar las correcciones en la rama `luca-correcionNave` y revisar la consistencia de Warp, Bitácora y la documentación.
+
+* **Componente o documento afectado:** paquetes `modelo.nave`, `modelo.warp`, `modelo.bitacora` y `excepcion`; pruebas de Nave, Warp y Bitácora; `App.java`, `README.md`, `docs/diseño.md` y `docs/diagrama_clases.md`.
+
+* **Resultado aprovechado:**
+  * Detección de cuatro fallas en Nave: desborde que dejaba recursos negativos, cambios parciales al rechazar una operación, naves creadas sin la fábrica y una fábrica que devolvía `null`.
+  * Corrección de Nave: enum `TipoNave`, constructores de paquete, recursos encapsulados, consumo sin cambios parciales y excepciones comprobadas con el dato rechazado.
+  * Warp: consulta `estaDisponible()` (Aclaración R4) y `setEstado()` de paquete.
+  * Bitácora: rechazo de eventos vacíos.
+  * Documentación alineada con el código y reportes para el equipo.
+
+* **Revisión o modificación realizada por el equipo:**
+  * Luca Zuanetti fijó el criterio de trabajo: la Guía y los apuntes como fuente, sólo funcionalidades vistas en clase y un análisis previo sin modificar código. También aprobó el plan antes de implementarlo.
+  * Contrastó el análisis con el reporte de otro integrante, lo que agregó puntos que ese reporte no cubría.
+  * Acordó con el desarrollador de Warp el cambio en `State` antes de aplicarlo.
+  * Pidió verificar la documentación, lo que permitió corregir inconsistencias previas.
+  * Antes de realizar el commit, revisó minuciosamente el código para verificar que se ajustara a lo solicitado por la cátedra y a lo explicado en clase (incluidos los ejemplos de las clases teórico-prácticas de los miércoles). Luego modificó lo que consideró pertinente y realizó el commit.
+  
+* **Forma en que se verificó el resultado:** las fallas se reprodujeron ejecutando el código de `main` antes de corregirlas. `mvn test` pasa con 79 pruebas en verde (antes eran 51, ninguna de Nave) y `app.App` demuestra los Escenarios B, C y D.

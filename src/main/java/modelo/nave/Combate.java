@@ -1,41 +1,24 @@
 package modelo.nave;
 
 /**
- * Nave de tipo Combate.
- *
+ * Nave de combate (E1-01). Se diferencia de las demás por su configuración inicial de recursos
+ * (Ficha de Inicio, punto 2). Sólo puede crearse mediante {@link NaveFactory}.
  */
 public class Combate extends Nave {
-    
-    /**
-     * Crea una nave de Combate con los recursos indicados.
-     *
-     * @pre recursos != null.
-     * @post Se crea la nave de combate con un id unico, recursos asignados, motor inicializado y sin tripulacion.
-     * @param recursos recursos de la nave.
-     */
-    public Combate(Recursos recursos) {
-        super(recursos);
-    }
+
+    private static final int COMBUSTIBLE_INICIAL = 80;
+    private static final int ENERGIA_INICIAL = 100;
+    private static final int DESGASTE_INICIAL = 0;
 
     /**
-     * Retorna el tipo de nave.
-     *
-     * @post El valor retornado es "Combate".
-     * @return tipo de nave.
+     * @post La nave tiene combustible 80, energía 100 y desgaste 0.
      */
-    @Override
-    public String getTipo() {
-        return "Combate";
+    Combate() {
+        super(COMBUSTIBLE_INICIAL, ENERGIA_INICIAL, DESGASTE_INICIAL);
     }
 
-    /**
-     * Representacion en texto de la nave de combate.
-     *
-     * @post El valor retornado es distinto de null.
-     * @return representacion en texto de la nave de combate.
-     */
     @Override
-    public String toString() {
-        return super.toString();
+    public TipoNave getTipo() {
+        return TipoNave.COMBATE;
     }
 }

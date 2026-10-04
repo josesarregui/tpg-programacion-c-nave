@@ -3,91 +3,154 @@ classDiagram
     %% Módulo Nave y Fábrica (Factory)
     class Nave {
         <<Abstract>>
-        # int id
-        # String nombre
-        # Recursos recursos
-        # MotorWarp motorWarp
-        + operacion()
+        - static int ultimoIdAsignado
+        - int id
+        - Recursos recursos
+        - MotorWarp motor
+        - Tripulacion tripulacion
+        ~ Nave(combustibleInicial, energiaInicial, desgasteInicial)
+        + getTipo() TipoNave*
+        + getId() int
+        + getMotor() MotorWarp
+        + getTripulacion() Tripulacion
+        + asignarTripulacion(tripulacion: Tripulacion)
+        + getCombustible() int
+        + getEnergia() int
+        + getDesgaste() int
+        + requiereMantenimiento() boolean
+        + estaListaParaOperar() boolean
+        + cargarCombustible(cantidad: int)
+        + cargarEnergia(cantidad: int)
+        + consumirRecursos(combustible: int, energia: int, desgaste: int)
+        + realizarMantenimiento()
+        - invariante() boolean
     }
     class Exploradora {
+        - int COMBUSTIBLE_INICIAL = 60
+        - int ENERGIA_INICIAL = 80
+        ~ Exploradora()
     }
     class Carguero {
+        - int COMBUSTIBLE_INICIAL = 100
+        - int ENERGIA_INICIAL = 60
+        ~ Carguero()
     }
     class Combate {
+        - int COMBUSTIBLE_INICIAL = 80
+        - int ENERGIA_INICIAL = 100
+        ~ Combate()
     }
     class NaveFactory {
-        + crearNave(tipo: String) Nave
+        + crearNave(tipo: TipoNave) Nave
+    }
+    class TipoNave {
+        <<enumeration>>
+        EXPLORADORA
+        CARGUERO
+        COMBATE
+        - String descripcion
     }
     class Recursos {
+        <<paquete>>
+        ~ int CAPACIDAD_MAXIMA_COMBUSTIBLE = 100
+        ~ int CAPACIDAD_MAXIMA_ENERGIA = 100
+        ~ int DESGASTE_MAXIMO = 100
+        ~ int UMBRAL_MANTENIMIENTO = 80
         - int combustible
         - int energia
         - int desgaste
-        - boolean mantenimiento
+        ~ Recursos(combustibleInicial, energiaInicial, desgasteInicial)
+        ~ getCombustible() int
+        ~ getEnergia() int
+        ~ getDesgaste() int
+        ~ cargarCombustible(cantidad: int)
+        ~ cargarEnergia(cantidad: int)
+        ~ consumir(combustible: int, energia: int, desgaste: int)
+        ~ realizarMantenimiento()
+        ~ requiereMantenimiento() boolean
+        - invariante() boolean
+    }
+    class TipoRecurso {
+        <<enumeration>>
+        COMBUSTIBLE
+        ENERGIA
+        DESGASTE
     }
 
     Nave <|-- Exploradora
     Nave <|-- Carguero
     Nave <|-- Combate
-    NaveFactory ..> Nave : instancian
+    NaveFactory ..> Nave : crea
+    NaveFactory ..> TipoNave
+    Nave --> TipoNave
     Nave *-- Recursos : Composición
     Nave *-- MotorWarp : Composición
-    Nave *-- Tripulacion : Composición
+    Nave o-- Tripulacion : Agregación (0..1)
 
     %% Módulo Motor Warp (State)
     class MotorWarp {
-        - EstadoWarp estado
-        + prepararSalto(MotorWarp)
-        + iniciarWarp(MotorWarp)
-        + desactivarWarp(MotorWarp)
-        + enfriar(MotorWarp)
+        - State estado
+        + MotorWarp()
+        + getEstado() State
+        ~ setEstado(nuevoEstado: State)
+        + prepararSalto()
+        + iniciarWarp()
+        + desactivarWarp()
+        + enfriar()
+        + estaDisponible() boolean
     }
-    class EstadoWarp {
+    class State {
         <<Interface>>
-        + prepararSalto(MotorWarp)
-        + iniciarWarp(MotorWarp)
-        + desactivarWarp(MotorWarp)
-        + enfriar(MotorWarp)
+        + prepararSalto()
+        + iniciarWarp()
+        + desactivarWarp()
+        + enfriar()
+        + estaDisponible() boolean
     }
-    class Disponible {
+    class DisponibleState {
         - MotorWarp motor
-        + prepararSalto(MotorWarp)
-        + iniciarWarp(MotorWarp)
-        + desactivarWarp(MotorWarp)
-        + enfriar(MotorWarp)
+        + prepararSalto()
+        + iniciarWarp()
+        + desactivarWarp()
+        + enfriar()
+        + estaDisponible() boolean
     }
-    class PreparandoSalto {
+    class PreparandoSaltoState {
         - MotorWarp motor
-        + prepararSalto(MotorWarp)
-        + iniciarWarp(MotorWarp)
-        + desactivarWarp(MotorWarp)
-        + enfriar(MotorWarp)
+        + prepararSalto()
+        + iniciarWarp()
+        + desactivarWarp()
+        + enfriar()
+        + estaDisponible() boolean
     }
-    class EnWarp {
+    class EnWarpState {
         - MotorWarp motor
-        + prepararSalto(MotorWarp)
-        + iniciarWarp(MotorWarp)
-        + desactivarWarp(MotorWarp)
-        + enfriar(MotorWarp)
+        + prepararSalto()
+        + iniciarWarp()
+        + desactivarWarp()
+        + enfriar()
+        + estaDisponible() boolean
     }
-    class Enfriamiento {
+    class EnfriamientoState {
         - MotorWarp motor
-        + prepararSalto(MotorWarp)
-        + iniciarWarp(MotorWarp)
-        + desactivarWarp(MotorWarp)
-        + enfriar(MotorWarp)
+        + prepararSalto()
+        + iniciarWarp()
+        + desactivarWarp()
+        + enfriar()
+        + estaDisponible() boolean
     }
 
-    EstadoWarp <|.. Disponible
-    EstadoWarp <|.. PreparandoSalto
-    EstadoWarp <|.. EnWarp
-    EstadoWarp <|.. Enfriamiento
-    MotorWarp *-- Disponible : Composición
-    MotorWarp *-- PreparandoSalto : Composición
-    MotorWarp *-- EnWarp : Composición
-    MotorWarp *-- Enfriamiento : Composición
-    MotorWarp --> EstadoWarp : estadoActual
+    State <|.. DisponibleState
+    State <|.. PreparandoSaltoState
+    State <|.. EnWarpState
+    State <|.. EnfriamientoState
+    MotorWarp --> State : estado actual
+    DisponibleState --> MotorWarp : motor
+    PreparandoSaltoState --> MotorWarp : motor
+    EnWarpState --> MotorWarp : motor
+    EnfriamientoState --> MotorWarp : motor
 
-    %% Módulo Misiones (Template Method)
+    %% Módulo Misiones (Template Method) - PENDIENTE DE IMPLEMENTACIÓN: diseño previsto
     class Mision {
         <<Abstract>>
         # String nombre
@@ -107,7 +170,7 @@ classDiagram
     Mision <|-- Recoleccion
     Mision <|-- Retorno
 
-    %% Módulo Asistente de Comando, Bitácora e Informe
+    %% Módulo Asistente de Comando e Informe - PENDIENTE DE IMPLEMENTACIÓN: diseño previsto
     class AsistenteComando {
         - Nave nave
         - Bitacora bitacora
@@ -115,14 +178,34 @@ classDiagram
         + encomendarMision(Mision)
         + ejecutarMision()
     }
+    %% Módulo Bitácora (E1-05) - implementado
     class Bitacora {
         - List~Evento~ eventos
-        + registrarEvento(Evento)
+        + registrarEvento(evento: Evento)
+        + getEventos() List~Evento~
+        - invariante() boolean
     }
     class Evento {
-        - String timestamp
+        - LocalDateTime fechaHora
+        - TipoEvento tipo
         - String descripcion
+        + Evento(fechaHora: LocalDateTime, tipo: TipoEvento, descripcion: String)
+        + Evento(tipo: TipoEvento, descripcion: String)
+        + getFechaHora() LocalDateTime
+        + getTipo() TipoEvento
+        + getDescripcion() String
+        - invariante() boolean
     }
+    class TipoEvento {
+        <<enumeration>>
+        MOTOR
+        MISION
+        RECURSO
+        ERROR
+        SISTEMA
+        RELEVANTE
+    }
+    Evento --> TipoEvento
     class InformeMision {
         - String resultado
         - int recursosConsumidos
@@ -209,7 +292,7 @@ classDiagram
         + getSubsidioMensual() double
     }
 
-    Tripulacion o-- "5..*" Tripulante : Agregación
+    Tripulacion o-- Tripulante : Agregación (5..*)
     Tripulante <|-- Capitan
     Tripulante <|-- Consejero
     Tripulante <|-- Teniente
@@ -277,7 +360,7 @@ classDiagram
     Liquidacion <|.. Decorator
     Decorator <|-- AntiguedadDecorator
     Decorator <|-- OrigenDecorator
-    Decorator o--> Liquidacion : decorado
+    Decorator o-- Liquidacion : decorado
     Liquidacion ..> ConceptoHaber : detalle
     ConceptoHaber --> TipoConcepto
     LiquidadorHaberes ..> Decorator : arma la cadena
@@ -304,4 +387,33 @@ classDiagram
     Exception <|-- TripulacionInvalidaException
     Exception <|-- TripulanteInexistenteException
     Exception <|-- LiquidacionInvalidaException
+    class CantidadInvalidaException {
+        - TipoRecurso recurso
+        - int cantidadRecibida
+    }
+    class CapacidadExcedidaException {
+        - TipoRecurso recurso
+        - int valorActual
+        - int cantidadSolicitada
+        - int maximo
+    }
+    class RecursoInsuficienteException {
+        - TipoRecurso recurso
+        - int disponible
+        - int cantidadSolicitada
+    }
+    Exception <|-- CantidadInvalidaException
+    Exception <|-- CapacidadExcedidaException
+    Exception <|-- RecursoInsuficienteException
+    Recursos ..> CantidadInvalidaException : lanza
+    Recursos ..> CapacidadExcedidaException : lanza
+    Recursos ..> RecursoInsuficienteException : lanza
+
+    %% Excepción no comprobada del Motor Warp
+    class EstadoMotorInvalidoException {
+        - String estadoActual
+        + getEstadoActual() String
+    }
+    IllegalStateException <|-- EstadoMotorInvalidoException
+    State ..> EstadoMotorInvalidoException : transición inválida
 ```

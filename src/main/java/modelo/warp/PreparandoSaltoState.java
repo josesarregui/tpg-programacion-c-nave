@@ -11,6 +11,8 @@ import java.util.Objects;
 
 public class PreparandoSaltoState implements State {
 
+    private static final String NOMBRE = "Preparando salto";
+
     private final MotorWarp motor;
 
     public PreparandoSaltoState(MotorWarp motor) {
@@ -20,7 +22,8 @@ public class PreparandoSaltoState implements State {
     @Override
     public void prepararSalto() {
         throw new EstadoMotorInvalidoException(
-                "Transición inválida: La secuencia de preparación ya se encuentra en curso."
+                "Transición inválida: La secuencia de preparación ya se encuentra en curso.",
+                NOMBRE
         );
     }
 
@@ -33,14 +36,26 @@ public class PreparandoSaltoState implements State {
     @Override
     public void desactivarWarp() {
         throw new EstadoMotorInvalidoException(
-                "Transición inválida: No se puede desactivar Warp porque el salto aún no fue ejecutado."
+                "Transición inválida: No se puede desactivar Warp porque el salto aún no fue ejecutado.",
+                NOMBRE
         );
     }
 
     @Override
     public void enfriar() {
         throw new EstadoMotorInvalidoException(
-                "Transición inválida: No se puede enfriar el motor mientras se prepara un salto."
+                "Transición inválida: No se puede enfriar el motor mientras se prepara un salto.",
+                NOMBRE
         );
+    }
+
+    @Override
+    public boolean estaDisponible() {
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return NOMBRE;
     }
 }

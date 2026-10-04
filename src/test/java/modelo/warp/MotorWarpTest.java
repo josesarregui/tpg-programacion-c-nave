@@ -5,8 +5,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MotorWarpTest {
 
@@ -94,6 +97,36 @@ class MotorWarpTest {
         assertThrows(EstadoMotorInvalidoException.class, () -> this.motor.desactivarWarp());
 
         assertInstanceOf(EnfriamientoState.class, this.motor.getEstado());
+    }
+
+    @Test
+    @DisplayName("Aclaración R4: el motor sólo está disponible en el estado Disponible")
+    void testEstaDisponibleSoloEnDisponible() {
+        assertTrue(this.motor.estaDisponible());
+
+        this.motor.prepararSalto();
+        assertFalse(this.motor.estaDisponible());
+
+        this.motor.iniciarWarp();
+        assertFalse(this.motor.estaDisponible());
+
+        this.motor.desactivarWarp();
+        assertFalse(this.motor.estaDisponible());
+
+        this.motor.enfriar();
+        assertTrue(this.motor.estaDisponible());
+    }
+
+    @Test
+    @DisplayName("Escenario C: la excepción de una transición inválida guarda el estado en que se rechazó")
+    void testExcepcionGuardaElEstadoActual() {
+        this.motor.prepararSalto();
+
+        EstadoMotorInvalidoException excepcion =
+                assertThrows(EstadoMotorInvalidoException.class, () -> this.motor.enfriar());
+
+        assertEquals("Preparando salto", excepcion.getEstadoActual());
+        assertEquals("MotorWarp [estado=Preparando salto]", this.motor.toString());
     }
 
     @Test

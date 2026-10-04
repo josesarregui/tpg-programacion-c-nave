@@ -1,19 +1,16 @@
-
-package excepcion; // o 'package modelo.warp;' si elegís dejarla en tu paquete
+package excepcion;
 
 /**
- * Excepción lanzada cuando se intenta realizar una transición de estado
- * no permitida en el ciclo operativo del Motor Warp.
+ * Excepción lanzada cuando se intenta una transición no permitida en el estado actual
+ * del Motor Warp (E1-02: el motor no acepta transiciones inválidas silenciosas).
+ * Guarda el nombre del estado en el que se rechazó la transición, con su getter,
+ * para que el invocante pueda registrarlo en la Bitácora (Escenario C).
+ *
+ * Extiende IllegalStateException (no comprobada). Ver la decisión pendiente en docs/diseño.md, sección 4.
  */
-
 public class EstadoMotorInvalidoException extends IllegalStateException {
 
     private final String estadoActual;
-
-    public EstadoMotorInvalidoException(String mensaje) {
-        super(mensaje);
-        this.estadoActual = null;
-    }
 
     public EstadoMotorInvalidoException(String mensaje, String estadoActual) {
         super(mensaje);
@@ -24,10 +21,3 @@ public class EstadoMotorInvalidoException extends IllegalStateException {
         return estadoActual;
     }
 }
-
-/*
-* extends IllegalStateException --> Esta clase viene integrada adentro del paquete estandar de java.lang
-*
-* En las diapositivas 38 y 39, se muestra que una excepción personalizada no solo puede llevar un mensaje de texto (super("...")),
-* sino también atributos propios con sus getters para aportar contexto:
-* */
