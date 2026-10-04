@@ -1,75 +1,125 @@
 package modelo.mision;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
- * Esta clase lo que hace es darme un informe completo con los datos de la mision, para que el asistente determine que datos estaran escritos en la bitacora
+ * Informe que genera una misión al cerrarse (E1-10): misión ejecutada, resultado, acciones principales,
+ * recursos consumidos, estado final de la nave y observaciones relevantes.
+ *
+ * Es inmutable: todos sus atributos son final, no tiene setters y la lista de acciones se devuelve
+ * de sólo lectura. Sólo lo crea {@link Mision} (constructor de paquete), de modo que nadie puede
+ * fabricar ni alterar el resultado de una misión desde afuera.
+ * Devuelve datos y no texto formateado, para que pueda mostrarse por consola o en Swing sin cambiar el modelo.
+ *
+ * Invariante:
+ *  - mision no nula ni vacía; acciones y observaciones no nulas;
+ *  - los recursos consumidos y los valores finales no son negativos;
+ *  - estadoMotorFinal no nulo.
  */
 public class InformeMision {
-	/**
-	 * Inicializacion, la descripcion dependera de la mision a ejecutarse. Lo demas se inicializa como una mision no completa
-	 */
-	private String descripcion;
-    private boolean completada;
-    private boolean exitosa;
-    private String observaciones;
-    private int recursosConsumidos;
-    private boolean informefinalizado;
-    
-    public InformeMision(String tipoMision) {
-    	this.descripcion = tipoMision;
-    	this.completada = false;
-    	this.exitosa = false;
-    	this.observaciones = "";
-    	this.recursosConsumidos = 0; 
-    	this.informefinalizado = false;
+
+    private final String mision;
+    private final boolean exitosa;
+    private final List<String> acciones;
+    private final int combustibleConsumido;
+    private final int energiaConsumida;
+    private final int desgasteProducido;
+    private final int combustibleFinal;
+    private final int energiaFinal;
+    private final int desgasteFinal;
+    private final String estadoMotorFinal;
+    private final boolean naveOperativa;
+    private final String observaciones;
+
+    /**
+     * @pre Los datos los calcula la propia misión al cerrarse, por eso un dato inválido sólo puede
+     *      deberse a un error de programación y se verifica con aserciones.
+     * @post El informe queda con los datos recibidos y no puede modificarse.
+     */
+    InformeMision(String mision, boolean exitosa, List<String> acciones,
+                  int combustibleConsumido, int energiaConsumida, int desgasteProducido,
+                  int combustibleFinal, int energiaFinal, int desgasteFinal,
+                  String estadoMotorFinal, boolean naveOperativa, String observaciones) {
+        assert acciones != null : "La lista de acciones no puede ser nula.";
+        this.mision = mision;
+        this.exitosa = exitosa;
+        // Se copia la lista: si la misión la modificara después, el informe no cambiaría.
+        this.acciones = new ArrayList<>(acciones);
+        this.combustibleConsumido = combustibleConsumido;
+        this.energiaConsumida = energiaConsumida;
+        this.desgasteProducido = desgasteProducido;
+        this.combustibleFinal = combustibleFinal;
+        this.energiaFinal = energiaFinal;
+        this.desgasteFinal = desgasteFinal;
+        this.estadoMotorFinal = estadoMotorFinal;
+        this.naveOperativa = naveOperativa;
+        this.observaciones = observaciones;
+        assert invariante() : "Fallo invariante: el informe de la misión quedó incompleto.";
     }
-    
-    
-	public boolean isInformefinalizado() {
-		return informefinalizado;
-	}
 
-	public void setInformefinalizado(boolean informefinalizado) {
-		this.informefinalizado = informefinalizado;
-	}
+    public String getMision() {
+        return mision;
+    }
 
-	public void setCompletada(boolean completada) {
-		this.completada = completada;
-	}
+    /**
+     * @return true si se cumplió la condición de éxito de la misión (Ficha de Inicio, punto 4).
+     */
+    public boolean isExitosa() {
+        return exitosa;
+    }
 
-	public void setExitosa(boolean exitosa) {
-		this.exitosa = exitosa;
-	}
+    /**
+     * @return acciones principales, en el orden en que se realizaron (lista de sólo lectura).
+     */
+    public List<String> getAcciones() {
+        return Collections.unmodifiableList(acciones);
+    }
 
-	public void setObservaciones(String observaciones) {
-		this.observaciones = observaciones;
-	}
+    public int getCombustibleConsumido() {
+        return combustibleConsumido;
+    }
 
-	public void setRecursosConsumidos(int recursosConsumidos) {
-		this.recursosConsumidos = recursosConsumidos;
-	}
-	
-	public void agregarObservaciones(String observaciones) {
-		this.observaciones += " " + observaciones;
-	}
+    public int getEnergiaConsumida() {
+        return energiaConsumida;
+    }
 
-	public String getDescripcion() {
-		return descripcion;
-	}
-	
-	public boolean isCompletada() {
-		return completada;
-	}
-	
-	public boolean isExitosa() {
-		return exitosa;
-	}
-	
-	public String getObservaciones() {
-		return observaciones;
-	}
-	
-	public int getRecursosConsumidos() {
-		return recursosConsumidos;
-	}
+    public int getDesgasteProducido() {
+        return desgasteProducido;
+    }
 
+    public int getCombustibleFinal() {
+        return combustibleFinal;
+    }
+
+    public int getEnergiaFinal() {
+        return energiaFinal;
+    }
+
+    public int getDesgasteFinal() {
+        return desgasteFinal;
+    }
+
+    public String getEstadoMotorFinal() {
+        return estadoMotorFinal;
+    }
+
+    /**
+     * @return true si, al cerrar la misión, la nave quedó lista para operar.
+     */
+    public boolean isNaveOperativa() {
+        return naveOperativa;
+    }
+
+    public String getObservaciones() {
+        return observaciones;
+    }
+
+    private boolean invariante() {
+        return mision != null && !mision.isBlank()
+                && acciones != null && observaciones != null && estadoMotorFinal != null
+                && combustibleConsumido >= 0 && energiaConsumida >= 0 && desgasteProducido >= 0
+                && combustibleFinal >= 0 && energiaFinal >= 0 && desgasteFinal >= 0;
+    }
 }
