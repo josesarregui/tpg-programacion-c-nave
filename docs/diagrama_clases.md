@@ -150,33 +150,77 @@ classDiagram
     EnWarpState --> MotorWarp : motor
     EnfriamientoState --> MotorWarp : motor
 
-    %% Módulo Misiones (Template Method) - PENDIENTE DE IMPLEMENTACIÓN: diseño previsto
+    %% Módulo Misiones (Template Method - E1-06, E1-10)
     class Mision {
         <<Abstract>>
-        # String nombre
-        + preparar()
-        + ejecutar()
-        + evaluar()
-        + cerrar()
+        + int COMBUSTIBLE_CONSUMIDO = 4
+        + int DESGASTE_PRODUCIDO = 4
+        - String codigo
+        - String nombre
+        - List~String~ acciones
+        - AsistenteComando asistente
+        - EtapaMision etapa
+        - boolean exitosa
+        - InformeMision informe
+        + asignarAsistente(asistente: AsistenteComando)
+        + realizar() InformeMision
+        - preparar()
+        - ejecutar()
+        - evaluar()
+        - cerrar()
+        # getEnergiaAdicional()* int
+        # realizarAccion()*
+        # objetivoCumplido()* boolean
+        # getCondicionDeExito()* String
+        # registrarAccion(descripcion: String)
+        + getEtapa() EtapaMision
+        + getInforme() InformeMision
+        - invariante() boolean
     }
-    class Intercepcion {
+    class MisionIntercepcion {
+        - boolean asistenciaRealizada
     }
-    class Recoleccion {
+    class MisionRecoleccion {
+        - boolean elementoObtenido
     }
-    class Retorno {
+    class MisionRetorno {
+    }
+    class EtapaMision {
+        <<enumeration>>
+        CREADA
+        PREPARADA
+        EJECUTADA
+        EVALUADA
+        CERRADA
     }
 
-    Mision <|-- Intercepcion
-    Mision <|-- Recoleccion
-    Mision <|-- Retorno
+    Mision <|-- MisionIntercepcion
+    Mision <|-- MisionRecoleccion
+    Mision <|-- MisionRetorno
+    Mision --> EtapaMision
 
-    %% Módulo Asistente de Comando e Informe - PENDIENTE DE IMPLEMENTACIÓN: diseño previsto
+    %% Módulo Asistente de Comandos (E1-03) - versión mínima
     class AsistenteComando {
         - Nave nave
         - Bitacora bitacora
-        - InformeMision informe
-        + encomendarMision(Mision)
-        + ejecutarMision()
+        - Mision misionEncomendada
+        + AsistenteComando(nave: Nave)
+        + naveListaParaOperar() boolean
+        + getCombustible() int
+        + getEnergia() int
+        + getDesgaste() int
+        + getEstadoMotor() String
+        + getEventos() List~Evento~
+        + asignarTripulacion(tripulacion: Tripulacion)
+        + cargarCombustible(cantidad: int)
+        + cargarEnergia(cantidad: int)
+        + realizarMantenimiento()
+        + consumirRecursos(combustible: int, energia: int, desgaste: int)
+        + prepararSalto()
+        + saltar()
+        + encomendarMision(mision: Mision)
+        + ejecutarMision() InformeMision
+        + registrarEvento(tipo: TipoEvento, descripcion: String)
     }
     %% Módulo Bitácora (E1-05) - implementado
     class Bitacora {
@@ -207,16 +251,25 @@ classDiagram
     }
     Evento --> TipoEvento
     class InformeMision {
-        - String resultado
-        - int recursosConsumidos
+        - String mision
+        - boolean exitosa
+        - List~String~ acciones
+        - int combustibleConsumido
+        - int energiaConsumida
+        - int desgasteProducido
+        - int combustibleFinal
+        - int energiaFinal
+        - int desgasteFinal
+        - String estadoMotorFinal
+        - boolean naveOperativa
+        - String observaciones
     }
 
-    AsistenteComando *-- Nave : Composición
+    AsistenteComando --> Nave : opera
     AsistenteComando *-- Bitacora : Composición
-    AsistenteComando --* InformeMision : Composición
     AsistenteComando <--> Mision : Asociación Bidireccional
+    Mision *-- InformeMision : Composición
     Bitacora *-- Evento : Composición
-    InformeMision *-- Evento : Composición
 
     %% Módulo Tripulación (E1-04)
     class Tripulacion {
@@ -408,6 +461,15 @@ classDiagram
     Recursos ..> CantidadInvalidaException : lanza
     Recursos ..> CapacidadExcedidaException : lanza
     Recursos ..> RecursoInsuficienteException : lanza
+    class NaveNoDisponibleException {
+        - String codigoMision
+        - boolean tieneTripulacion
+        - boolean requiereMantenimiento
+        - String estadoMotor
+    }
+    Exception <|-- NaveNoDisponibleException
+    Mision ..> NaveNoDisponibleException : lanza
+    Mision ..> RecursoInsuficienteException : lanza
 
     %% Excepción no comprobada del Motor Warp
     class EstadoMotorInvalidoException {

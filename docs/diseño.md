@@ -67,9 +67,21 @@ En lugar de organizar el código por tipos de componentes técnicos (capas horiz
     * `ConceptoHaber` verifica con aserciones que el importe no sea negativo: los importes los calcula el propio modelo, por lo que un valor inválido sólo puede deberse a un error de programación.
     * `ReciboHaberes` verifica con `assert invariante()` que el total coincida con la suma del detalle.
 
-### `mision` (Patrón Template Method - E1-06) — pendiente de implementación
-* **Contenido previsto:** `Mision` (abstracta), `MisionIntercepcion` (M-01), `MisionRecoleccion` (M-02), `MisionRetorno` (M-03), `InformeMision`.
-* **Responsabilidad:** Modela el ciclo de vida inalterable de una misión (`preparar` -> `ejecutar` -> `evaluar` -> `cerrar`). Las subclases solo implementan el comportamiento particular de su objetivo, emitiendo un informe estructurado al cierre.
+### `mision` (Patrón Template Method - E1-06, E1-10)
+* **Contenido:** `Mision` (abstracta), `MisionIntercepcion` (Intercepción y asistencia), `MisionRecoleccion` (Recolección), `MisionRetorno` (Retorno seguro), `InformeMision`, `EtapaMision` (Enum).
+* **Responsabilidad:** Modela el ciclo de una misión (`preparar` -> `ejecutar` -> `evaluar` -> `cerrar`) y produce su informe al cerrarse.
+* **Template Method (apunte 04-02):**
+    * `realizar()` es el **método plantilla**: es `final` y llama a los cuatro pasos siempre en el mismo orden. Los pasos son privados y contienen lo común a toda misión: verificar que la nave esté lista y tenga recursos, consumir el costo en un solo paso, ordenar el salto si fue exitosa y armar el informe.
+    * Cada misión concreta redefine sólo sus **operaciones primitivas**: `getEnergiaAdicional()`, `realizarAccion()`, `objetivoCumplido()` y `getCondicionDeExito()` (Ficha de Inicio, puntos 4 y 5). Agregar una misión nueva no requiere modificar las existentes.
+* **Costos (Ficha de Inicio, punto 5):** toda misión consume 4 de combustible y suma 4 de desgaste (constantes de `Mision`). La "energía adicional" se toma como costo, porque la sección se titula "Costos de la misión simplificada" y la Tabla de Recursos (IV, punto 4) la llama "Costo adicional" de la acción final: M-01 y M-02 consumen 5 de energía y M-03, 0.
+* **Evolución en la E2:** la Tabla de Recursos (IV, punto 1) indica que "todas las misiones utilizan las mismas reglas de consumo" (escaneos, movimientos y recálculos) y que sólo cambia el costo de la acción final de cada misión. Por eso el cálculo del consumo seguirá en los pasos comunes de `Mision` y la energía adicional seguirá siendo una operación primitiva de cada subclase: se amplían las mismas clases, como pide E1-06, sin cambiar la estructura del patrón.
+* **Condición de éxito (Ficha de Inicio, punto 4):** M-01 y M-02 son exitosas si realizaron su acción. M-03 es exitosa si la nave queda lista para operar: si el desgaste de la misión la lleva a 80 o más, no es exitosa.
+* **Relación con el asistente (Aclaración, R2 y R4):** la misión no conoce a la nave; toda consulta u orden pasa por el `AsistenteComando` al que fue encomendada, que registra cada paso en su Bitácora. Una misión exitosa ordena preparar el salto y saltar.
+* **Contratos:**
+    * `EtapaMision` registra en qué paso está la misión. Cada paso verifica con `assert` que el anterior se haya hecho (Observaciones: no se ejecuta sin preparación previa ni se cierra sin resultado e informe). Una misión se realiza una sola vez y se encomienda a un solo asistente (R4).
+    * Invariante de `Mision`: código y nombre no vacíos, y tiene informe si y sólo si está cerrada.
+    * Si la nave no está lista (`NaveNoDisponibleException`) o no alcanzan los recursos (`RecursoInsuficienteException`), la misión se rechaza en `preparar`, **antes de modificar nada**: no hay cambios parciales y la misión sigue en CREADA, por lo que puede reintentarse (Escenario B).
+* **`InformeMision` (E1-10):** inmutable (atributos `final`, sin setters, acciones de sólo lectura) y con constructor de paquete: sólo lo crea la misión. Contiene misión, resultado, acciones principales, recursos consumidos, estado final de la nave y observaciones, como datos y no como texto formateado.
 
 ### `bitacora` (E1-05)
 * **Contenido:** `Bitacora`, `Evento`, `TipoEvento` (Enum).
@@ -79,22 +91,28 @@ En lugar de organizar el código por tipos de componentes técnicos (capas horiz
     * `Evento` es inmutable (atributos `final`, sin modificadores): un evento registrado no puede modificarse (Aclaración, R5). Guarda cuándo sucedió (`LocalDateTime`), su tipo (`TipoEvento`: MOTOR, MISION, RECURSO, ERROR, SISTEMA, RELEVANTE) y qué pasó.
 * **Contratos:** la Bitácora no acepta eventos nulos ni vacíos (Observaciones): `registrarEvento(null)` y un `Evento` sin fecha, sin tipo o con descripción vacía se rechazan con `IllegalArgumentException`. Los eventos los crea el propio sistema, por lo que un dato faltante es un error de programación (apunte de Excepciones: las `RuntimeException` corresponden a errores del programador). Invariante de `Bitacora`: no contiene nulos; invariante de `Evento`: datos completos.
 
-### `asistente` — pendiente de implementación
-* **Contenido previsto:** `AsistenteComando`.
-* **Responsabilidad:** Coordinador de operaciones de alto nivel. Asiste a la tripulación interactuando con la nave y despachando misiones sin absorber la lógica interna de los subsistemas (evitando actuar como una clase Dios).
+### `asistente` (E1-03) — versión mínima
+* **Contenido:** `AsistenteComando`.
+* **Responsabilidad:** Opera una sola nave (Aclaración, R2) y lleva su Bitácora (R5). Recibe órdenes (asignar tripulación, cargar combustible o energía, mantenimiento, consumir recursos, preparar salto y saltar), las delega en la nave o en el Motor Warp sin implementar su comportamiento interno, y registra el resultado. Se le encomiendan misiones y las ejecuta.
+* **Manejo de errores:** cuando una orden o una misión se rechaza, registra el motivo en la Bitácora (tipo ERROR) y propaga la excepción al invocante (`App` o, en la E2, un controlador). No captura excepciones para ignorarlas (apunte de Excepciones).
+* **Salto (Aclaración, R3):** `saltar()` lleva el motor de Preparando salto a En warp y, al terminar el salto, a Disponible pasando por Enfriamiento, tal como recorre el Escenario C. Así la nave queda lista para la misión siguiente.
+* **Transiciones inválidas (Escenario C):** si una orden al motor no es válida en su estado actual, el asistente registra el rechazo en la Bitácora con el estado en que ocurrió y propaga `EstadoMotorInvalidoException`; el motor no cambia.
+* **Pendiente:** el Universo / centro de control (R1) y el resto de E1-03 quedan fuera de esta versión.
 
 ### `excepcion`
-* **Contenido:** Excepciones de negocio (`EstadoMotorInvalidoException`, `TripulanteInvalidoException`, `TripulacionInvalidaException`, `TripulanteInexistenteException`, `LiquidacionInvalidaException`, `CantidadInvalidaException`, `CapacidadExcedidaException`, `RecursoInsuficienteException`).
+* **Contenido:** Excepciones de negocio (`EstadoMotorInvalidoException`, `TripulanteInvalidoException`, `TripulacionInvalidaException`, `TripulanteInexistenteException`, `LiquidacionInvalidaException`, `CantidadInvalidaException`, `CapacidadExcedidaException`, `RecursoInsuficienteException`, `NaveNoDisponibleException`).
 * **Responsabilidad:** Soporte del diseño por contrato, interrumpiendo operaciones no autorizadas e impidiendo que los recursos caigan en estados inconsistentes.
-* **Criterio adoptado en Tripulación, Liquidación y Nave:**
+* **Criterio adoptado en Tripulación, Liquidación, Nave, Misión y Asistente:**
     * **Excepciones propias (comprobadas, extienden `Exception`):** se usan cuando el problema no puede resolverse dentro del método y debe propagarse al invocante (el Asistente o, en la E2, un controlador). Cada una guarda el dato que provocó el error, con su getter, para que la zona de recuperación (`catch`) pueda decidir qué hacer. Se declaran con `throws` porque forman parte del contrato del método.
     * **Aserciones (`assert`):** se usan para invariantes de clase (`private boolean invariante()` comprobado al final de constructores y métodos modificadores), postcondiciones (guardando el valor anterior en una variable local, por ejemplo `cantidadAnterior`), invariantes de ciclo y precondiciones cuya violación sólo puede deberse a un error de programación. Se activan con `-ea`; Maven Surefire las activa por defecto al ejecutar `mvn test`.
     * **Importes de los conceptos:** se verifican con aserciones (`ConceptoHaber`, `Decorator`) y no con excepciones, porque los calcula el propio modelo a partir de datos ya validados (antigüedad >= 0, origen y cargo informados). Un importe negativo sólo puede deberse a un error de programación; el enunciado reserva las excepciones para errores que deban propagarse al coordinador o al cliente.
 * **Excepción del Motor Warp:** `EstadoMotorInvalidoException` extiende `IllegalStateException` (no comprobada), por lo que no sigue todavía el criterio anterior (ver sección 4).
+* **Excepción de Misión:** `NaveNoDisponibleException` (comprobada) guarda la misión rechazada y por qué la nave no está lista (tripulación, mantenimiento y estado del motor), para que el invocante sepa qué resolver.
+* **Errores imposibles por diseño:** en `Mision.ejecutar()`, `CantidadInvalidaException` y `CapacidadExcedidaException` no pueden ocurrir (cantidades constantes y desgaste ya verificado en `preparar`). Si ocurrieran sería un error de programación, por eso se transforman en `IllegalStateException` (apunte de Excepciones: las `RuntimeException` corresponden a errores del programador) en lugar de declararse en el contrato de la misión.
 
 ### `app`
 * **Contenido:** `App`.
-* **Responsabilidad:** Programa de demostración que simula al usuario (E1-03): arma una tripulación válida, liquida sus haberes del mes mostrando el detalle de cada concepto y muestra casos de rechazo. También crea los tres tipos de nave mediante la fábrica, muestra los recursos antes y después de cargas, consumos y mantenimiento, y reproduce los Escenarios B y D. Por último recorre el ciclo válido del Motor Warp y muestra el rechazo de una transición inválida (Escenario C). Es la única clase que escribe en consola; el modelo sólo devuelve datos (`ReciboHaberes`, `ConceptoHaber`), de modo que en la E2 puede reemplazarse por una vista Swing sin modificar el modelo.
+* **Responsabilidad:** Programa de demostración que simula al usuario (E1-03): arma una tripulación válida, liquida sus haberes del mes mostrando el detalle de cada concepto y muestra casos de rechazo. También crea los tres tipos de nave mediante la fábrica, muestra los recursos antes y después de cargas, consumos y mantenimiento, y reproduce los Escenarios B y D. Luego recorre el ciclo válido del Motor Warp y muestra el rechazo de una transición inválida (Escenario C). Por último, el asistente ejecuta M-01, M-02 y M-03 mostrando informe, recursos finales y Bitácora (Escenario A), y una misión rechazada por combustible insuficiente sin cambios parciales (Escenario B). En el Escenario C también muestra una transición inválida ordenada a través del asistente, que queda registrada en la Bitácora. Es la única clase que escribe en consola; el modelo sólo devuelve datos (`ReciboHaberes`, `ConceptoHaber`), de modo que en la E2 puede reemplazarse por una vista Swing sin modificar el modelo.
 
 ---
 
@@ -126,7 +144,13 @@ La suite de pruebas del subsistema de propulsión sigue las directivas del **Esc
 ### Pruebas del módulo Nave (`NaveFactoryTest`, `NaveTest`, `RecursosTest`)
 Siguen la misma estructura (`@BeforeEach`, `@DisplayName`, `assertThrows`) y son la evidencia de E1-01, E1-07 y E1-09: creación de los tres tipos mediante la fábrica con los valores de la Ficha de Inicio, cargas, consumos y mantenimiento, capacidad operativa según el mantenimiento y el estado del motor, y los Escenarios B y D. En cada rechazo se verifica, además de la excepción y los datos que guarda, que **el estado anterior de la nave se conserva**.
 
+### Pruebas del Asistente (`AsistenteComandoTest`)
+Evidencia de E1-03 y E1-05: el asistente registra las operaciones sobre recursos y los cambios del motor, y ante un rechazo (transición inválida del Escenario C o carga que excede la capacidad del Escenario D) registra el motivo, conserva el estado anterior y propaga la excepción.
+
+### Pruebas del módulo Misión (`MisionTest`)
+Evidencia de E1-06, E1-10 y los Escenarios A y B: ciclo completo de M-01, M-02 y M-03 con los costos de la Ficha de Inicio, orden de los cuatro pasos, contenido del informe, salto y vuelta a Disponible, registro en la Bitácora, M-03 no exitosa cuando la nave queda requiriendo mantenimiento, rechazos por combustible o energía insuficientes y por nave no disponible (sin tripulación o con mantenimiento pendiente) sin cambios parciales, reintento después de cargar combustible, y rechazos por contrato (misión realizada dos veces, encomendada a dos asistentes o sin asistente).
+
 ## 4. Mejoras y Extensiones Pendientes
 * **excepcion (EstadoMotorInvalidoException):** evaluar con el equipo si pasa a ser comprobada (extender `Exception`), como el resto de las excepciones propias. Implica declarar `throws` en `State`, en los cuatro estados, en `MotorWarp` y en el código que lo invoque.
-* **mision y asistente (E1-03, E1-06, E1-10):** implementar `Mision` (Template Method) con M-01, M-02 y M-03, `InformeMision` y `AsistenteComando`. Las misiones deben aplicar su costo con `Nave.consumirRecursos(...)` y verificar antes `Nave.estaListaParaOperar()`; el Asistente debe capturar las excepciones de recursos y del motor y registrar el motivo en la Bitácora (Escenarios B y C).
-* **Aclaración R3 (Motor Warp):** la Aclaración indica que, mientras no se modele el paso del tiempo, una nave en Salto warp vuelve a Disponible al terminar el salto y Enfriamiento existe pero todavía no se usa; el código actual sigue la secuencia del Escenario C de la Guía (En warp → Enfriamiento → Disponible). Acordar en el equipo cuál se aplica.
+* **asistente y universo (E1-03, Aclaración R1):** el `AsistenteComando` actual es una versión mínima para ejecutar misiones; falta el Universo / centro de control.
+* **Aclaración R3 (Motor Warp):** la Aclaración indica que, mientras no se modele el paso del tiempo, una nave en Salto warp vuelve a Disponible al terminar el salto y Enfriamiento existe pero todavía no se usa; el código actual sigue la secuencia del Escenario C de la Guía (En warp → Enfriamiento → Disponible). Acordar en el equipo cuál se aplica. Para las misiones el resultado es el mismo (la nave termina en Disponible) y la secuencia está concentrada en `AsistenteComando.saltar()`, por lo que un cambio sólo afectaría a ese método y a los estados del motor.

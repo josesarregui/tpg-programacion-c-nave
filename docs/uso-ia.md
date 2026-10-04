@@ -120,3 +120,25 @@
   * Antes de realizar el commit, revisó minuciosamente el código para verificar que se ajustara a lo solicitado por la cátedra y a lo explicado en clase (incluidos los ejemplos de las clases teórico-prácticas de los miércoles). Luego modificó lo que consideró pertinente y realizó el commit.
   
 * **Forma en que se verificó el resultado:** las fallas se reprodujeron ejecutando el código de `main` antes de corregirlas. `mvn test` pasa con 79 pruebas en verde (antes eran 51, ninguna de Nave) y `app.App` demuestra los Escenarios B, C y D.
+
+### Registro de Asistencia: Análisis y corrección del módulo Misión (04/10/2026)
+
+* **Herramienta utilizada:** Claude Code (Anthropic).
+
+* **Propósito de la consulta:** analizar el módulo Misión iniciado por Axel en la rama `Axel-Misiones` según la Guía TP Nave, la Aclaración "Naves, asistentes y misiones" y los apuntes de la cátedra, y aplicar las correcciones en `luca-correcionMisiones`.
+
+* **Componente o documento afectado:** paquetes `modelo.mision` y `modelo.asistente`, excepción `NaveNoDisponibleException`, prueba `MisionTest`, `App.java`, `README.md`, `.gitignore`, `docs/diseño.md` y `docs/diagrama_clases.md`.
+
+* **Resultado aprovechado:**
+  * Detección de fallas en la versión inicial: no compilaba, dejaba cambios parciales en la nave, no completaba el salto, duplicaba la parte común de las misiones y no registraba en la Bitácora.
+  * `Mision` con Template Method: `realizar()` fija el ciclo y cada misión redefine sólo su energía adicional, su acción y su condición de éxito.
+  * `InformeMision` inmutable (E1-10) y `AsistenteComando` mínimo que registra en la Bitácora y propaga los rechazos.
+  * Pruebas de los Escenarios A y B y demostración en `App`.
+
+* **Revisión o modificación realizada por el equipo:**
+  * Luca Zuanetti creó la rama a partir de la de Axel para conservar su trabajo, fijó como criterio la Guía y los apuntes, y pidió un análisis previo sin modificar código.
+  * Ante las dudas de diseño (energía adicional, asistente y salto), indicó seguir lo que establecen la Guía y la Aclaración.
+  * Compartió el análisis con Axel, que confirmó las fallas y planteó cómo evolucionarían los costos en la E2; la duda se resolvió con la Tabla de Recursos de la Guía.
+  * Antes de realizar el commit, revisamos minuciosamente el código para verificar que se ajustara a lo solicitado por la cátedra y a lo explicado en clase (incluidos los ejemplos de las clases teórico-prácticas de los miércoles). Luego modificamos lo que consideramos pertinente y realizamos el commit.
+
+* **Forma en que se verificó el resultado:** `mvn test` pasa con 99 pruebas en verde (20 nuevas: 14 de Misión y 6 del Asistente) y `app.App` demuestra los Escenarios A y B.
