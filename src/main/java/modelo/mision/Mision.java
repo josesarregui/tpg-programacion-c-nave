@@ -2,9 +2,10 @@ package modelo.mision;
 
 import excepcion.CantidadInvalidaException;
 import excepcion.CapacidadExcedidaException;
+import excepcion.EstadoMotorInvalidoException;
 import excepcion.NaveNoDisponibleException;
 import excepcion.RecursoInsuficienteException;
-import modelo.asistente.AsistenteComando;
+import modelo.asistente.Asistente;
 import modelo.bitacora.TipoEvento;
 import modelo.nave.TipoRecurso;
 
@@ -39,7 +40,7 @@ public abstract class Mision {
     private final String codigo;
     private final String nombre;
     private final List<String> acciones = new ArrayList<>();
-    private AsistenteComando asistente;
+    private Asistente asistente;
     private EtapaMision etapa;
     private boolean exitosa;
     private InformeMision informe;
@@ -83,15 +84,19 @@ public abstract class Mision {
     // --- Asignación ---
 
     /**
-     * Encomienda la misión a un asistente. La invoca {@link AsistenteComando#encomendarMision(Mision)}.
+     * Encomienda la misión a un asistente. Sólo la invoca {@link Asistente#encomendarMision(Mision)},
+     * que antes registra esta misión como su misión pendiente (Aclaración, R2: toda orden pasa por el asistente).
      *
      * @pre asistente != null.
      * @pre La misión no fue encomendada antes (Aclaración, R4: una misión se encomienda a un asistente en particular).
+     * @pre asistente.getMisionPendiente() == this (se encomienda a través del asistente).
      * @post getAsistente() == asistente.
      */
-    public void asignarAsistente(AsistenteComando asistente) {
+    public void asignarAsistente(Asistente asistente) {
         assert asistente != null : "La misión debe encomendarse a un asistente.";
         assert this.asistente == null : "La misión " + codigo + " ya fue encomendada a un asistente.";
+        assert asistente.getMisionPendiente() == this
+                : "La misión " + codigo + " debe encomendarse a través del asistente (encomendarMision).";
         this.asistente = asistente;
         assert this.asistente == asistente : "Fallo postcondición al asignar el asistente.";
         assert invariante() : "Fallo invariante tras asignar el asistente.";
@@ -107,7 +112,11 @@ public abstract class Mision {
      * antes de modificar nada: la nave no queda con cambios parciales y la misión sigue en etapa CREADA,
      * de modo que puede intentarse otra vez después de resolver el problema (Escenario B).
      *
+     * Sólo la invoca {@link Asistente#ejecutarMision()}: así el asistente registra los rechazos y lleva
+     * la cuenta de sus misiones (Aclaración, R2: toda orden pasa por el asistente).
+     *
      * @pre La misión fue encomendada a un asistente y está en etapa CREADA (no se realizó antes).
+     * @pre Su asistente la está ejecutando: asistente.estaEjecutando(this) (se realiza a través del asistente).
      * @post Si no se lanza excepción: getEtapa() == CERRADA y getInforme() != null.
      * @return el informe de la misión.
      * @throws NaveNoDisponibleException si la nave no está lista para operar.
@@ -115,6 +124,8 @@ public abstract class Mision {
      */
     public final InformeMision realizar() throws NaveNoDisponibleException, RecursoInsuficienteException {
         assert asistente != null : "La misión " + codigo + " debe encomendarse a un asistente antes de realizarse.";
+        assert asistente.estaEjecutando(this)
+                : "La misión " + codigo + " debe realizarse a través de su asistente (ejecutarMision).";
         assert etapa == EtapaMision.CREADA : "La misión " + codigo + " ya fue realizada: cada misión se realiza una sola vez.";
 
         preparar();
@@ -203,8 +214,15 @@ public abstract class Mision {
         assert etapa == EtapaMision.EVALUADA : "La misión no puede cerrarse sin resultado.";
 
         if (exitosa) {
-            asistente.prepararSalto();
-            asistente.saltar();
+            try {
+                asistente.prepararSalto();
+                asistente.saltar();
+            } catch (EstadoMotorInvalidoException e) {
+                // No puede ocurrir: preparar() verificó que la nave estuviera lista para operar (motor en Disponible)
+                // y ejecutar() y evaluar() no cambian el motor. Si ocurriera, sería un error de programación
+                // (apunte de Excepciones: RuntimeException), igual que en ejecutar().
+                throw new IllegalStateException("Error de programación al ordenar el salto de la misión " + codigo + ".", e);
+            }
             registrarAccion("Cierre: la nave preparó su salto y saltó.");
         } else {
             registrarAccion("Cierre: no se ordena el salto porque la misión no fue exitosa.");
@@ -256,7 +274,7 @@ public abstract class Mision {
     /**
      * @return el asistente al que fue encomendada, o null si todavía no se encomendó.
      */
-    public AsistenteComando getAsistente() {
+    public Asistente getAsistente() {
         return asistente;
     }
 

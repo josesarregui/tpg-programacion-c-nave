@@ -10,6 +10,7 @@ import java.util.List;
 /**
  * Resultado de liquidar el haber de un tripulante en un período: el detalle de cada concepto y el total.
  * Devuelve datos (no texto formateado), para que puedan mostrarse por consola o en una vista Swing.
+ * Sólo lo crea {@link LiquidadorHaberes} (constructor de paquete): nadie puede fabricar un recibo desde afuera.
  *
  * Invariante: el total es igual a la suma de los importes de los conceptos.
  */
@@ -26,7 +27,7 @@ public class ReciboHaberes {
      * @pre tripulante != null, periodo != null, conceptos != null y no vacía.
      * @pre total es igual a la suma de los importes de conceptos.
      */
-    public ReciboHaberes(Tripulante tripulante, YearMonth periodo, List<ConceptoHaber> conceptos, double total) {
+    ReciboHaberes(Tripulante tripulante, YearMonth periodo, List<ConceptoHaber> conceptos, double total) {
         assert tripulante != null : "El recibo debe pertenecer a un tripulante.";
         assert periodo != null : "El recibo debe indicar el período liquidado.";
         assert conceptos != null && !conceptos.isEmpty() : "El recibo debe tener al menos un concepto.";

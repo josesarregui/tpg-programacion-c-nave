@@ -16,6 +16,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -145,12 +146,13 @@ public class LiquidacionTest {
     public void testLiquidacionDeLaTripulacion() throws Exception {
         Consejero consejero = new Consejero("Troi", 2, Origen.VULCANO);
         consejero.registrarConsejo(OCTUBRE);
-        Tripulacion tripulacion = new Tripulacion(List.of(
-                new Capitan("Kirk", 3, Origen.TERRICOLA),     // 1620
-                consejero,                                    // 692
-                new Teniente("Uhura", 5, Origen.MARCIANO),    // 478
-                new Alferez("Chekov", 3, Origen.TERRICOLA),   // 223
-                new Alferez("Sulu", 0, Origen.MARCIANO)));    // 218
+        List<Tripulante> integrantes = new ArrayList<>();
+        integrantes.add(new Capitan("Kirk", 3, Origen.TERRICOLA));  // 1620
+        integrantes.add(consejero);  // 692
+        integrantes.add(new Teniente("Uhura", 5, Origen.MARCIANO));  // 478
+        integrantes.add(new Alferez("Chekov", 3, Origen.TERRICOLA));  // 223
+        integrantes.add(new Alferez("Sulu", 0, Origen.MARCIANO));  // 218
+        Tripulacion tripulacion = new Tripulacion(integrantes);
 
         LiquidacionTripulacion resultado = liquidador.liquidar(tripulacion, OCTUBRE);
 

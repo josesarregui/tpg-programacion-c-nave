@@ -4,10 +4,13 @@ import excepcion.CantidadInvalidaException;
 import excepcion.CapacidadExcedidaException;
 import excepcion.EstadoMotorInvalidoException;
 import excepcion.LiquidacionInvalidaException;
+import excepcion.NaveInexistenteException;
 import excepcion.NaveNoDisponibleException;
+import excepcion.NaveYaRegistradaException;
 import excepcion.RecursoInsuficienteException;
 import excepcion.TripulacionInvalidaException;
 import excepcion.TripulanteInvalidoException;
+import modelo.asistente.Asistente;
 import modelo.asistente.AsistenteComando;
 import modelo.bitacora.Evento;
 import modelo.liquidacion.AntiguedadDecorator;
@@ -20,7 +23,6 @@ import modelo.mision.Mision;
 import modelo.mision.MisionIntercepcion;
 import modelo.mision.MisionRecoleccion;
 import modelo.mision.MisionRetorno;
-import modelo.nave.Nave;
 import modelo.nave.NaveFactory;
 import modelo.nave.TipoNave;
 import modelo.tripulacion.Alferez;
@@ -29,142 +31,218 @@ import modelo.tripulacion.Consejero;
 import modelo.tripulacion.Origen;
 import modelo.tripulacion.Teniente;
 import modelo.tripulacion.Tripulacion;
-import modelo.warp.MotorWarp;
+import modelo.tripulacion.Tripulante;
+import modelo.universo.CentroDeControl;
 
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Programa de demostración (E1-03): simula al usuario y muestra por consola los resultados del modelo.
- * Es el único lugar que imprime; las clases del modelo sólo devuelven datos.
+ * Programa principal que simula al usuario (E1-03; Aclaración, R6): da de alta naves en el centro de control,
+ * elige la nave en uso, crea misiones, se las encomienda a su asistente y las ejecuta.
+ * Es el único lugar que imprime; las clases del modelo sólo devuelven datos, de modo que en la E2
+ * este programa puede reemplazarse por pantallas sin cambiar el modelo.
  *
- * Demuestra E1-04 y E1-08: tripulación mínima, liquidación mensual con el detalle de cada concepto
- * y casos de rechazo por precondiciones incumplidas.
- * Demuestra E1-01, E1-07 y E1-09: creación de los tres tipos de nave mediante la fábrica,
- * recursos antes y después de cada operación, mantenimiento y los Escenarios B y D.
- * Demuestra E1-02 (Escenario C): ciclo válido del Motor Warp y rechazo de una transición inválida.
- * Demuestra E1-03, E1-06 y E1-10 (Escenarios A y B): el asistente ejecuta M-01, M-02 y M-03 mostrando
- * informe, recursos finales y Bitácora, y una misión rechazada por recursos insuficientes sin cambios parciales.
+ * Toda consulta u orden a una nave pasa por su asistente (R2): el programa nunca opera la nave directamente.
+ *
+ * Demuestra:
+ *  - E1-04 y E1-08: tripulación mínima y liquidación mensual con el detalle de cada concepto, y rechazos.
+ *  - E1-01, E1-07 y R1: creación de los tres tipos de nave mediante la fábrica y su registro en el centro de control.
+ *  - Escenario A (E1-03, E1-05, E1-06, E1-10): M-01, M-02 y M-03 con informe, recursos finales y Bitácora.
+ *  - E1-09 y Escenario D: recursos antes y después de cargas, consumo y mantenimiento; carga que excede la capacidad.
+ *  - Escenario B: misión rechazada por combustible insuficiente, sin cambios parciales.
+ *  - Escenario C (E1-02): ciclo válido del Motor Warp y rechazo de una transición inválida, registrado en la Bitácora.
  */
 public class App {
 
     public static void main(String[] args) {
         demostrarLiquidacion();
         System.out.println();
-        demostrarNaves();
-        System.out.println();
-        demostrarMotorWarp();
-        System.out.println();
-        demostrarMisiones();
+
+        CentroDeControl centro = new CentroDeControl();
+        NaveFactory fabrica = new NaveFactory();
+        try {
+            int idExploradora = darDeAlta(centro, fabrica, TipoNave.EXPLORADORA);
+            int idCarguero = darDeAlta(centro, fabrica, TipoNave.CARGUERO);
+            int idCombate = darDeAlta(centro, fabrica, TipoNave.COMBATE);
+            mostrarNavesRegistradas(centro);
+            demostrarRechazosDelCentro(centro, idExploradora);
+
+            System.out.println();
+            demostrarEscenarioA(centro, idExploradora);
+            System.out.println();
+            demostrarRecursosYEscenarioD(centro, idCarguero);
+            System.out.println();
+            demostrarEscenarioB(centro, idCombate);
+            System.out.println();
+            demostrarEscenarioC(centro, idCombate);
+        } catch (NaveYaRegistradaException | NaveInexistenteException e) {
+            System.out.println("Error inesperado en la demostración: " + e.getMessage());
+        }
     }
 
-    private static void demostrarMisiones() {
-        System.out.println("ESCENARIO A - EJECUCION CORRECTA DE M-01, M-02 Y M-03");
-        NaveFactory fabrica = new NaveFactory();
-        fabrica.crearNave(TipoNave.CARGUERO);
-        fabrica.crearNave(TipoNave.COMBATE);
-        AsistenteComando asistente = new AsistenteComando(fabrica.crearNave(TipoNave.EXPLORADORA));
+    // --- Centro de control (R1) ---
+
+    /**
+     * Crea una nave mediante la fábrica, le asigna su asistente y la registra en el centro de control.
+     *
+     * @return el id de la nave registrada.
+     */
+    private static int darDeAlta(CentroDeControl centro, NaveFactory fabrica, TipoNave tipo)
+            throws NaveYaRegistradaException {
+        Asistente asistente = new AsistenteComando(fabrica.crearNave(tipo));
+        centro.registrar(asistente);
+        return asistente.getIdNave();
+    }
+
+    private static void mostrarNavesRegistradas(CentroDeControl centro) {
+        System.out.println("NAVES REGISTRADAS EN EL CENTRO DE CONTROL (creadas mediante la fábrica)");
+        for (Asistente asistente : centro.getAsistentes()) {
+            System.out.println("   " + describir(asistente));
+        }
+    }
+
+    private static void demostrarRechazosDelCentro(CentroDeControl centro, int idRegistrado) throws NaveInexistenteException {
+        System.out.println();
+        System.out.println("CASOS DE RECHAZO DEL CENTRO DE CONTROL");
         try {
-            asistente.asignarTripulacion(new Tripulacion(List.of(
-                    new Capitan("Janeway", 7, Origen.TERRICOLA),
-                    new Consejero("Tuvok", 10, Origen.VULCANO),
-                    new Teniente("Paris", 2, Origen.TERRICOLA),
-                    new Alferez("Kim", 0, Origen.TERRICOLA),
-                    new Alferez("Torres", 1, Origen.MARCIANO))));
-            System.out.println("Nave seleccionada: " + asistente.getDescripcionNave());
+            centro.registrar(centro.buscar(idRegistrado));
+        } catch (NaveYaRegistradaException e) {
+            System.out.println("Rechazado: " + e.getMessage() + " (id: " + e.getIdNave() + ")");
+        }
+        try {
+            centro.buscar(999);
+        } catch (NaveInexistenteException e) {
+            System.out.println("Rechazado: " + e.getMessage() + " (id buscado: " + e.getIdNaveBuscada() + ")");
+        }
+        System.out.println("Naves registradas: " + centro.getCantidadNaves() + " (el centro no cambió)");
+    }
+
+    // --- Escenario A ---
+
+    private static void demostrarEscenarioA(CentroDeControl centro, int idNave) throws NaveInexistenteException {
+        System.out.println("ESCENARIO A - EJECUCION CORRECTA DE M-01, M-02 Y M-03");
+        Asistente asistente = centro.seleccionar(idNave);
+        try {
+            asistente.asignarTripulacion(crearTripulacion("Janeway", "Tuvok", "Paris", "Kim", "Torres"));
+            System.out.println("Nave en uso: " + describir(centro.getAsistenteEnUso()));
 
             Mision[] misiones = {new MisionIntercepcion(), new MisionRecoleccion(), new MisionRetorno()};
             for (Mision mision : misiones) {
                 asistente.encomendarMision(mision);
                 mostrarInforme(asistente.ejecutarMision());
-                System.out.println("   Recursos finales: " + asistente.getDescripcionNave());
+                System.out.println("   Recursos finales: " + describir(asistente));
             }
         } catch (TripulanteInvalidoException | TripulacionInvalidaException
                  | NaveNoDisponibleException | RecursoInsuficienteException e) {
             System.out.println("Error inesperado en la demostración: " + e.getMessage());
         }
+        System.out.println();
+        System.out.println("Misiones realizadas por la nave: " + asistente.getMisionesRealizadas().size());
         mostrarBitacora(asistente);
+    }
+
+    // --- Recursos, mantenimiento y Escenario D ---
+
+    private static void demostrarRecursosYEscenarioD(CentroDeControl centro, int idNave) throws NaveInexistenteException {
+        System.out.println("OPERACIONES SOBRE RECURSOS Y MANTENIMIENTO");
+        Asistente asistente = centro.seleccionar(idNave);
+        try {
+            asistente.asignarTripulacion(crearTripulacion("Picard", "Guinan", "Worf", "Ro", "Crusher"));
+            System.out.println("Nave en uso: " + describir(centro.getAsistenteEnUso()));
+            asistente.cargarEnergia(20);
+            System.out.println("Carga de 20 de energía: " + describir(asistente));
+            asistente.consumirRecursos(4, 5, 4);
+            System.out.println("Consumo de 4 de combustible y 5 de energía, con 4 de desgaste: " + describir(asistente));
+            asistente.consumirRecursos(0, 0, 76);
+            System.out.println("Desgaste acumulado: " + describir(asistente)
+                    + " -> requiere mantenimiento: " + siNo(asistente.requiereMantenimiento())
+                    + ", lista para operar: " + siNo(asistente.naveListaParaOperar()));
+            asistente.realizarMantenimiento();
+            System.out.println("Después del mantenimiento: " + describir(asistente)
+                    + " -> lista para operar: " + siNo(asistente.naveListaParaOperar()));
+            asistente.cargarCombustible(4);
+            System.out.println("Carga de 4 de combustible: " + describir(asistente));
+        } catch (TripulanteInvalidoException | TripulacionInvalidaException | CantidadInvalidaException
+                 | CapacidadExcedidaException | RecursoInsuficienteException e) {
+            System.out.println("Error inesperado en la demostración: " + e.getMessage());
+        }
 
         System.out.println();
-        System.out.println("ESCENARIO B - MISION CON RECURSOS INSUFICIENTES");
-        AsistenteComando asistenteCarguero = new AsistenteComando(fabrica.crearNave(TipoNave.CARGUERO));
+        System.out.println("ESCENARIO D - CARGA QUE EXCEDE LA CAPACIDAD");
+        System.out.println("Antes:   " + describir(asistente));
         try {
-            asistenteCarguero.asignarTripulacion(new Tripulacion(List.of(
-                    new Capitan("Sisko", 5, Origen.TERRICOLA),
-                    new Consejero("Dax", 8, Origen.MARCIANO),
-                    new Teniente("Kira", 3, Origen.MARCIANO),
-                    new Alferez("Nog", 0, Origen.TERRICOLA),
-                    new Alferez("Ezri", 1, Origen.TERRICOLA))));
-            asistenteCarguero.consumirRecursos(97, 0, 0);
+            asistente.cargarCombustible(1);
+        } catch (CantidadInvalidaException | CapacidadExcedidaException e) {
+            System.out.println("Rechazado: " + e.getMessage());
+        }
+        System.out.println("Después: " + describir(asistente) + " (el estado anterior se conserva)");
+        mostrarBitacora(asistente);
+    }
+
+    // --- Escenario B ---
+
+    private static void demostrarEscenarioB(CentroDeControl centro, int idNave) throws NaveInexistenteException {
+        System.out.println("ESCENARIO B - MISION CON RECURSOS INSUFICIENTES");
+        Asistente asistente = centro.seleccionar(idNave);
+        System.out.println("Nave en uso: " + describir(centro.getAsistenteEnUso()));
+        try {
+            asistente.asignarTripulacion(crearTripulacion("Sisko", "Dax", "Kira", "Nog", "Ezri"));
+            asistente.consumirRecursos(77, 0, 0);
         } catch (TripulanteInvalidoException | TripulacionInvalidaException | CantidadInvalidaException
                  | RecursoInsuficienteException | CapacidadExcedidaException e) {
             System.out.println("Error inesperado en la demostración: " + e.getMessage());
         }
-        System.out.println("Antes:   " + asistenteCarguero.getDescripcionNave());
-        asistenteCarguero.encomendarMision(new MisionRecoleccion());
+        System.out.println("Antes (después de consumir 77 de combustible): " + describir(asistente));
+        asistente.encomendarMision(new MisionRecoleccion());
         try {
-            asistenteCarguero.ejecutarMision();
+            asistente.ejecutarMision();
         } catch (RecursoInsuficienteException e) {
             System.out.println("Rechazado: " + e.getMessage() + " (recurso: " + e.getRecurso()
                     + ", disponible: " + e.getDisponible() + ")");
         } catch (NaveNoDisponibleException e) {
             System.out.println("Rechazado: " + e.getMessage());
         }
-        System.out.println("Después: " + asistenteCarguero.getDescripcionNave() + " (sin cambios parciales)");
-        mostrarBitacora(asistenteCarguero);
+        System.out.println("Después: " + describir(asistente) + " (sin cambios parciales)");
+        System.out.println("Misión pendiente: " + asistente.getMisionPendiente() + " (puede reintentarse o cancelarse)");
+        asistente.cancelarMision();
+        mostrarBitacora(asistente);
     }
 
-    private static void mostrarInforme(InformeMision informe) {
-        System.out.println();
-        System.out.println("INFORME " + informe.getMision() + " - " + (informe.isExitosa() ? "EXITOSA" : "NO EXITOSA"));
-        for (String accion : informe.getAcciones()) {
-            System.out.println("   " + accion);
-        }
-        System.out.println("   Recursos consumidos: combustible " + informe.getCombustibleConsumido()
-                + ", energía " + informe.getEnergiaConsumida() + ", desgaste " + informe.getDesgasteProducido());
-        System.out.println("   Estado final: combustible " + informe.getCombustibleFinal() + ", energía "
-                + informe.getEnergiaFinal() + ", desgaste " + informe.getDesgasteFinal() + ", motor "
-                + informe.getEstadoMotorFinal() + ", operativa: " + (informe.isNaveOperativa() ? "sí" : "no"));
-        System.out.println("   Observaciones: " + informe.getObservaciones());
-    }
+    // --- Escenario C ---
 
-    private static void mostrarBitacora(AsistenteComando asistente) {
-        System.out.println();
-        System.out.println("BITACORA");
-        for (Evento evento : asistente.getEventos()) {
-            System.out.println("   " + evento);
-        }
-    }
-
-    private static void demostrarMotorWarp() {
+    private static void demostrarEscenarioC(CentroDeControl centro, int idNave) throws NaveInexistenteException {
         System.out.println("ESCENARIO C - MOTOR WARP");
-        MotorWarp motor = new NaveFactory().crearNave(TipoNave.EXPLORADORA).getMotor();
-        System.out.println("Inicial: " + motor);
-        motor.prepararSalto();
-        System.out.println("Preparar salto -> " + motor);
-        motor.iniciarWarp();
-        System.out.println("Iniciar warp -> " + motor);
-        motor.desactivarWarp();
-        System.out.println("Desactivar warp -> " + motor);
-        motor.enfriar();
-        System.out.println("Enfriar -> " + motor);
+        Asistente asistente = centro.seleccionar(idNave);
+        int eventosAnteriores = asistente.getEventos().size();
+        System.out.println("Motor inicial: " + asistente.getEstadoMotor());
         try {
-            motor.iniciarWarp();
+            asistente.prepararSalto();
+            System.out.println("Preparar salto -> " + asistente.getEstadoMotor());
+            asistente.saltar();
+            System.out.println("Saltar -> " + asistente.getEstadoMotor()
+                    + " (recorrido: En warp -> Enfriamiento -> Disponible, ver Bitácora)");
         } catch (EstadoMotorInvalidoException e) {
-            System.out.println("Rechazado: " + e.getMessage() + " (estado: " + e.getEstadoActual() + ")");
+            System.out.println("Error inesperado en la demostración: " + e.getMessage());
         }
-        System.out.println("Después del rechazo: " + motor + " (el estado no cambió)");
-
-        System.out.println();
-        System.out.println("Transición inválida ordenada a través del asistente (queda registrada en la Bitácora):");
-        AsistenteComando asistente = new AsistenteComando(new NaveFactory().crearNave(TipoNave.COMBATE));
         try {
             asistente.saltar();
         } catch (EstadoMotorInvalidoException e) {
-            System.out.println("Rechazado: " + e.getMessage() + " (estado: " + e.getEstadoActual() + ")");
+            System.out.println("Saltar sin preparar el salto. Rechazado: " + e.getMessage()
+                    + " (estado: " + e.getEstadoActual() + ")");
         }
-        mostrarBitacora(asistente);
+        System.out.println("Después del rechazo: " + asistente.getEstadoMotor() + " (el estado no cambió)");
+
+        System.out.println();
+        System.out.println("BITACORA (eventos del Escenario C)");
+        List<Evento> eventos = asistente.getEventos();
+        for (int i = eventosAnteriores; i < eventos.size(); i++) {
+            System.out.println("   " + eventos.get(i));
+        }
     }
+
+    // --- Liquidación de haberes (E1-04, E1-08) ---
 
     private static void demostrarLiquidacion() {
         YearMonth octubre = YearMonth.of(2026, 10);
@@ -174,12 +252,13 @@ public class App {
             consejero.registrarConsejo(octubre);
             consejero.registrarConsejo(octubre);
 
-            Tripulacion tripulacion = new Tripulacion(List.of(
-                    new Capitan("Kirk", 3, Origen.TERRICOLA),
-                    consejero,
-                    new Teniente("Uhura", 5, Origen.MARCIANO),
-                    new Alferez("Chekov", 1, Origen.TERRICOLA),
-                    new Alferez("Sulu", 0, Origen.MARCIANO)));
+            List<Tripulante> integrantes = new ArrayList<>();
+            integrantes.add(new Capitan("Kirk", 3, Origen.TERRICOLA));
+            integrantes.add(consejero);
+            integrantes.add(new Teniente("Uhura", 5, Origen.MARCIANO));
+            integrantes.add(new Alferez("Chekov", 1, Origen.TERRICOLA));
+            integrantes.add(new Alferez("Sulu", 0, Origen.MARCIANO));
+            Tripulacion tripulacion = new Tripulacion(integrantes);
 
             LiquidacionTripulacion liquidacion = new LiquidadorHaberes().liquidar(tripulacion, octubre);
             System.out.println("LIQUIDACION DE HABERES - " + liquidacion.getPeriodo());
@@ -211,69 +290,49 @@ public class App {
         }
     }
 
-    private static void demostrarNaves() {
-        System.out.println("NAVES CREADAS MEDIANTE LA FABRICA");
-        NaveFactory fabrica = new NaveFactory();
-        Nave exploradora = fabrica.crearNave(TipoNave.EXPLORADORA);
-        Nave carguero = fabrica.crearNave(TipoNave.CARGUERO);
-        Nave combate = fabrica.crearNave(TipoNave.COMBATE);
-        System.out.println(exploradora);
-        System.out.println(carguero);
-        System.out.println(combate);
+    // --- Auxiliares de presentación ---
 
-        try {
-            exploradora.asignarTripulacion(new Tripulacion(List.of(
-                    new Capitan("Picard", 6, Origen.TERRICOLA),
-                    new Consejero("Guinan", 9, Origen.MARCIANO),
-                    new Teniente("Worf", 4, Origen.VULCANO),
-                    new Alferez("Ro", 1, Origen.TERRICOLA),
-                    new Alferez("Crusher", 0, Origen.TERRICOLA))));
-            System.out.println("Exploradora con tripulación asignada. Lista para operar: " + exploradora.estaListaParaOperar());
+    private static Tripulacion crearTripulacion(String capitan, String consejero, String teniente,
+                                                String alferez1, String alferez2)
+            throws TripulanteInvalidoException, TripulacionInvalidaException {
+        List<Tripulante> integrantes = new ArrayList<>();
+        integrantes.add(new Capitan(capitan, 5, Origen.TERRICOLA));
+        integrantes.add(new Consejero(consejero, 8, Origen.VULCANO));
+        integrantes.add(new Teniente(teniente, 3, Origen.MARCIANO));
+        integrantes.add(new Alferez(alferez1, 0, Origen.TERRICOLA));
+        integrantes.add(new Alferez(alferez2, 1, Origen.MARCIANO));
+        return new Tripulacion(integrantes);
+    }
 
-            System.out.println();
-            System.out.println("OPERACIONES SOBRE RECURSOS");
-            exploradora.cargarCombustible(20);
-            System.out.println("Carga de 20 de combustible: " + exploradora);
-            exploradora.consumirRecursos(4, 5, 4);
-            System.out.println("Consumo de 4 de combustible y 5 de energía, con 4 de desgaste: " + exploradora);
-            exploradora.consumirRecursos(0, 0, 76);
-            System.out.println("Desgaste acumulado: " + exploradora
-                    + " -> requiere mantenimiento: " + exploradora.requiereMantenimiento()
-                    + ", lista para operar: " + exploradora.estaListaParaOperar());
-            exploradora.realizarMantenimiento();
-            System.out.println("Después del mantenimiento: " + exploradora
-                    + " -> lista para operar: " + exploradora.estaListaParaOperar());
-        } catch (TripulanteInvalidoException | TripulacionInvalidaException | CantidadInvalidaException
-                 | CapacidadExcedidaException | RecursoInsuficienteException e) {
-            System.out.println("Error inesperado en la demostración: " + e.getMessage());
-        }
+    private static String describir(Asistente asistente) {
+        return asistente.getTipoNave().getDescripcion() + " #" + asistente.getIdNave()
+                + " [combustible=" + asistente.getCombustible() + ", energía=" + asistente.getEnergia()
+                + ", desgaste=" + asistente.getDesgaste() + ", motor=" + asistente.getEstadoMotor() + "]";
+    }
 
+    private static String siNo(boolean valor) {
+        return valor ? "sí" : "no";
+    }
+
+    private static void mostrarInforme(InformeMision informe) {
         System.out.println();
-        System.out.println("ESCENARIO D - CARGA QUE EXCEDE LA CAPACIDAD");
-        System.out.println("Antes:   " + carguero);
-        try {
-            carguero.cargarCombustible(1);
-        } catch (CantidadInvalidaException | CapacidadExcedidaException e) {
-            System.out.println("Rechazado: " + e.getMessage());
+        System.out.println("INFORME " + informe.getMision() + " - " + (informe.isExitosa() ? "EXITOSA" : "NO EXITOSA"));
+        for (String accion : informe.getAcciones()) {
+            System.out.println("   " + accion);
         }
-        System.out.println("Después: " + carguero + " (el estado anterior se conserva)");
+        System.out.println("   Recursos consumidos: combustible " + informe.getCombustibleConsumido()
+                + ", energía " + informe.getEnergiaConsumida() + ", desgaste " + informe.getDesgasteProducido());
+        System.out.println("   Estado final: combustible " + informe.getCombustibleFinal() + ", energía "
+                + informe.getEnergiaFinal() + ", desgaste " + informe.getDesgasteFinal() + ", motor "
+                + informe.getEstadoMotorFinal() + ", operativa: " + siNo(informe.isNaveOperativa()));
+        System.out.println("   Observaciones: " + informe.getObservaciones());
+    }
 
+    private static void mostrarBitacora(Asistente asistente) {
         System.out.println();
-        System.out.println("ESCENARIO B - RECURSOS INSUFICIENTES");
-        try {
-            combate.consumirRecursos(78, 0, 0);
-        } catch (CantidadInvalidaException | CapacidadExcedidaException | RecursoInsuficienteException e) {
-            System.out.println("Error inesperado en la demostración: " + e.getMessage());
+        System.out.println("BITACORA");
+        for (Evento evento : asistente.getEventos()) {
+            System.out.println("   " + evento);
         }
-        System.out.println("Antes:   " + combate);
-        try {
-            combate.consumirRecursos(4, 0, 4);
-        } catch (RecursoInsuficienteException e) {
-            System.out.println("Rechazado: " + e.getMessage() + " (recurso: " + e.getRecurso()
-                    + ", disponible: " + e.getDisponible() + ")");
-        } catch (CantidadInvalidaException | CapacidadExcedidaException e) {
-            System.out.println("Rechazado: " + e.getMessage());
-        }
-        System.out.println("Después: " + combate + " (sin cambios parciales: el desgaste no aumentó)");
     }
 }

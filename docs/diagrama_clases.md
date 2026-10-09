@@ -93,18 +93,19 @@ classDiagram
         + MotorWarp()
         + getEstado() State
         ~ setEstado(nuevoEstado: State)
-        + prepararSalto()
-        + iniciarWarp()
-        + desactivarWarp()
-        + enfriar()
+        + prepararSalto() throws EstadoMotorInvalidoException
+        + iniciarWarp() throws EstadoMotorInvalidoException
+        + desactivarWarp() throws EstadoMotorInvalidoException
+        + enfriar() throws EstadoMotorInvalidoException
         + estaDisponible() boolean
+        - invariante() boolean
     }
     class State {
         <<Interface>>
-        + prepararSalto()
-        + iniciarWarp()
-        + desactivarWarp()
-        + enfriar()
+        + prepararSalto() throws EstadoMotorInvalidoException
+        + iniciarWarp() throws EstadoMotorInvalidoException
+        + desactivarWarp() throws EstadoMotorInvalidoException
+        + enfriar() throws EstadoMotorInvalidoException
         + estaDisponible() boolean
     }
     class DisponibleState {
@@ -158,11 +159,12 @@ classDiagram
         - String codigo
         - String nombre
         - List~String~ acciones
-        - AsistenteComando asistente
+        - Asistente asistente
         - EtapaMision etapa
         - boolean exitosa
         - InformeMision informe
-        + asignarAsistente(asistente: AsistenteComando)
+        + asignarAsistente(asistente: Asistente)
+        + getAsistente() Asistente
         + realizar() InformeMision
         - preparar()
         - ejecutar()
@@ -199,29 +201,64 @@ classDiagram
     Mision <|-- MisionRetorno
     Mision --> EtapaMision
 
-    %% Módulo Asistente de Comandos (E1-03) - versión mínima
-    class AsistenteComando {
-        - Nave nave
-        - Bitacora bitacora
-        - Mision misionEncomendada
-        + AsistenteComando(nave: Nave)
-        + naveListaParaOperar() boolean
+    %% Centro de control (Aclaración R1 y R2)
+    class CentroDeControl {
+        - List~Asistente~ asistentes
+        - Asistente asistenteEnUso
+        + CentroDeControl()
+        + registrar(asistente: Asistente) throws NaveYaRegistradaException
+        + buscar(idNave: int) Asistente throws NaveInexistenteException
+        + seleccionar(idNave: int) Asistente throws NaveInexistenteException
+        + hayNaveEnUso() boolean
+        + getAsistenteEnUso() Asistente
+        + getAsistentes() List~Asistente~
+        + getCantidadNaves() int
+        - estaRegistrada(idNave: int) boolean
+        - invariante() boolean
+    }
+    CentroDeControl o-- Asistente : registra (0..*) y nave en uso (0..1)
+
+    %% Módulo Asistente de Comandos (E1-03; Aclaración R2, R4 y R5)
+    class Asistente {
+        <<Interface>>
+        + getIdNave() int
+        + getTipoNave() TipoNave
         + getCombustible() int
         + getEnergia() int
         + getDesgaste() int
+        + requiereMantenimiento() boolean
+        + tieneTripulacion() boolean
+        + naveListaParaOperar() boolean
         + getEstadoMotor() String
         + getEventos() List~Evento~
+        + registrarEvento(tipo: TipoEvento, descripcion: String)
         + asignarTripulacion(tripulacion: Tripulacion)
         + cargarCombustible(cantidad: int)
         + cargarEnergia(cantidad: int)
         + realizarMantenimiento()
         + consumirRecursos(combustible: int, energia: int, desgaste: int)
-        + prepararSalto()
-        + saltar()
+        + prepararSalto() throws EstadoMotorInvalidoException
+        + saltar() throws EstadoMotorInvalidoException
+        + tieneMisionPendiente() boolean
+        + getMisionPendiente() Mision
+        + estaEjecutando(mision: Mision) boolean
+        + getMisionesRealizadas() List~Mision~
         + encomendarMision(mision: Mision)
+        + cancelarMision()
         + ejecutarMision() InformeMision
-        + registrarEvento(tipo: TipoEvento, descripcion: String)
     }
+    class AsistenteComando {
+        - Nave nave
+        - Bitacora bitacora
+        - List~Mision~ misionesRealizadas
+        - Mision misionPendiente
+        - Mision misionEnEjecucion
+        + AsistenteComando(nave: Nave)
+        - registrarInforme(informe: InformeMision)
+        - registrarRechazoDelMotor(e: EstadoMotorInvalidoException)
+        - invariante() boolean
+    }
+    Asistente <|.. AsistenteComando
     %% Módulo Bitácora (E1-05) - implementado
     class Bitacora {
         - List~Evento~ eventos
@@ -265,9 +302,10 @@ classDiagram
         - String observaciones
     }
 
-    AsistenteComando --> Nave : opera
+    AsistenteComando --> Nave : opera (1)
     AsistenteComando *-- Bitacora : Composición
-    AsistenteComando <--> Mision : Asociación Bidireccional
+    AsistenteComando o-- Mision : pendiente (0..1) y realizadas (0..*)
+    Mision --> Asistente : encomendada a
     Mision *-- InformeMision : Composición
     Bitacora *-- Evento : Composición
 
@@ -312,7 +350,7 @@ classDiagram
         - double REMUNERACION_CARGO = 600
         - double PORCENTAJE_ANTIGUEDAD_ANUAL = 0.05
         - double IMPORTE_POR_CONSEJO = 2
-        - Map~YearMonth, Integer~ consejosPorPeriodo
+        - List~YearMonth~ periodosDeConsejos
         + calcularAdicionalAntiguedad() double
         + registrarConsejo(periodo: YearMonth) throws LiquidacionInvalidaException
         + getCantidadConsejos(periodo: YearMonth) int
@@ -402,11 +440,15 @@ classDiagram
         - YearMonth periodo
         - List~ConceptoHaber~ conceptos
         - double total
+        ~ ReciboHaberes(tripulante, periodo, conceptos, total)
+        - invariante() boolean
     }
     class LiquidacionTripulacion {
         - YearMonth periodo
         - List~ReciboHaberes~ recibos
+        ~ LiquidacionTripulacion(periodo, recibos)
         + calcularTotal() double
+        - invariante() boolean
     }
 
     Liquidacion <|.. Tripulante : componente concreto
@@ -471,11 +513,25 @@ classDiagram
     Mision ..> NaveNoDisponibleException : lanza
     Mision ..> RecursoInsuficienteException : lanza
 
-    %% Excepción no comprobada del Motor Warp
+    %% Excepción del Motor Warp (comprobada)
     class EstadoMotorInvalidoException {
         - String estadoActual
         + getEstadoActual() String
     }
-    IllegalStateException <|-- EstadoMotorInvalidoException
+    Exception <|-- EstadoMotorInvalidoException
     State ..> EstadoMotorInvalidoException : transición inválida
+
+    %% Excepciones del centro de control
+    class NaveInexistenteException {
+        - int idNaveBuscada
+        + getIdNaveBuscada() int
+    }
+    class NaveYaRegistradaException {
+        - int idNave
+        + getIdNave() int
+    }
+    Exception <|-- NaveInexistenteException
+    Exception <|-- NaveYaRegistradaException
+    CentroDeControl ..> NaveInexistenteException : lanza
+    CentroDeControl ..> NaveYaRegistradaException : lanza
 ```

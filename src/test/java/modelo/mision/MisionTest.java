@@ -14,6 +14,7 @@ import modelo.tripulacion.Consejero;
 import modelo.tripulacion.Origen;
 import modelo.tripulacion.Teniente;
 import modelo.tripulacion.Tripulacion;
+import modelo.tripulacion.Tripulante;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,12 +38,13 @@ public class MisionTest {
     public void inicializar() throws Exception {
         // Exploradora: combustible 60, energía 80, desgaste 0 (Ficha de Inicio, punto 2).
         asistente = new AsistenteComando(new NaveFactory().crearNave(TipoNave.EXPLORADORA));
-        tripulacion = new Tripulacion(List.of(
-                new Capitan("Kirk", 3, Origen.TERRICOLA),
-                new Consejero("Troi", 2, Origen.VULCANO),
-                new Teniente("Uhura", 5, Origen.MARCIANO),
-                new Alferez("Chekov", 1, Origen.TERRICOLA),
-                new Alferez("Sulu", 0, Origen.MARCIANO)));
+        List<Tripulante> integrantes = new ArrayList<>();
+        integrantes.add(new Capitan("Kirk", 3, Origen.TERRICOLA));
+        integrantes.add(new Consejero("Troi", 2, Origen.VULCANO));
+        integrantes.add(new Teniente("Uhura", 5, Origen.MARCIANO));
+        integrantes.add(new Alferez("Chekov", 1, Origen.TERRICOLA));
+        integrantes.add(new Alferez("Sulu", 0, Origen.MARCIANO));
+        tripulacion = new Tripulacion(integrantes);
     }
 
     // --- Escenario A: ejecución correcta ---
@@ -198,6 +200,7 @@ public class MisionTest {
         assertEquals(TipoRecurso.ENERGIA, e.getRecurso());
         assertEquals(60, asistente.getCombustible(), "No se consumió combustible");
         assertEquals(3, asistente.getEnergia());
+        asistente.cancelarMision(); // se desiste de M-01: no modificó la nave
         assertTrue(realizar(new MisionRetorno()).isExitosa());
     }
 
@@ -273,6 +276,35 @@ public class MisionTest {
     public void testMisionSinAsistente() {
         assertThrows(AssertionError.class, () -> new MisionRetorno().realizar());
         assertThrows(AssertionError.class, asistente::ejecutarMision);
+    }
+
+    @Test
+    @DisplayName("Rechazo por contrato (R2): la misión sólo se encomienda y se realiza a través del asistente")
+    public void testMisionSinPasarPorElAsistente() throws Exception {
+        asistente.asignarTripulacion(tripulacion);
+        Mision sinEncomendar = new MisionRetorno();
+        assertThrows(AssertionError.class, () -> sinEncomendar.asignarAsistente(asistente));
+        assertNull(sinEncomendar.getAsistente());
+        assertFalse(asistente.tieneMisionPendiente());
+
+        Mision mision = new MisionRetorno();
+        asistente.encomendarMision(mision);
+        assertThrows(AssertionError.class, mision::realizar);
+
+        assertEquals(EtapaMision.CREADA, mision.getEtapa(), "La misión no se realizó");
+        assertEquals(60, asistente.getCombustible(), "La nave no cambió");
+        assertTrue(asistente.ejecutarMision().isExitosa(), "El asistente sigue pudiendo realizarla");
+    }
+
+    @Test
+    @DisplayName("Rechazo por contrato: una misión cancelada no puede realizarse")
+    public void testMisionCancelada() {
+        Mision mision = new MisionIntercepcion();
+        asistente.encomendarMision(mision);
+        asistente.cancelarMision();
+
+        assertThrows(AssertionError.class, mision::realizar);
+        assertEquals(EtapaMision.CREADA, mision.getEtapa());
     }
 
     // --- Auxiliares ---

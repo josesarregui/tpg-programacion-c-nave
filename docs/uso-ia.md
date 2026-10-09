@@ -137,8 +137,29 @@
 
 * **Revisión o modificación realizada por el equipo:**
   * Luca Zuanetti creó la rama a partir de la de Axel para conservar su trabajo, fijó como criterio la Guía y los apuntes, y pidió un análisis previo sin modificar código.
-  * Ante las dudas de diseño (energía adicional, asistente y salto), indicó seguir lo que establecen la Guía y la Aclaración.
+  * Ante las dudas de diseño (energía adicional, asistente y salto), decidió seguir lo que establecen la Guía y la Aclaración.
   * Compartió el análisis con Axel, que confirmó las fallas y planteó cómo evolucionarían los costos en la E2; la duda se resolvió con la Tabla de Recursos de la Guía.
   * Antes de realizar el commit, revisamos minuciosamente el código para verificar que se ajustara a lo solicitado por la cátedra y a lo explicado en clase (incluidos los ejemplos de las clases teórico-prácticas de los miércoles). Luego modificamos lo que consideramos pertinente y realizamos el commit.
 
 * **Forma en que se verificó el resultado:** `mvn test` pasa con 99 pruebas en verde (20 nuevas: 14 de Misión y 6 del Asistente) y `app.App` demuestra los Escenarios A y B.
+
+### Registro de Asistencia: Módulo Asistente y revisión general del código (09/10/2026)
+
+* **Herramienta utilizada:** Claude Code (Anthropic).
+
+* **Propósito de la consulta:** completar el módulo Asistente según E1-03 y la Aclaración "Naves, asistentes y misiones", revisar todo el código contra la Guía y los apuntes, y preparar dos informes en PDF para el equipo.
+
+* **Componente o documento afectado:** paquetes `modelo.asistente`, `modelo.universo` (nuevo), `modelo.warp`, `modelo.mision`, `modelo.bitacora`, `modelo.tripulacion` y `modelo.liquidacion`; excepciones del motor y del centro de control; `App.java`; pruebas y documentación.
+
+* **Resultado aprovechado:**
+  * Interfaz `Asistente`, `CentroDeControl` y `AsistenteComando` completo: misiones pendientes y realizadas, e informe de cada misión en la Bitácora.
+  * `EstadoMotorInvalidoException` pasó a ser comprobada.
+  * Errores corregidos: una misión podía realizarse sin pasar por el asistente, la Bitácora aceptaba eventos fuera de orden, faltaban contratos en el Motor Warp y se usaban funcionalidades no vistas en clase.
+
+* **Revisión o modificación realizada por el equipo:**
+  * Luca Zuanetti fijó como criterio la Guía y los apuntes, y pidió un análisis previo antes de modificar código.
+  * Delegó las decisiones pendientes con la condición de seguir la Guía e indicar cuáles confirmar con la cátedra (sección 4 de `docs/diseño.md`).
+  * Aportó como excepción la indicación del docente Lucas sobre `getConsejos()` y aprobó las correcciones antes de aplicarlas.
+  * Luego de realizar un análisis minucioso de su código y las correciones planteadas por Claude, se decidió que el código estaba listo para ser llevado a la rama principal.
+
+* **Forma en que se verificó el resultado:** `mvn test` pasa con 120 pruebas en verde (antes 99) y `app.App` demuestra los Escenarios A, B, C y D con las aserciones activas.

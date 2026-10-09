@@ -8,10 +8,12 @@ import modelo.tripulacion.Consejero;
 import modelo.tripulacion.Origen;
 import modelo.tripulacion.Teniente;
 import modelo.tripulacion.Tripulacion;
+import modelo.tripulacion.Tripulante;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -28,12 +30,13 @@ public class NaveTest {
     @BeforeEach
     public void inicializar() throws Exception {
         nave = new NaveFactory().crearNave(TipoNave.EXPLORADORA);
-        tripulacion = new Tripulacion(List.of(
-                new Capitan("Kirk", 3, Origen.TERRICOLA),
-                new Consejero("Troi", 2, Origen.VULCANO),
-                new Teniente("Uhura", 5, Origen.MARCIANO),
-                new Alferez("Chekov", 1, Origen.TERRICOLA),
-                new Alferez("Sulu", 0, Origen.MARCIANO)));
+        List<Tripulante> integrantes = new ArrayList<>();
+        integrantes.add(new Capitan("Kirk", 3, Origen.TERRICOLA));
+        integrantes.add(new Consejero("Troi", 2, Origen.VULCANO));
+        integrantes.add(new Teniente("Uhura", 5, Origen.MARCIANO));
+        integrantes.add(new Alferez("Chekov", 1, Origen.TERRICOLA));
+        integrantes.add(new Alferez("Sulu", 0, Origen.MARCIANO));
+        tripulacion = new Tripulacion(integrantes);
     }
 
     @Test
@@ -69,7 +72,7 @@ public class NaveTest {
 
     @Test
     @DisplayName("Aclaración R4: una nave con el motor fuera de Disponible no está lista para operar")
-    public void testMotorNoDisponible() {
+    public void testMotorNoDisponible() throws Exception {
         nave.asignarTripulacion(tripulacion);
 
         nave.getMotor().prepararSalto();

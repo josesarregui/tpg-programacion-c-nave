@@ -6,9 +6,8 @@ import modelo.liquidacion.ConceptoHaber;
 import modelo.liquidacion.TipoConcepto;
 
 import java.time.YearMonth;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Tripulante con cargo Consejero.
@@ -18,7 +17,7 @@ import java.util.Map;
  * El adicional por consejos es responsabilidad exclusiva de esta clase: ni la interfaz
  * Liquidacion ni el resto de los tripulantes necesitan conocerlo.
  *
- * Invariante: la cantidad de consejos registrada en cada período es mayor o igual a 0.
+ * Invariante: cada consejo registrado tiene su período informado (no hay períodos nulos).
  */
 public class Consejero extends Tripulante {
 
@@ -26,8 +25,8 @@ public class Consejero extends Tripulante {
     private static final double PORCENTAJE_ANTIGUEDAD_ANUAL = 0.05;
     private static final double IMPORTE_POR_CONSEJO = 2.0;
 
-    // Los consejos se agrupan por mes para no cobrar en un período los consejos de otro.
-    private final Map<YearMonth, Integer> consejosPorPeriodo = new HashMap<>();
+    // Período (mes) de cada consejo registrado: así cada liquidación cobra sólo los consejos de su mes.
+    private final List<YearMonth> periodosDeConsejos = new ArrayList<>();
 
     /**
      * @throws TripulanteInvalidoException si el nombre es nulo o vacío, la antigüedad es negativa o el origen es nulo.
@@ -69,7 +68,7 @@ public class Consejero extends Tripulante {
             throw new LiquidacionInvalidaException("El período del consejo debe estar informado.", TipoConcepto.CONSEJOS);
         }
         int cantidadAnterior = getCantidadConsejos(periodo);
-        consejosPorPeriodo.put(periodo, cantidadAnterior + 1);
+        periodosDeConsejos.add(periodo);
         assert getCantidadConsejos(periodo) == cantidadAnterior + 1 : "Fallo postcondición: el consejo no quedó registrado.";
         assert invarianteConsejos() : "Fallo invariante tras registrar un consejo.";
     }
@@ -80,9 +79,12 @@ public class Consejero extends Tripulante {
      */
     public int getCantidadConsejos(YearMonth periodo) {
         assert periodo != null : "El período consultado no puede ser nulo.";
-        Integer cantidad = consejosPorPeriodo.get(periodo);
-        if (cantidad == null) {
-            return 0;
+        int cantidad = 0;
+        // Invariante de ciclo: cantidad es la cantidad de consejos del período entre los ya recorridos.
+        for (YearMonth periodoDelConsejo : periodosDeConsejos) {
+            if (periodoDelConsejo.equals(periodo)) {
+                cantidad++;
+            }
         }
         return cantidad;
     }
@@ -111,11 +113,11 @@ public class Consejero extends Tripulante {
     }
 
     private boolean invarianteConsejos() {
-        boolean cantidadesValidas = true;
-        // Invariante de ciclo: todas las cantidades recorridas hasta ahora son mayores o iguales a 0.
-        for (int cantidad : consejosPorPeriodo.values()) {
-            cantidadesValidas = cantidadesValidas && cantidad >= 0;
+        boolean periodosValidos = true;
+        // Invariante de ciclo: ninguno de los períodos ya recorridos es nulo.
+        for (YearMonth periodo : periodosDeConsejos) {
+            periodosValidos = periodosValidos && periodo != null;
         }
-        return cantidadesValidas;
+        return periodosValidos;
     }
 }

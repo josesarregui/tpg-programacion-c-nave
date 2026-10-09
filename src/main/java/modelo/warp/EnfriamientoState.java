@@ -1,7 +1,6 @@
 package modelo.warp;
 
 import excepcion.EstadoMotorInvalidoException;
-import java.util.Objects;
 
 /**
  * Representa la fase en la cual el motor disipa el calor residual
@@ -15,12 +14,16 @@ public class EnfriamientoState implements State {
 
     private final MotorWarp motor;
 
+    /**
+     * @pre motor != null (lo crea el propio motor o un estado al completar una transición).
+     */
     public EnfriamientoState(MotorWarp motor) {
-        this.motor = Objects.requireNonNull(motor, "El motor no puede ser nulo.");
+        assert motor != null : "El estado debe pertenecer a un motor.";
+        this.motor = motor;
     }
 
     @Override
-    public void prepararSalto() {
+    public void prepararSalto() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
                 "Transición inválida: No se puede preparar un nuevo salto mientras el motor disipa calor en enfriamiento.",
                 NOMBRE
@@ -28,7 +31,7 @@ public class EnfriamientoState implements State {
     }
 
     @Override
-    public void iniciarWarp() {
+    public void iniciarWarp() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
                 "Transición inválida: Intento crítico de salto. El motor se encuentra sobrecalentado en fase de enfriamiento.",
                 NOMBRE
@@ -36,7 +39,7 @@ public class EnfriamientoState implements State {
     }
 
     @Override
-    public void desactivarWarp() {
+    public void desactivarWarp() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
                 "Transición inválida: El salto Warp ya fue desactivado previamente.",
                 NOMBRE
