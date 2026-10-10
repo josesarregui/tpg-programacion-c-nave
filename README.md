@@ -1,34 +1,65 @@
 # tpg-programacion-c-nave
 
-Software embarcado de una nave interestelar tripulada — TPG 2026, Programación C.
+Software embarcado de una nave interestelar tripulada — TPG 2026, Programación C. Entrega 1.
 
 ## Requisitos de ejecución
-* Java 17 (JDK).
+* JDK 17 o superior (el proyecto se compila para Java 17; también se probó con JDK 25). El comando `java` debe estar en el PATH.
 * Maven 3.8 o superior.
-* No requiere configuración local adicional.
+
+## Configuración local
+No requiere configuración adicional ni base de datos. Si Maven no está en el PATH, puede usarse el que trae IntelliJ IDEA
+(`<carpeta de IntelliJ>/plugins/maven-plugin/lib/maven3/bin/mvn`) o la ventana *Maven* del IDE.
 
 ## Compilación
 ```
 mvn compile
 ```
 
-## Ejecución
-El programa principal (`app.App`) simula al usuario (Aclaración, R6). Liquida los haberes de una tripulación mínima y, después, da de alta en el centro de control una nave de cada tipo, creada mediante la fábrica y con su asistente. Selecciona una nave por vez y, siempre a través de su asistente, ejecuta M-01, M-02 y M-03 mostrando informe, recursos y Bitácora (Escenario A), opera sobre los recursos y el mantenimiento (Escenario D), muestra una misión rechazada por recursos insuficientes (Escenario B) y recorre el ciclo del Motor Warp con una transición inválida (Escenario C):
+## Ejecución (forma de iniciar el sistema)
+El programa principal `app.App` simula al usuario (Aclaración, R6) y recorre los cuatro escenarios de la Ficha de Inicio.
+Cualquiera de estas dos formas lo ejecuta con las aserciones activas (`-ea`: invariantes, precondiciones y postcondiciones):
 ```
-mvn compile
+mvn compile exec:exec
+```
+```
 java -ea -cp target/classes app.App
 ```
-La opción `-ea` activa las aserciones (invariantes y postcondiciones).
+Desde IntelliJ IDEA: abrir la carpeta como proyecto Maven, ejecutar `app.App` y agregar `-ea` en *Run > Edit Configurations > VM options*.
+
+Qué muestra, en orden: la liquidación de haberes de una tripulación; el alta de una nave de cada tipo en el centro de control;
+el **Escenario A** (M-01, M-02 y M-03 con recursos antes y después, informe y Bitácora de cada misión); las operaciones sobre
+recursos y mantenimiento con el **Escenario D**; el **Escenario B** y el **Escenario C**.
 
 ## Verificación
 ```
 mvn test
 ```
-Ejecuta las pruebas JUnit 5 de `src/test/java` (Maven Surefire activa las aserciones por defecto). Las pruebas de Tripulación (`TripulacionTest`) y Liquidación (`LiquidacionTest`) son la evidencia de E1-04 y E1-08: haberes de los cuatro cargos con los tres orígenes, composición de decoradores y casos de rechazo. Las pruebas de Nave (`NaveFactoryTest`, `NaveTest` y `RecursosTest`) son la evidencia de E1-01, E1-07 y E1-09: creación de los tres tipos de nave mediante la fábrica con los valores de la Ficha de Inicio, cargas, consumos y mantenimiento, y los Escenarios B (recursos insuficientes) y D (carga que excede la capacidad), verificando que el estado anterior se conserva. `MotorWarpTest` es la evidencia de E1-02 (Escenario C: transiciones válidas e inválidas, y contratos del motor) y `BitacoraTest` la de E1-05 (orden temporal, eventos inmutables y rechazo de eventos nulos, vacíos o fuera de orden). `AsistenteComandoTest` es la evidencia de E1-03 (registro en la Bitácora de las operaciones y de los rechazos de los Escenarios C y D, misiones pendientes, realizadas y canceladas, e informe de cada misión en la Bitácora) y `MisionTest` la evidencia de E1-06 y E1-10 (Escenarios A y B): ciclo completo de las tres misiones con los costos de la Ficha de Inicio, informe, registro en la Bitácora, rechazos sin cambios parciales y contratos incumplidos (entre ellos, realizar una misión sin pasar por su asistente). `CentroDeControlTest` es la evidencia de la Aclaración "Naves, asistentes y misiones" (R1, R2 y Pedidos del diseño): registro y búsqueda de naves, rechazos, una única nave en uso y una nueva variante de asistente registrada sin modificar el centro de control.
+Ejecuta las 120 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+
+### Matriz de verificación
+| Caso | Qué se verifica (resultado esperado) | Prueba automática | En `App` |
+|---|---|---|---|
+| E1-01, E1-07 (Factory) | La fábrica crea los tres tipos con la Ficha de Inicio: Exploradora 60/80/0, Carguero 100/60/0, Combate 80/100/0 (combustible/energía/desgaste), motor Disponible, sin tripulación y con id único. | `NaveFactoryTest` | "NAVES REGISTRADAS" |
+| E1-07: sin instanciación directa | Los constructores de las naves son de paquete: `new Exploradora()` fuera de `modelo.nave` **no compila**. El cliente sólo usa `NaveFactory.crearNave(TipoNave)`. | Verificable en el código | `darDeAlta()` |
+| E1-02, Escenario C (State) | Disponible → Preparando salto → En warp → Enfriamiento → Disponible. Una transición inválida lanza `EstadoMotorInvalidoException`, el estado no cambia y el rechazo queda en la Bitácora. | `MotorWarpTest`, `AsistenteComandoTest` | "ESCENARIO C" |
+| E1-03 | El asistente delega en la nave y en el motor, registra cada resultado y cada rechazo, y propaga la excepción. | `AsistenteComandoTest` | Todas las secciones |
+| E1-04 | Tripulante con id, cargo, origen y antigüedad ≥ 0; tripulación con un/a capitán/a + 4. Los rechazos no modifican la tripulación. | `TripulacionTest` | "LIQUIDACIÓN DE HABERES" |
+| E1-05 | Eventos en orden temporal e inmutables; se rechazan los nulos, vacíos o fuera de orden. | `BitacoraTest`, `MisionTest` | "BITÁCORA" |
+| E1-06, Escenario A (Template Method) | M-01, M-02 y M-03 hacen preparar → ejecutar → evaluar → cerrar. Cada una consume 4 de combustible y 4 de desgaste, más 5/5/0 de energía; si es exitosa, la nave salta y vuelve a Disponible. Exploradora: 60/80/0 → 56/75/4 → 52/70/8 → 48/70/12. | `MisionTest` | "ESCENARIO A" |
+| E1-08 (Decorator) | Haber de los 4 cargos con los 3 orígenes, dos decoradores en cualquier orden, consejos del período y detalle por concepto. Ej.: capitán terrícola con 3 años = 1000 + 600 + 20 = 1620 PG. Se rechazan conceptos nulos o repetidos. | `LiquidacionTest` | "LIQUIDACIÓN DE HABERES" |
+| E1-09, Escenario D | Carga hasta la capacidad (100); con desgaste ≥ 80 requiere mantenimiento y no opera; el mantenimiento lo lleva a 0. Una carga que excede la capacidad se rechaza y la nave conserva su estado. | `RecursosTest`, `NaveTest`, `AsistenteComandoTest` | "OPERACIONES SOBRE RECURSOS", "ESCENARIO D" |
+| Escenario B | Con combustible 3 (< 4), la misión se rechaza con `RecursoInsuficienteException`: la nave no cambia, el motivo queda en la Bitácora y la misión sigue pendiente. | `MisionTest`, `AsistenteComandoTest`, `RecursosTest` | "ESCENARIO B" |
+| E1-10 | El informe trae misión, resultado, acciones, recursos consumidos, estado final de la nave y observaciones. | `MisionTest` | "INFORME M-0x" |
+| Contratos | Una precondición o invariante incumplida se detecta con `assert` (`AssertionError`): misión realizada dos veces o sin pasar por su asistente, tripulación nula, importe negativo, estado nulo del motor. | Pruebas "Rechazo por contrato" y "Aserción" | — |
+| Aclaración R1, R2 y Pedidos del diseño | El centro registra y devuelve naves, rechaza una repetida o inexistente sin cambiar, usa una nave a la vez y admite otra variante de asistente sin modificarse. | `CentroDeControlTest` | "CASOS DE RECHAZO DEL CENTRO DE CONTROL" |
 
 ## Entrega
 La Entrega 1 se identifica con la etiqueta Git `entrega-e1`.
 
-## Arquitectura y Modularización
-El código fuente se encuentra organizado por subsistemas funcionales bajo el paquete `modelo` (`tripulacion`, `liquidacion`, `warp`, `bitacora`, `nave`, `mision`, `asistente`, `universo`), con las excepciones propias en `excepcion` y la demostración en `app`.
-Para conocer la justificación del desacoplamiento, la distribución de responsabilidades y la aplicación de los patrones de diseño (Factory, State, Template Method y Decorator), consultar el documento [docs/diseño.md](docs/diseño.md). Allí también se explica el diseño pedido por la Aclaración de la cátedra: el centro de control (`CentroDeControl`) y la interfaz `Asistente`, y las decisiones que quedan a confirmar con la cátedra (sección 4). El diagrama de clases está en [docs/diagrama_clases.md](docs/diagrama_clases.md) y el registro de uso de IA en [docs/uso-ia.md](docs/uso-ia.md).
+## Documentación
+* [docs/diseño.md](docs/diseño.md): responsabilidades de cada paquete, patrones (Factory, State, Template Method y Decorator), contratos, manejo de errores y decisiones de interpretación adoptadas ante ambigüedades de la consigna (sección 4).
+* [docs/diagrama_clases.md](docs/diagrama_clases.md): diagrama de clases.
+* [docs/uso-ia.md](docs/uso-ia.md): registro del uso de inteligencia artificial.
+
+El código está organizado por subsistema en `modelo` (`tripulacion`, `liquidacion`, `warp`, `bitacora`, `nave`, `mision`,
+`asistente`, `universo`), con las excepciones propias en `excepcion` y la demostración en `app`.

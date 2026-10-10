@@ -1,45 +1,49 @@
-
-### Registro de Asistencia: Configuración inicial del entorno y `pom.xml`
+### Registro de Asistencia: Configuración inicial del entorno y `pom.xml` (30/09/2026)
 
 * **Herramienta utilizada:** Asistente IA (Gemini).
 
+* **Propósito de la consulta:** inicializar el proyecto con la estructura estándar de Maven exigida por la cátedra, resolver conflictos al clonar el repositorio en IntelliJ IDEA y definir las dependencias mínimas para las pruebas automatizadas.
 
-* **Propósito de la consulta:** Asistencia técnica para la inicialización del proyecto bajo el estándar de Maven exigido por la cátedra, resolución de conflictos de clonación del repositorio en el entorno local (IntelliJ IDEA) y definición de las dependencias mínimas para testing automatizado.
-
-
-* **Componente o documento afectado:** Archivo `pom.xml` en la raíz del proyecto y estructura inicial de directorios.
-
+* **Componente o documento afectado:** `pom.xml` y estructura inicial de directorios (commit `642d017`, José Arregui).
 
 * **Resultado aprovechado:**
-* Estructura base del archivo `pom.xml` con declaración de `groupId`, `artifactId` y empaquetado.
-* Configuración de propiedades para compilación bajo Java 17 y codificación UTF-8.
-* Incorporación de la dependencia de **JUnit 5 (`junit-jupiter`)** en ámbito de pruebas (`test`) para satisfacer los requerimientos de verificación funcional de E1.
-
+  * Estructura base del `pom.xml` (`groupId`, `artifactId`, versión).
+  * Compilación para Java 17 con codificación UTF-8.
+  * Dependencia de JUnit 5 (`junit-jupiter`) en ámbito `test`, para las evidencias de E1.
 
 * **Revisión o modificación realizada por el equipo:**
-* Se corroboró la coincidencia de las rutas locales del sistema de archivos con el directorio clonado en Git.
+  * José Arregui corroboró que las rutas locales coincidieran con el directorio clonado en Git.
+  * El 02/10 se agregó el plugin Surefire 3.2.5, para que `mvn test` ejecute las pruebas JUnit 5 (las versiones anteriores del plugin las ignoran).
 
+* **Forma en que se verificó el resultado:** el proyecto compila con `mvn compile` y `mvn test` ejecuta las pruebas JUnit 5 de `src/test/java`.
 
-### Consulta: Protección de Invariantes y Validación de Nulos en el Contexto (`MotorWarp`) --> ACTUALMENTE NO ESTA ASI
+### Registro de Asistencia: Validación de nulos en `MotorWarp.setEstado()` (01/10/2026)
 
-* **Contexto del debate:**
-  Al implementar el método `setEstado(State nuevoEstado)` en la clase de contexto `MotorWarp`, surgió la duda sobre por qué utilizar `Objects.requireNonNull(nuevoEstado, ...)` en lugar de la asignación directa habitual (`estado = nuevoEstado`), tal como figuraba en las diapositivas introductorias de la cátedra.
+* **Herramienta utilizada:** asistente de IA consultado por José Arregui (la entrada original no registró cuál).
 
-* **Aporte y explicación conceptual de la IA:**
-  La IA explicó que, aunque la asignación directa es sintácticamente válida, en un entorno de desarrollo profesional y bajo las reglas de evaluación del TP introduce una debilidad en el **Diseño por Contrato**:
-    1. **Principio *Fail-Fast* (Fallo temprano):** Si una transición asignara por error una referencia `null`, la asignación simple no fallaría de inmediato. El error se manifestaría mucho después (lanzando un `NullPointerException` diferido al intentar delegar un método como `prepararSalto()`), oscureciendo el origen real de la falla. Con `Objects.requireNonNull`, la ejecución se interrumpe exactamente en el momento y en el método donde se intentó violar el contrato.
-    2. **Protección de Invariantes de Clase:** Un motor interestelar sin estado es una entidad conceptualmente rota. La clase de contexto tiene la responsabilidad de garantizar que su estado interno sea consistente en todo su ciclo de vida.
-    3. **Buenas prácticas en Java moderno:** Uso de la utilidad estándar `java.util.Objects` (incorporada para validación defensiva limpia y expresiva).
+* **Propósito de la consulta:** entender por qué validar el estado recibido en `setEstado(State nuevoEstado)` en lugar de la asignación directa (`estado = nuevoEstado`) que mostraban las diapositivas de la cátedra.
 
-* **Decisión de diseño adoptada por el alumno/equipo:**
-  Se incorporó `Objects.requireNonNull` en el mutador `setEstado` de `MotorWarp` para cumplir de forma estricta con la rúbrica de diseño por contrato e impedir estados inconsistentes en el modelo sin depender de interfaces gráficas o consola.
+* **Componente o documento afectado:** `MotorWarp.setEstado()` y `MotorWarpTest` (commit `3cc8880`, José Arregui).
 
+* **Resultado aprovechado:** la explicación de que un estado nulo debe detectarse en el momento en que se asigna y no más tarde, cuando el motor intente delegar en él: el motor siempre debe tener un estado (invariante de la clase). En ese momento se implementó con `Objects.requireNonNull`.
 
-### Validación de Nulos en el Contexto (`Bitacora.java`)
-* public List<Evento> getEventos() {
-*   return Collections.unmodifiableList(eventos); // 
-* }
-* --> Se uso la libreria java.util.Collections. Si alguien intenta hacer un .add() o .clear() sobre esa lista devuelta, Java lanza una excepción y no permite alterar la bitácora.
+* **Revisión o modificación realizada por el equipo:** el 09/10 (commit `2f30286`) se reemplazó `Objects.requireNonNull` por una aserción (`assert nuevoEstado != null`), porque `java.util.Objects` no forma parte de lo visto en la materia y un estado nulo sólo puede deberse a un error de programación (apunte de Aserciones). Además, `setEstado()` pasó a ser de paquete y se agregó `assert invariante()`.
+
+* **Forma en que se verificó el resultado:** `MotorWarpTest` verificaba que `setEstado(null)` lanzara `NullPointerException`; hoy verifica que lance `AssertionError` y que el motor conserve su estado (`mvn test`).
+
+### Registro de Asistencia: Lista de eventos de sólo lectura en `Bitacora` (01/10/2026)
+
+* **Herramienta utilizada:** asistente de IA consultado por José Arregui (la entrada original no registró cuál).
+
+* **Propósito de la consulta:** impedir que quien consulta la Bitácora pueda agregar, borrar o reemplazar eventos a través de la lista que devuelve `getEventos()`.
+
+* **Componente o documento afectado:** `Bitacora.getEventos()` y `BitacoraTest` (commit `cfef95a`, José Arregui).
+
+* **Resultado aprovechado:** devolver la lista con `Collections.unmodifiableList(eventos)`: si se intenta `add()` o `clear()` sobre la lista devuelta, Java lanza `UnsupportedOperationException` y la Bitácora no cambia.
+
+* **Revisión o modificación realizada por el equipo:** se mantuvo. Más adelante se completó el contrato de la Bitácora: rechazo de eventos nulos, vacíos o fuera de orden temporal, y eventos inmutables (ver las entradas del 03/10 y del 09/10).
+
+* **Forma en que se verificó el resultado:** la prueba `testGetEventosRetornaColeccionInmutable` de `BitacoraTest` intenta `add()` y `clear()` sobre la lista devuelta y comprueba que la Bitácora conserva sus eventos (`mvn test`).
 
 ### Registro de Asistencia: Revisión y corrección de los módulos Tripulación y Liquidación (01/10/2026)
 
@@ -158,8 +162,30 @@
 
 * **Revisión o modificación realizada por el equipo:**
   * Luca Zuanetti fijó como criterio la Guía y los apuntes, y pidió un análisis previo antes de modificar código.
-  * Delegó las decisiones pendientes con la condición de seguir la Guía e indicar cuáles confirmar con la cátedra (sección 4 de `docs/diseño.md`).
+  * Delegó las decisiones pendientes con la condición de seguir la Guía e indicar las decisiones de interpretación adoptadas (sección 4 de `docs/diseño.md`).
   * Aportó como excepción la indicación del docente Lucas sobre `getConsejos()` y aprobó las correcciones antes de aplicarlas.
-  * Luego de realizar un análisis minucioso de su código y las correciones planteadas por Claude, se decidió que el código estaba listo para ser llevado a la rama principal.
+  * Luego de realizar un análisis minucioso de su código y las correcciones planteadas por Claude, se decidió que el código estaba listo para ser llevado a la rama principal.
 
 * **Forma en que se verificó el resultado:** `mvn test` pasa con 120 pruebas en verde (antes 99) y `app.App` demuestra los Escenarios A, B, C y D con las aserciones activas.
+
+### Registro de Asistencia: Revisión final de la Entrega 1 (09/10/2026)
+
+* **Herramienta utilizada:** Claude Code (Anthropic).
+
+* **Propósito de la consulta:** revisar el proyecto integrado en `main` contra la Guía TP Nave (E1-01 a E1-10, Ficha de Inicio, Lista de comprobación, Rúbrica y Reglas Operativas), la Aclaración "Naves, asistentes y misiones" y los apuntes de la cátedra antes de etiquetar la entrega, y aplicar las correcciones en la rama `luca-RevisionFinal`.
+
+* **Componente o documento afectado:** estados del Motor Warp (`modelo.warp`), `Asistente`, `AsistenteComando`, `Tripulante`, `App`, `BitacoraTest`, `pom.xml`, `.gitignore`, `README.md`, `docs/diseño.md` y `docs/diagrama_clases.md`.
+
+* **Resultado aprovechado:**
+  * Detección de que los constructores públicos de los estados permitían saltear el ciclo del Motor Warp sin excepción ni registro; se hicieron de paquete.
+  * Matriz de verificación con resultados esperados en el README y ejecución de la demostración mediante Maven (`mvn compile exec:exec`).
+  * Diagrama de clases rehecho por módulo y comparado con el código.
+  * Nuevas decisiones de interpretación documentadas (tripulación inicial, energía adicional y salto ordenado directamente al asistente).
+  * Informe en PDF para el equipo con una guía de defensa.
+
+* **Revisión o modificación realizada por el equipo:**
+  * Luca Zuanetti fijó como criterio la Guía y los apuntes, y pidió un análisis previo sin modificar código, ordenado por gravedad.
+  * Realizó el análisis correspondiente, aplicó las correcciones que vio necesarias, consultó con Claude sobre sus correcciones y terminaron de refinar el código para la entrega.
+  * Mantuvo sin cambios las decisiones ya tomadas por el equipo (indicación del docente Lucas sobre los consejos, enfriamiento inmediato, excepciones comprobadas).
+
+* **Forma en que se verificó el resultado:** los errores se reprodujeron con un programa externo antes de corregirlos. `mvn test` pasa con 120 pruebas en verde y `app.App` corre sin errores con `java -ea` y con `mvn compile exec:exec`.

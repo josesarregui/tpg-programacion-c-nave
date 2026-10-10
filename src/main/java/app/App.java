@@ -122,17 +122,23 @@ public class App {
     // --- Escenario A ---
 
     private static void demostrarEscenarioA(CentroDeControl centro, int idNave) throws NaveInexistenteException {
-        System.out.println("ESCENARIO A - EJECUCION CORRECTA DE M-01, M-02 Y M-03");
+        System.out.println("ESCENARIO A - EJECUCIÓN CORRECTA DE M-01, M-02 Y M-03");
         Asistente asistente = centro.seleccionar(idNave);
         try {
             asistente.asignarTripulacion(crearTripulacion("Janeway", "Tuvok", "Paris", "Kim", "Torres"));
             System.out.println("Nave en uso: " + describir(centro.getAsistenteEnUso()));
+            mostrarBitacora(asistente);
 
+            // Ficha de Inicio, Escenario A, paso 5: para cada misión se muestran el informe, los recursos y su Bitácora.
             Mision[] misiones = {new MisionIntercepcion(), new MisionRecoleccion(), new MisionRetorno()};
             for (Mision mision : misiones) {
+                int eventosAnteriores = asistente.getEventos().size();
+                System.out.println();
+                System.out.println("Recursos antes de " + mision.getCodigo() + ": " + describir(asistente));
                 asistente.encomendarMision(mision);
                 mostrarInforme(asistente.ejecutarMision());
-                System.out.println("   Recursos finales: " + describir(asistente));
+                System.out.println("Recursos después de " + mision.getCodigo() + ": " + describir(asistente));
+                mostrarEventosDesde(asistente, eventosAnteriores, "BITÁCORA DE " + mision.getCodigo());
             }
         } catch (TripulanteInvalidoException | TripulacionInvalidaException
                  | NaveNoDisponibleException | RecursoInsuficienteException e) {
@@ -140,7 +146,6 @@ public class App {
         }
         System.out.println();
         System.out.println("Misiones realizadas por la nave: " + asistente.getMisionesRealizadas().size());
-        mostrarBitacora(asistente);
     }
 
     // --- Recursos, mantenimiento y Escenario D ---
@@ -184,7 +189,7 @@ public class App {
     // --- Escenario B ---
 
     private static void demostrarEscenarioB(CentroDeControl centro, int idNave) throws NaveInexistenteException {
-        System.out.println("ESCENARIO B - MISION CON RECURSOS INSUFICIENTES");
+        System.out.println("ESCENARIO B - MISIÓN CON RECURSOS INSUFICIENTES");
         Asistente asistente = centro.seleccionar(idNave);
         System.out.println("Nave en uso: " + describir(centro.getAsistenteEnUso()));
         try {
@@ -233,13 +238,7 @@ public class App {
                     + " (estado: " + e.getEstadoActual() + ")");
         }
         System.out.println("Después del rechazo: " + asistente.getEstadoMotor() + " (el estado no cambió)");
-
-        System.out.println();
-        System.out.println("BITACORA (eventos del Escenario C)");
-        List<Evento> eventos = asistente.getEventos();
-        for (int i = eventosAnteriores; i < eventos.size(); i++) {
-            System.out.println("   " + eventos.get(i));
-        }
+        mostrarEventosDesde(asistente, eventosAnteriores, "BITÁCORA (eventos del Escenario C)");
     }
 
     // --- Liquidación de haberes (E1-04, E1-08) ---
@@ -261,7 +260,7 @@ public class App {
             Tripulacion tripulacion = new Tripulacion(integrantes);
 
             LiquidacionTripulacion liquidacion = new LiquidadorHaberes().liquidar(tripulacion, octubre);
-            System.out.println("LIQUIDACION DE HABERES - " + liquidacion.getPeriodo());
+            System.out.println("LIQUIDACIÓN DE HABERES - " + liquidacion.getPeriodo());
             for (ReciboHaberes recibo : liquidacion.getRecibos()) {
                 System.out.println();
                 System.out.println(recibo.getTripulante());
@@ -271,7 +270,7 @@ public class App {
                 System.out.println("   TOTAL: " + recibo.getTotal() + " PG");
             }
             System.out.println();
-            System.out.println("TOTAL DE LA TRIPULACION: " + liquidacion.calcularTotal() + " PG");
+            System.out.println("TOTAL DE LA TRIPULACIÓN: " + liquidacion.calcularTotal() + " PG");
         } catch (TripulanteInvalidoException | TripulacionInvalidaException | LiquidacionInvalidaException e) {
             System.out.println("Error inesperado en la demostración: " + e.getMessage());
         }
@@ -329,10 +328,18 @@ public class App {
     }
 
     private static void mostrarBitacora(Asistente asistente) {
+        mostrarEventosDesde(asistente, 0, "BITÁCORA");
+    }
+
+    /**
+     * Muestra los eventos de la Bitácora registrados a partir de la posición indicada (en orden temporal).
+     */
+    private static void mostrarEventosDesde(Asistente asistente, int desde, String titulo) {
         System.out.println();
-        System.out.println("BITACORA");
-        for (Evento evento : asistente.getEventos()) {
-            System.out.println("   " + evento);
+        System.out.println(titulo);
+        List<Evento> eventos = asistente.getEventos();
+        for (int i = desde; i < eventos.size(); i++) {
+            System.out.println("   " + eventos.get(i));
         }
     }
 }

@@ -1,6 +1,7 @@
 package modelo.bitacora;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -8,6 +9,10 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Evidencia de E1-05 y de la Aclaración R5: registro en orden temporal, eventos inmutables y
+ * rechazo de eventos nulos, vacíos o fuera de orden (Observaciones).
+ */
 public class BitacoraTest {
 
     private Bitacora bitacora;
@@ -18,6 +23,7 @@ public class BitacoraTest {
     }
 
     @Test
+    @DisplayName("La Bitácora recién creada no tiene eventos")
     public void testBitacoraNuevaIniciaVacia() {
         List<Evento> eventos = bitacora.getEventos();
 
@@ -27,6 +33,7 @@ public class BitacoraTest {
     }
 
     @Test
+    @DisplayName("E1-05: un evento válido queda registrado con su tipo y descripción")
     public void testRegistrarEventoValidoAgregaCorrectamente() {
         Evento evento = new Evento(TipoEvento.MOTOR, "Salto Warp completado a factor 4.");
 
@@ -40,6 +47,7 @@ public class BitacoraTest {
     }
 
     @Test
+    @DisplayName("E1-05: los eventos se consultan en el orden en que ocurrieron")
     public void testRegistrarMultiplesEventosMantieneOrdenCronologico() {
         Evento e1 = new Evento(TipoEvento.SISTEMA, "Arranque de sistemas auxiliares.");
         Evento e2 = new Evento(TipoEvento.RECURSO, "Carga de deuterio al 100%.");
@@ -58,6 +66,7 @@ public class BitacoraTest {
     }
 
     @Test
+    @DisplayName("Observaciones: la Bitácora no acepta eventos nulos y no cambia")
     public void testRegistrarEventoNuloLanzaExcepcion() {
         IllegalArgumentException excepcion = assertThrows(
                 IllegalArgumentException.class,
@@ -70,6 +79,7 @@ public class BitacoraTest {
     }
 
     @Test
+    @DisplayName("Observaciones: un evento sin fecha, sin tipo o con descripción vacía se rechaza")
     public void testEventoIncompletoSeRechaza() {
         // Observaciones de la Guía: la Bitácora no aceptará eventos nulos o vacíos.
         assertThrows(IllegalArgumentException.class, () -> new Evento(TipoEvento.MOTOR, ""));
@@ -80,6 +90,7 @@ public class BitacoraTest {
     }
 
     @Test
+    @DisplayName("E1-05: un evento anterior al último se rechaza para conservar el orden temporal")
     public void testEventoFueraDeOrdenSeRechaza() {
         // E1-05: los eventos deben poder consultarse en orden temporal.
         LocalDateTime ahora = LocalDateTime.of(2026, 10, 9, 12, 0);
@@ -96,6 +107,7 @@ public class BitacoraTest {
     }
 
     @Test
+    @DisplayName("Aclaración R5: la lista de eventos es de sólo lectura")
     public void testGetEventosRetornaColeccionInmutable() {
         Evento evento = new Evento(TipoEvento.MOTOR, "Prueba de aislamiento.");
         bitacora.registrarEvento(evento);

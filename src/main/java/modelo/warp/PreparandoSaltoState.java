@@ -15,9 +15,12 @@ public class PreparandoSaltoState implements State {
     private final MotorWarp motor;
 
     /**
-     * @pre motor != null (lo crea el propio motor o un estado al completar una transición).
+     * Constructor de paquete: sólo lo usan el motor y los demás estados al completar una transición válida.
+     * Así ningún cliente puede crear un estado para forzar un cambio que saltee el ciclo (E1-02).
+     *
+     * @pre motor != null.
      */
-    public PreparandoSaltoState(MotorWarp motor) {
+    PreparandoSaltoState(MotorWarp motor) {
         assert motor != null : "El estado debe pertenecer a un motor.";
         this.motor = motor;
     }

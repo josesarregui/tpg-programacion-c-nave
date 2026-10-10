@@ -109,6 +109,9 @@ public interface Asistente {
 
     /**
      * Ordena al Motor Warp preparar el salto (Disponible -> Preparando salto).
+     * Es una orden directa al motor (Escenario C): sólo depende del estado del motor. Verificar que la nave
+     * esté lista para operar (tripulación y mantenimiento) es responsabilidad de la misión antes de actuar
+     * (Aclaración, R4); ver docs/diseño.md, sección 4.
      *
      * @throws EstadoMotorInvalidoException si la transición no es válida en el estado actual. El motor no cambia.
      */
