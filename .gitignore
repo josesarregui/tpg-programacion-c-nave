@@ -25,7 +25,13 @@ replay_pid*
 
 .idea/
 *.iml
+out/
 target/
+
+# Datos locales de la base H2 (Reglas Operativas V.5, punto 10; se usará en la Entrega 2)
+*.mv.db
+*.trace.db
+*.lock.db
 
 # Archivos de configuración de Eclipse
 .classpath

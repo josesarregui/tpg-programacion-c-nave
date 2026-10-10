@@ -148,6 +148,6 @@ public abstract class Tripulante implements Liquidacion {
 
     @Override
     public String toString() {
-        return "#" + id + " " + nombre + " (" + getCargo() + ", " + origen + ", " + antiguedad + " años)";
+        return "#" + id + " " + nombre + " (" + getCargo() + ", " + origen + ", " + antiguedad + (antiguedad == 1 ? " año)" : " años)");
     }
 }

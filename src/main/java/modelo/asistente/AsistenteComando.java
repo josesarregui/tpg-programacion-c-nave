@@ -49,6 +49,9 @@ public class AsistenteComando implements Asistente {
 
     /**
      * @pre nave != null (la crea la fábrica de naves).
+     * @pre La nave no es operada por otro asistente (Aclaración, R2: toda orden pasa por SU asistente).
+     *      Garantizarlo es responsabilidad de quien crea el asistente; el centro de control, además,
+     *      rechaza registrar dos veces la misma nave (NaveYaRegistradaException).
      * @post El asistente opera la nave recibida, con su Bitácora, sin misión pendiente ni misiones realizadas.
      */
     public AsistenteComando(Nave nave) {

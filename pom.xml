@@ -32,6 +32,22 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
             </plugin>
+            <!-- Ejecuta la demostración mediante Maven con las aserciones activas: mvn compile exec:exec
+                 (Ficha de Inicio, Lista de comprobación, punto 1). Es un plugin de construcción, no una biblioteca del modelo. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>-ea</argument>
+                        <argument>-classpath</argument>
+                        <classpath/>
+                        <argument>app.App</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
