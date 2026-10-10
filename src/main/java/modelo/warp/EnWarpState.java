@@ -1,7 +1,6 @@
 package modelo.warp;
 
 import excepcion.EstadoMotorInvalidoException;
-import java.util.Objects;
 
 /**
  * Representa la fase en la cual la nave se encuentra navegando en hiperespacio (Warp).
@@ -16,12 +15,16 @@ public class EnWarpState implements State {
 
     private final MotorWarp motor;
 
+    /**
+     * @pre motor != null (lo crea el propio motor o un estado al completar una transición).
+     */
     public EnWarpState(MotorWarp motor) {
-        this.motor = Objects.requireNonNull(motor, "El motor no puede ser nulo.");
+        assert motor != null : "El estado debe pertenecer a un motor.";
+        this.motor = motor;
     }
 
     @Override
-    public void prepararSalto() {
+    public void prepararSalto() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
                 "Transición inválida: No se puede preparar un salto mientras la nave ya está navegando en Warp.",
                 NOMBRE
@@ -29,7 +32,7 @@ public class EnWarpState implements State {
     }
 
     @Override
-    public void iniciarWarp() {
+    public void iniciarWarp() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
                 "Transición inválida: El motor ya se encuentra activo en velocidad Warp.",
                 NOMBRE
@@ -43,7 +46,7 @@ public class EnWarpState implements State {
     }
 
     @Override
-    public void enfriar() {
+    public void enfriar() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
                 "Transición inválida: No se puede enfriar el motor mientras el campo Warp continúe activo. Debe desactivarse primero.",
                 NOMBRE

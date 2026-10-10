@@ -28,7 +28,7 @@ class MotorWarpTest {
 
     @Test
     @DisplayName("Escenario C: Recorrer la secuencia válida completa de estados")
-    void testCicloCompletoValidoEscenarioC() {
+    void testCicloCompletoValidoEscenarioC() throws Exception {
         // 1. Estado inicial: Disponible
         assertInstanceOf(DisponibleState.class, this.motor.getEstado());
 
@@ -62,7 +62,7 @@ class MotorWarpTest {
 
     @Test
     @DisplayName("Rechazar transiciones inválidas desde PreparandoSalto")
-    void testTransicionesInvalidasDesdePreparandoSalto() {
+    void testTransicionesInvalidasDesdePreparandoSalto() throws Exception {
         this.motor.prepararSalto();
 
         assertThrows(EstadoMotorInvalidoException.class, () -> this.motor.prepararSalto());
@@ -74,7 +74,7 @@ class MotorWarpTest {
 
     @Test
     @DisplayName("Rechazar transiciones inválidas desde EnWarp")
-    void testTransicionesInvalidasDesdeEnWarp() {
+    void testTransicionesInvalidasDesdeEnWarp() throws Exception {
         this.motor.prepararSalto();
         this.motor.iniciarWarp();
 
@@ -87,7 +87,7 @@ class MotorWarpTest {
 
     @Test
     @DisplayName("Rechazar transiciones inválidas desde Enfriamiento")
-    void testTransicionesInvalidasDesdeEnfriamiento() {
+    void testTransicionesInvalidasDesdeEnfriamiento() throws Exception {
         this.motor.prepararSalto();
         this.motor.iniciarWarp();
         this.motor.desactivarWarp();
@@ -101,7 +101,7 @@ class MotorWarpTest {
 
     @Test
     @DisplayName("Aclaración R4: el motor sólo está disponible en el estado Disponible")
-    void testEstaDisponibleSoloEnDisponible() {
+    void testEstaDisponibleSoloEnDisponible() throws Exception {
         assertTrue(this.motor.estaDisponible());
 
         this.motor.prepararSalto();
@@ -119,7 +119,7 @@ class MotorWarpTest {
 
     @Test
     @DisplayName("Escenario C: la excepción de una transición inválida guarda el estado en que se rechazó")
-    void testExcepcionGuardaElEstadoActual() {
+    void testExcepcionGuardaElEstadoActual() throws Exception {
         this.motor.prepararSalto();
 
         EstadoMotorInvalidoException excepcion =
@@ -130,8 +130,18 @@ class MotorWarpTest {
     }
 
     @Test
-    @DisplayName("Diseño por Contrato: setEstado no debe admitir referencias nulas")
+    @DisplayName("Diseño por Contrato: setEstado no admite un estado nulo y el motor conserva su estado")
     void testSetEstadoRechazaNull() {
-        assertThrows(NullPointerException.class, () -> this.motor.setEstado(null));
+        assertThrows(AssertionError.class, () -> this.motor.setEstado(null));
+        assertInstanceOf(DisponibleState.class, this.motor.getEstado());
+    }
+
+    @Test
+    @DisplayName("Diseño por Contrato: un estado no puede crearse sin el motor al que pertenece")
+    void testEstadoSinMotor() {
+        assertThrows(AssertionError.class, () -> new DisponibleState(null));
+        assertThrows(AssertionError.class, () -> new PreparandoSaltoState(null));
+        assertThrows(AssertionError.class, () -> new EnWarpState(null));
+        assertThrows(AssertionError.class, () -> new EnfriamientoState(null));
     }
 }

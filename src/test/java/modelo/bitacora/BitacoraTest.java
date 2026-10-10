@@ -3,6 +3,7 @@ package modelo.bitacora;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -76,6 +77,22 @@ public class BitacoraTest {
         assertThrows(IllegalArgumentException.class, () -> new Evento(TipoEvento.MOTOR, null));
         assertThrows(IllegalArgumentException.class, () -> new Evento(null, "Sin tipo."));
         assertThrows(IllegalArgumentException.class, () -> new Evento(null, TipoEvento.SISTEMA, "Sin fecha."));
+    }
+
+    @Test
+    public void testEventoFueraDeOrdenSeRechaza() {
+        // E1-05: los eventos deben poder consultarse en orden temporal.
+        LocalDateTime ahora = LocalDateTime.of(2026, 10, 9, 12, 0);
+        Evento primero = new Evento(ahora, TipoEvento.SISTEMA, "Arranque.");
+        bitacora.registrarEvento(primero);
+        Evento anterior = new Evento(ahora.minusHours(1), TipoEvento.SISTEMA, "Evento con fecha anterior.");
+
+        assertThrows(IllegalArgumentException.class, () -> bitacora.registrarEvento(anterior));
+        assertEquals(1, bitacora.getEventos().size(), "La bitácora no cambia al rechazar el evento.");
+
+        Evento simultaneo = new Evento(ahora, TipoEvento.MOTOR, "Evento en el mismo instante.");
+        bitacora.registrarEvento(simultaneo);
+        assertEquals(2, bitacora.getEventos().size(), "Un evento del mismo instante conserva el orden temporal.");
     }
 
     @Test

@@ -37,7 +37,13 @@ public class TripulacionTest {
     }
 
     private List<Tripulante> tripulacionMinima() {
-        return new ArrayList<>(List.of(capitan, consejero, teniente, primerAlferez, segundoAlferez));
+        List<Tripulante> integrantes = new ArrayList<>();
+        integrantes.add(capitan);
+        integrantes.add(consejero);
+        integrantes.add(teniente);
+        integrantes.add(primerAlferez);
+        integrantes.add(segundoAlferez);
+        return integrantes;
     }
 
     // --- Tripulante ---
@@ -133,8 +139,9 @@ public class TripulacionTest {
     @Test
     @DisplayName("Rechazo: tripulación sin capitán/a")
     public void testTripulacionSinCapitan() throws Exception {
-        List<Tripulante> sinCapitan = List.of(consejero, teniente, primerAlferez, segundoAlferez,
-                new Teniente("Scott", 4, Origen.TERRICOLA));
+        List<Tripulante> sinCapitan = tripulacionMinima();
+        sinCapitan.remove(capitan);
+        sinCapitan.add(new Teniente("Scott", 4, Origen.TERRICOLA));
 
         assertThrows(TripulacionInvalidaException.class, () -> new Tripulacion(sinCapitan));
     }
@@ -142,7 +149,8 @@ public class TripulacionTest {
     @Test
     @DisplayName("Rechazo: menos de 4 tripulantes adicionales")
     public void testTripulacionIncompleta() {
-        List<Tripulante> incompleta = List.of(capitan, consejero, teniente, primerAlferez);
+        List<Tripulante> incompleta = tripulacionMinima();
+        incompleta.remove(segundoAlferez);
 
         assertThrows(TripulacionInvalidaException.class, () -> new Tripulacion(incompleta));
     }

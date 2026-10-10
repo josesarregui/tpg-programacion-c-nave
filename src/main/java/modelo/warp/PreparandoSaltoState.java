@@ -1,7 +1,6 @@
 package modelo.warp;
 
 import excepcion.EstadoMotorInvalidoException;
-import java.util.Objects;
 
 /**
  * Representa la fase en la que el motor está presurizando reactores
@@ -15,12 +14,16 @@ public class PreparandoSaltoState implements State {
 
     private final MotorWarp motor;
 
+    /**
+     * @pre motor != null (lo crea el propio motor o un estado al completar una transición).
+     */
     public PreparandoSaltoState(MotorWarp motor) {
-        this.motor = Objects.requireNonNull(motor, "El motor no puede ser nulo.");
+        assert motor != null : "El estado debe pertenecer a un motor.";
+        this.motor = motor;
     }
 
     @Override
-    public void prepararSalto() {
+    public void prepararSalto() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
                 "Transición inválida: La secuencia de preparación ya se encuentra en curso.",
                 NOMBRE
@@ -34,7 +37,7 @@ public class PreparandoSaltoState implements State {
     }
 
     @Override
-    public void desactivarWarp() {
+    public void desactivarWarp() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
                 "Transición inválida: No se puede desactivar Warp porque el salto aún no fue ejecutado.",
                 NOMBRE
@@ -42,7 +45,7 @@ public class PreparandoSaltoState implements State {
     }
 
     @Override
-    public void enfriar() {
+    public void enfriar() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
                 "Transición inválida: No se puede enfriar el motor mientras se prepara un salto.",
                 NOMBRE

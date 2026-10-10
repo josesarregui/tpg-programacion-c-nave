@@ -1,20 +1,14 @@
 package modelo.bitacora;
 
 /**
- * Clasificación de los acontecimientos registrados en la bitácora
- * conforme a los requerimientos de auditoría de la nave.
+ * Clasificación de los acontecimientos registrados en la Bitácora (E1-05): la Bitácora debe registrar
+ * eventos relevantes, errores, cambios del Motor Warp, ejecución de misiones y operaciones sobre recursos.
  */
-
-/*
-* La Bitácora deberá registrar eventos relevantes, errores, cambios del Motor Warp, ejecución de misiones y
-  operaciones sobre recursos. Los eventos deberán poder consultarse en orden temporal.
-* */
-
 public enum TipoEvento {
-    MOTOR,      // Cambios de estado en el Motor Warp
-    MISION,     // Ciclos de vida, hitos y resultados de misiones
-    RECURSO,    // Consumos, cargas de combustible/energía y desgaste
-    ERROR,      // Excepciones capturadas y maniobras rechazadas
-    SISTEMA,    // Acontecimientos generales del asistente o la nave
-    RELEVANTE   // Órdenes directas del capitán, arranque del sistema o sucesos de navegación general.
+    MOTOR,      // Cambios de estado del Motor Warp.
+    MISION,     // Ciclo, acciones, resultado e informe de las misiones.
+    RECURSO,    // Cargas, consumos, desgaste y mantenimiento.
+    ERROR,      // Órdenes y transiciones rechazadas, con su motivo.
+    SISTEMA,    // Acontecimientos generales: puesta en servicio, registro y selección de la nave, tripulación.
+    RELEVANTE   // Otros eventos relevantes, como órdenes o autorizaciones del/de la capitán/a.
 }

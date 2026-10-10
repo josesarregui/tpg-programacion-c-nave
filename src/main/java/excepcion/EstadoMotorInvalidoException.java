@@ -6,9 +6,10 @@ package excepcion;
  * Guarda el nombre del estado en el que se rechazó la transición, con su getter,
  * para que el invocante pueda registrarlo en la Bitácora (Escenario C).
  *
- * Extiende IllegalStateException (no comprobada). Ver la decisión pendiente en docs/diseño.md, sección 4.
+ * Es comprobada (extiende Exception), como el resto de las excepciones propias: el rechazo
+ * forma parte del contrato de cada transición y debe propagarse al asistente, que lo registra.
  */
-public class EstadoMotorInvalidoException extends IllegalStateException {
+public class EstadoMotorInvalidoException extends Exception {
 
     private final String estadoActual;
 
