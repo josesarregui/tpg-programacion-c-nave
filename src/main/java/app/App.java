@@ -1,5 +1,6 @@
 package app;
 
+import controlador.ControladorLogin;
 import excepcion.CantidadInvalidaException;
 import excepcion.CapacidadExcedidaException;
 import excepcion.EstadoMotorInvalidoException;
@@ -38,6 +39,9 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
+import modelo.usuario.ListaDeUsuarios;
+import vista.VistaLogin;
+
 /**
  * Programa principal que simula al usuario (E1-03; Aclaración, R6): da de alta naves en el centro de control,
  * elige la nave en uso, crea misiones, se las encomienda a su asistente y las ejecuta.
@@ -57,6 +61,16 @@ import java.util.List;
 public class App {
 
     public static void main(String[] args) {
+        
+        ListaDeUsuarios usuarios = new ListaDeUsuarios();
+        VistaLogin vista = new VistaLogin();
+
+        ControladorLogin controlador = new ControladorLogin( usuarios, vista );
+        vista.arrancar();
+        
+        
+        
+        /*
         demostrarLiquidacion();
         System.out.println();
 
@@ -80,6 +94,9 @@ public class App {
         } catch (NaveYaRegistradaException | NaveInexistenteException e) {
             System.out.println("Error inesperado en la demostración: " + e.getMessage());
         }
+        
+        */
+        
     }
 
     // --- Centro de control (R1) ---
@@ -89,8 +106,7 @@ public class App {
      *
      * @return el id de la nave registrada.
      */
-    private static int darDeAlta(CentroDeControl centro, NaveFactory fabrica, TipoNave tipo)
-            throws NaveYaRegistradaException {
+    private static int darDeAlta(CentroDeControl centro, NaveFactory fabrica, TipoNave tipo) throws NaveYaRegistradaException {
         Asistente asistente = new AsistenteComando(fabrica.crearNave(tipo));
         centro.registrar(asistente);
         return asistente.getIdNave();

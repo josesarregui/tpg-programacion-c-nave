@@ -9,9 +9,7 @@ package modelo.mision;
  * Sólo redefine sus pasos particulares; el ciclo lo fija {@link Mision#realizar()} (Template Method).
  */
 public class MisionIntercepcion extends Mision {
-
     private static final int ENERGIA_ADICIONAL = 5;
-
     private boolean asistenciaRealizada;
 
     /**
