@@ -189,3 +189,22 @@
   * Mantuvo sin cambios las decisiones ya tomadas por el equipo (indicación del docente Lucas sobre los consejos, enfriamiento inmediato, excepciones comprobadas).
 
 * **Forma en que se verificó el resultado:** los errores se reprodujeron con un programa externo antes de corregirlos. `mvn test` pasa con 120 pruebas en verde y `app.App` corre sin errores con `java -ea` y con `mvn compile exec:exec`.
+
+### Registro de Asistencia: Auditoría del login y registro de la Entrega 2 (22/10/2026)
+
+* **Herramienta utilizada:** Claude Code (Anthropic).
+
+* **Propósito de la consulta:** auditar la implementación preliminar del login y del registro de la rama `Seba-Vista` (Sebastian Barrionuebo) contra el Enunciado de la Parte 2, la Guía TP Nave (reparto Vista / Controlador / servicio / DAO y Reglas Operativas) y los apuntes de MVC, Interfaces gráficas, Excepciones y La clase Object, y corregirla en la rama `luca-EvaluacionVista`.
+
+* **Componente o documento afectado:** paquetes `vista.usuario`, `controlador.usuario`, `modelo.usuario` y `persistencia` (nuevo); excepciones del acceso y `PersistenciaException`; `App` y `DemostracionEntrega1`; `pom.xml` (dependencia H2); `database/schema.sql`; pruebas de la E2; `README.md` y `docs/diseño.md`.
+
+* **Resultado aprovechado:**
+  * Capa de persistencia con DAO, DTO y JDBC sobre H2 (no existía: los usuarios se guardaban en una lista en memoria y se perdían al cerrar).
+  * Servicio con las reglas del acceso y las excepciones propias; validaciones de formato en la vista mediante clases oyentes `KeyAdapter`.
+  * Corrección de paquetes que no coincidían con las carpetas, de `equals` de `Usuario` y de la demostración de la E1, que había quedado comentada.
+  * Se conservaron el diseño visual, las interfaces de vista con comandos de acción y los controladores `ActionListener` propuestos por Sebastian.
+
+* **Revisión o modificación realizada por el equipo:**
+  * Luego de analizar el código propuesto por Claude a partir lo que hicimos, aplicamos las correciones que vimos necesarias y decidimos que estaba listo para ser mergeado a la rama main.
+  
+* **Forma en que se verificó el resultado:** `mvn test` pasa con 148 pruebas en verde (antes 120), `app.App` inicia y crea `datos/nave.mv.db`, y `app.DemostracionEntrega1` reproduce la salida de la E1.

@@ -1,71 +1,59 @@
-
-package controlador;
+package controlador.usuario;
 
 import excepcion.LoginInvalidoException;
+import excepcion.PersistenciaException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import modelo.usuario.ListaDeUsuarios;
-import vista.IVistaLogin;
-import vista.VistaRegistro;
+import modelo.usuario.ServicioUsuarios;
+import modelo.usuario.Usuario;
+import vista.usuario.IVistaLogin;
+import vista.usuario.VistaRegistro;
 
 /**
+ * Controlador de la pantalla de login (patrón MVC, como el ControlConversor del apunte): recibe los comandos de
+ * acción de la vista, invoca al servicio y coordina la respuesta. No contiene reglas de negocio ni SQL.
  *
+ * Selección de vista: desde aquí se abre la pantalla de registro.
  */
 public class ControladorLogin implements ActionListener {
-    private ListaDeUsuarios modelo;
-    private IVistaLogin vista;
 
-    
-    public ControladorLogin(ListaDeUsuarios modelo,IVistaLogin vista) {
-        this.modelo = modelo;
+    private final IVistaLogin vista;
+    private final ServicioUsuarios modelo;
+
+    public ControladorLogin(IVistaLogin vista, ServicioUsuarios modelo) {
         this.vista = vista;
-        this.vista.setControlador(this);
+        this.modelo = modelo;
     }
 
-  
-
-    private void iniciarSesion() {
-        String nombre = vista.getNombreUsuario();
-        String contrasena = vista.getContrasena();
-
-        if (nombre.isBlank() || contrasena.isBlank()) {
-            this.vista.mostrarError("Debe completar usuario y contraseña.");
-        }else{
-            try {
-                this.modelo.validarLogin(nombre, contrasena);
-                this.vista.mostrarMensaje("Inicio de sesión correcto.");
-
-                // abrirVentanaPrincipal();
-
-            } catch (LoginInvalidoException ex) {
-                this.vista.mostrarError(ex.getMessage());
-            }
+    /**
+     * El comando de acción identifica el botón presionado.
+     */
+    @Override
+    public void actionPerformed(ActionEvent evento) {
+        if (IVistaLogin.INGRESAR.equals(evento.getActionCommand())) {
+            iniciarSesion();
+        } else if (IVistaLogin.IR_A_REGISTRO.equals(evento.getActionCommand())) {
+            abrirRegistro();
         }
     }
-    
-     private void abrirRegistro() {
+
+    private void iniciarSesion() {
+        try {
+            Usuario usuario = modelo.iniciarSesion(vista.getNombreUsuario(), vista.getContrasena());
+            vista.mostrarMensaje("Acceso concedido. Bienvenido/a, " + usuario.getNombreUsuario() + ".");
+            // Una vez validada la identidad, aquí se abrirá el panel central cuando su vista esté integrada.
+        } catch (LoginInvalidoException e) {
+            vista.mostrarError(e.getMessage());
+            vista.limpiarContrasena();
+        } catch (PersistenciaException e) {
+            vista.mostrarError(e.getMessage());
+        }
+    }
+
+    private void abrirRegistro() {
         VistaRegistro vistaRegistro = new VistaRegistro();
-        ControladorRegistro controladorRegistro = new ControladorRegistro(this.modelo,vistaRegistro);
-        
-        this.vista.cerrar();
+        vistaRegistro.setControlador(new ControladorRegistro(vistaRegistro, modelo));
+        vista.cerrar();
         vistaRegistro.arrancar();
-    }
-    
-     
-    private void abrirVentanaPrincipal(){
-        
-    }
-     
-     
-     
-    
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        if (IVistaLogin.LOGIN.equals(e.getActionCommand())) {
-            this.iniciarSesion();
-        }else 
-            if(IVistaLogin.IR_REGISTRO.equals(e.getActionCommand())) {
-                this.abrirRegistro();
-            }
     }
 }

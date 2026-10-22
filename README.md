@@ -1,14 +1,23 @@
 # tpg-programacion-c-nave
 
-Software embarcado de una nave interestelar tripulada — TPG 2026, Programación C. Entrega 1.
+Software embarcado de una nave interestelar tripulada — TPG 2026, Programación C. Entrega 1 y Entrega 2 (en desarrollo).
 
 ## Requisitos de ejecución
 * JDK 17 o superior (el proyecto se compila para Java 17; también se probó con JDK 25). El comando `java` debe estar en el PATH.
 * Maven 3.8 o superior.
+* Entorno gráfico (las pantallas de la E2 usan Swing).
 
 ## Configuración local
-No requiere configuración adicional ni base de datos. Si Maven no está en el PATH, puede usarse el que trae IntelliJ IDEA
+No requiere instalar un servidor de base de datos. Si Maven no está en el PATH, puede usarse el que trae IntelliJ IDEA
 (`<carpeta de IntelliJ>/plugins/maven-plugin/lib/maven3/bin/mvn`) o la ventana *Maven* del IDE.
+
+**Base de datos (E2):** las credenciales de los usuarios se guardan con JDBC en una base **H2** embebida en modo archivo,
+`datos/nave.mv.db`, relativa a la carpeta desde la que se ejecuta el sistema. Se crea sola al primer inicio, junto con la tabla
+`usuario` (`database/schema.sql`), y está excluida del repositorio por el `.gitignore`. Para empezar con la base vacía,
+basta con borrar la carpeta `datos/`.
+
+**Biblioteca adicional declarada (Reglas Operativas, punto 12):** `com.h2database:h2:2.3.232`, el controlador JDBC y motor de la
+base H2. Se usa sólo como driver: el acceso a datos se programa con JDBC estándar (`java.sql`), sin frameworks de persistencia.
 
 ## Compilación
 ```
@@ -16,16 +25,19 @@ mvn compile
 ```
 
 ## Ejecución (forma de iniciar el sistema)
-El programa principal `app.App` simula al usuario (Aclaración, R6) y recorre los cuatro escenarios de la Ficha de Inicio.
-Cualquiera de estas dos formas lo ejecuta con las aserciones activas (`-ea`: invariantes, precondiciones y postcondiciones):
+El programa principal `app.App` abre la pantalla de **inicio de sesión** (E2, Control de Acceso al Sistema). Desde ella se puede
+pasar al **registro** de un usuario nuevo. Se ejecuta con las aserciones activas (`-ea`) mediante:
 ```
 mvn compile exec:exec
 ```
-```
-java -ea -cp target/classes app.App
-```
 Desde IntelliJ IDEA: abrir la carpeta como proyecto Maven, ejecutar `app.App` y agregar `-ea` en *Run > Edit Configurations > VM options*.
 
+### Demostración por consola de la Entrega 1
+La demostración de la E1 se conserva en `app.DemostracionEntrega1`, que simula al usuario (Aclaración, R6) y recorre los cuatro
+escenarios de la Ficha de Inicio:
+```
+java -ea -cp target/classes app.DemostracionEntrega1
+```
 Qué muestra, en orden: la liquidación de haberes de una tripulación; el alta de una nave de cada tipo en el centro de control;
 el **Escenario A** (M-01, M-02 y M-03 con recursos antes y después, informe y Bitácora de cada misión); las operaciones sobre
 recursos y mantenimiento con el **Escenario D**; el **Escenario B** y el **Escenario C**.
@@ -34,10 +46,21 @@ recursos y mantenimiento con el **Escenario D**; el **Escenario B** y el **Escen
 ```
 mvn test
 ```
-Ejecuta las 120 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Ejecuta las 148 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/nave.mv.db`. Las pruebas de las vistas Swing
+(`VistasAccesoTest`) se omiten si no hay entorno gráfico.
 
-### Matriz de verificación
-| Caso | Qué se verifica (resultado esperado) | Prueba automática | En `App` |
+### Matriz de verificación — Entrega 2: acceso al sistema
+| Caso | Qué se verifica (resultado esperado) | Prueba automática |
+|---|---|---|
+| Registro | Un usuario nuevo queda guardado y puede iniciar sesión. Se rechazan: nombre vacío, con espacios o de más de 30 caracteres (`UsuarioInvalidoException`), contraseña vacía o de más de 30 (`ContrasenaInvalidaException`) y nombre repetido (`UsuarioExistenteException`), sin guardar nada. | `ServicioUsuariosTest` |
+| Login | Con credenciales correctas el operador queda en sesión. Usuario inexistente y contraseña incorrecta dan el mismo mensaje (`LoginInvalidoException`) y no cambian la sesión. | `ServicioUsuariosTest`, `ControladorLoginTest` |
+| Persistencia (DAO/DTO, JDBC) | Las credenciales se conservan para otra ejecución; consultas parametrizadas (sin inyección de SQL); toda `SQLException` se transforma en `PersistenciaException`. | `UsuarioDAOJDBCTest`, `ServicioUsuariosTest` |
+| MVC | Los controladores trabajan con las vistas por su interfaz: se prueban con vistas sin ventanas. Los errores del servicio se muestran en la vista. | `ControladorLoginTest` |
+| Validación de formato en la Vista | "Ingresar" y "Registrar" se habilitan sólo con los campos completos; el registro avisa si las contraseñas no coinciden. | `VistasAccesoTest` |
+
+### Matriz de verificación — Entrega 1
+| Caso | Qué se verifica (resultado esperado) | Prueba automática | En `DemostracionEntrega1` |
 |---|---|---|---|
 | E1-01, E1-07 (Factory) | La fábrica crea los tres tipos con la Ficha de Inicio: Exploradora 60/80/0, Carguero 100/60/0, Combate 80/100/0 (combustible/energía/desgaste), motor Disponible, sin tripulación y con id único. | `NaveFactoryTest` | "NAVES REGISTRADAS" |
 | E1-07: sin instanciación directa | Los constructores de las naves son de paquete: `new Exploradora()` fuera de `modelo.nave` **no compila**. El cliente sólo usa `NaveFactory.crearNave(TipoNave)`. | Verificable en el código | `darDeAlta()` |

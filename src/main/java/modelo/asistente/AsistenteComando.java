@@ -40,6 +40,7 @@ import java.util.List;
  *  - la misión en ejecución, si existe, es la misión pendiente.
  */
 public class AsistenteComando implements Asistente {
+
     private final Nave nave;
     private final Bitacora bitacora;
     private final List<Mision> misionesRealizadas;
@@ -318,9 +319,9 @@ public class AsistenteComando implements Asistente {
         // (apunte de Excepciones: si ocurre "pre", debe ocurrir "post").
         misionEnEjecucion = misionPendiente;
         try {
-            informe = misionEnEjecucion.realizar();
+            informe = misionPendiente.realizar();
         } catch (NaveNoDisponibleException | RecursoInsuficienteException e) {
-            registrarEvento(TipoEvento.ERROR, "Misión " + misionEnEjecucion.getCodigo() + " rechazada: " + e.getMessage());
+            registrarEvento(TipoEvento.ERROR, "Misión " + misionPendiente.getCodigo() + " rechazada: " + e.getMessage());
             throw e;
         } finally {
             misionEnEjecucion = null;

@@ -137,7 +137,6 @@ public abstract class Mision {
         return informe;
     }
 
-    
     /**
      * Paso 1: verifica que la nave esté lista para operar y que tenga los recursos que requiere la misión
      * (Aclaración, R4). No modifica la nave.
@@ -229,15 +228,16 @@ public abstract class Mision {
             registrarAccion("Cierre: no se ordena el salto porque la misión no fue exitosa.");
         }
 
-        String observaciones = "Condición de éxito: " + getCondicionDeExito() + (exitosa ? " (cumplida)." : " (no cumplida).");
+        String observaciones = "Condición de éxito: " + getCondicionDeExito()
+                + (exitosa ? " (cumplida)." : " (no cumplida).");
         informe = new InformeMision(codigo + " — " + nombre, exitosa, acciones,
                 COMBUSTIBLE_CONSUMIDO, getEnergiaAdicional(), DESGASTE_PRODUCIDO,
                 asistente.getCombustible(), asistente.getEnergia(), asistente.getDesgaste(),
                 asistente.getEstadoMotor(), asistente.naveListaParaOperar(), observaciones);
 
         etapa = EtapaMision.CERRADA;
-        asistente.registrarEvento(TipoEvento.MISION, "Misión " + codigo + " cerrada. Resultado: " + (exitosa ? "exitosa." : "no exitosa."));
-        
+        asistente.registrarEvento(TipoEvento.MISION, "Misión " + codigo + " cerrada. Resultado: "
+                + (exitosa ? "exitosa." : "no exitosa."));
         assert informe != null : "Fallo postcondición: la misión no puede cerrarse sin informe.";
         assert invariante() : "Fallo invariante tras cerrar la misión.";
     }
@@ -288,8 +288,7 @@ public abstract class Mision {
     private boolean invariante() {
         return codigo != null && !codigo.isBlank()
                 && nombre != null && !nombre.isBlank()
-                && etapa != null 
-                && acciones != null
+                && etapa != null && acciones != null
                 && (etapa == EtapaMision.CERRADA) == (informe != null);
     }
 

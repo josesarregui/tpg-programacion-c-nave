@@ -1,53 +1,59 @@
-
 package modelo.usuario;
 
-import java.util.Objects;
-
 /**
+ * Operador identificado en el sistema (Enunciado E2, "Control de Acceso al Sistema").
  *
+ * Es un objeto del dominio y no guarda la contraseña: las credenciales sólo viajan entre el servicio y el DAO
+ * dentro de un {@code UsuarioDTO}. Es inmutable, porque el nombre de usuario es su identidad.
+ *
+ * Invariante: nombreUsuario != null y no vacío.
  */
 public class Usuario {
-    private String nombreUsuario;
-    private String contrasena;
 
-    
-    public Usuario(String nombreUsuario, String contrasena) {
+    private final String nombreUsuario;
+
+    /**
+     * @pre nombreUsuario != null y no vacío (lo valida el servicio antes de crearlo).
+     */
+    public Usuario(String nombreUsuario) {
         this.nombreUsuario = nombreUsuario;
-        this.contrasena = contrasena;
+        assert invariante() : "Fallo invariante tras crear el usuario.";
     }
 
-    
     public String getNombreUsuario() {
         return nombreUsuario;
     }
 
-    public void setNombreUsuario(String nombreUsuario) {
-        this.nombreUsuario = nombreUsuario;
-    }
-
-    public String getContrasena() {
-        return contrasena;
-    }
-
-    public void setContrasena(String contrasena) {
-        this.contrasena = contrasena;
-    }
-
-    
-    
+    /**
+     * Dos usuarios son iguales si tienen el mismo nombre (apunte "La clase Object": equals compara valores).
+     * Devuelve false ante null o un objeto de otra clase, en lugar de fallar con una conversión inválida.
+     */
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
-        }else{
-            Usuario otro = (Usuario) obj;
-
-            return Objects.equals(this.nombreUsuario,otro.nombreUsuario);
         }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Usuario otro = (Usuario) obj;
+        return nombreUsuario.equals(otro.nombreUsuario);
+    }
+
+    /**
+     * Coherente con {@link #equals(Object)}: usuarios iguales tienen el mismo código hash.
+     */
+    @Override
+    public int hashCode() {
+        return nombreUsuario.hashCode();
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(nombreUsuario);
+    public String toString() {
+        return nombreUsuario;
+    }
+
+    private boolean invariante() {
+        return nombreUsuario != null && !nombreUsuario.isBlank();
     }
 }

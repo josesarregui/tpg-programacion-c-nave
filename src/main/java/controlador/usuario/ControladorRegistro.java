@@ -1,85 +1,60 @@
-
-package controlador;
+package controlador.usuario;
 
 import excepcion.ContrasenaInvalidaException;
+import excepcion.PersistenciaException;
 import excepcion.UsuarioExistenteException;
 import excepcion.UsuarioInvalidoException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import modelo.usuario.ListaDeUsuarios;
+import modelo.usuario.ServicioUsuarios;
 import modelo.usuario.Usuario;
-import vista.IVistaRegistro;
-import vista.VistaLogin;
+import vista.usuario.IVistaRegistro;
+import vista.usuario.VistaLogin;
 
 /**
+ * Controlador de la pantalla de registro (patrón MVC): recibe los comandos de acción de la vista, invoca al
+ * servicio y coordina la respuesta. No contiene reglas de negocio ni SQL.
  *
+ * Selección de vista: después de un registro exitoso, o con "Volver", regresa a la pantalla de login.
  */
 public class ControladorRegistro implements ActionListener {
-    private ListaDeUsuarios modelo;
-    private IVistaRegistro vista;
 
-    
-    
-    public ControladorRegistro(ListaDeUsuarios modelo,IVistaRegistro vista) {
-        this.modelo = modelo;
+    private final IVistaRegistro vista;
+    private final ServicioUsuarios modelo;
+
+    public ControladorRegistro(IVistaRegistro vista, ServicioUsuarios modelo) {
         this.vista = vista;
-        this.vista.setControlador(this);
+        this.modelo = modelo;
     }
 
-    
-    
-    private void registrarUsuario() {
-        String nombre = vista.getNombreUsuario();
-        String contrasena = vista.getContrasena();
-        String repetir = vista.getRepetirContrasena();
-
-        if (nombre == null || nombre.isBlank()) {
-            this.vista.mostrarError("Debe ingresar un nombre de usuario.");
-        }else{
-            if (contrasena == null || contrasena.isBlank()) {
-                this.vista.mostrarError("Debe ingresar una contraseña.");
-            }else{
-                if (repetir == null || repetir.isBlank()) {
-                    this.vista.mostrarError("Debe repetir la contraseña.");
-                }else{
-                    if (!contrasena.equals(repetir)) {
-                        this.vista.mostrarError("Las contraseñas no coinciden.");
-                    }else{
-                        try {
-                            this.modelo.registrarUsuario(nombre, contrasena);
-                            this.vista.mostrarMensaje("Usuario registrado correctamente.");
-                            this.volverLogin();
-
-                        } catch (UsuarioExistenteException | UsuarioInvalidoException | ContrasenaInvalidaException ex) {
-                            this.vista.mostrarError(ex.getMessage());
-                            
-                        }
-                    }
-                }
-            }
+    /**
+     * El comando de acción identifica el botón presionado.
+     */
+    @Override
+    public void actionPerformed(ActionEvent evento) {
+        if (IVistaRegistro.REGISTRAR.equals(evento.getActionCommand())) {
+            registrar();
+        } else if (IVistaRegistro.VOLVER.equals(evento.getActionCommand())) {
+            volverAlLogin();
         }
     }
 
-    
-    
-    private void volverLogin() {
-        VistaLogin vistaLogin = new VistaLogin();
-        ControladorLogin controladorLogin = new ControladorLogin(modelo,vistaLogin);
-
-        this.vista.cerrar();
-        vistaLogin.arrancar();
+    private void registrar() {
+        try {
+            Usuario usuario = modelo.registrar(vista.getNombreUsuario(), vista.getContrasena());
+            vista.mostrarMensaje("Usuario " + usuario.getNombreUsuario() + " registrado correctamente. "
+                    + "Ya puede iniciar sesión.");
+            volverAlLogin();
+        } catch (UsuarioInvalidoException | ContrasenaInvalidaException | UsuarioExistenteException
+                 | PersistenciaException e) {
+            vista.mostrarError(e.getMessage());
+        }
     }
-    
-    
-    
-    
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        if (IVistaRegistro.REGISTRAR.equals(e.getActionCommand())) {
-            this.registrarUsuario();
-        }else 
-            if(IVistaRegistro.VOLVER.equals(e.getActionCommand())) {
-                this.volverLogin();
-            }
+
+    private void volverAlLogin() {
+        VistaLogin vistaLogin = new VistaLogin();
+        vistaLogin.setControlador(new ControladorLogin(vistaLogin, modelo));
+        vista.cerrar();
+        vistaLogin.arrancar();
     }
 }
