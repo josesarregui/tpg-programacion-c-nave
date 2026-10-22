@@ -1,7 +1,7 @@
 
-package vista;
+package vista.usuario;
 
-import controlador.ControladorRegistro;
+import controlador.usuario.ControladorRegistro;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;

@@ -1,12 +1,15 @@
 
-package controlador;
+package controlador.usuario;
 
+import controlador.principal.ControladorPrincipal;
 import excepcion.LoginInvalidoException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import modelo.usuario.ListaDeUsuarios;
-import vista.IVistaLogin;
-import vista.VistaRegistro;
+import modelo.usuario.Usuario;
+import vista.principal.VistaPrincipal;
+import vista.usuario.IVistaLogin;
+import vista.usuario.VistaRegistro;
 
 /**
  *
@@ -32,10 +35,9 @@ public class ControladorLogin implements ActionListener {
             this.vista.mostrarError("Debe completar usuario y contraseña.");
         }else{
             try {
-                this.modelo.validarLogin(nombre, contrasena);
-                this.vista.mostrarMensaje("Inicio de sesión correcto.");
-
-                // abrirVentanaPrincipal();
+                Usuario usuario = this.modelo.validarLogin(nombre, contrasena);
+                // this.vista.mostrarMensaje("Inicio de sesión correcto.");
+                this.abrirVentanaPrincipal(usuario);
 
             } catch (LoginInvalidoException ex) {
                 this.vista.mostrarError(ex.getMessage());
@@ -52,8 +54,12 @@ public class ControladorLogin implements ActionListener {
     }
     
      
-    private void abrirVentanaPrincipal(){
+    private void abrirVentanaPrincipal(Usuario usuario){
+        VistaPrincipal vista = new VistaPrincipal();
+        ControladorPrincipal controlador = new ControladorPrincipal(vista,usuario,this.modelo);
         
+        this.vista.cerrar();
+        vista.arrancar();
     }
      
      

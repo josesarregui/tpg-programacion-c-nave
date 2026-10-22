@@ -1,5 +1,5 @@
 
-package vista;
+package vista.usuario;
 
 
 /**

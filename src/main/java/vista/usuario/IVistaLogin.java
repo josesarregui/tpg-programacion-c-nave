@@ -1,7 +1,8 @@
 
-package vista;
+package vista.usuario;
 
-import controlador.ControladorLogin;
+import controlador.usuario.ControladorLogin;
+
 
 /**
  *

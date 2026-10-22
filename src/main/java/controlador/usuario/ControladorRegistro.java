@@ -1,5 +1,5 @@
 
-package controlador;
+package controlador.usuario;
 
 import excepcion.ContrasenaInvalidaException;
 import excepcion.UsuarioExistenteException;
@@ -8,8 +8,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import modelo.usuario.ListaDeUsuarios;
 import modelo.usuario.Usuario;
-import vista.IVistaRegistro;
-import vista.VistaLogin;
+import vista.usuario.IVistaRegistro;
+import vista.usuario.VistaLogin;
 
 /**
  *

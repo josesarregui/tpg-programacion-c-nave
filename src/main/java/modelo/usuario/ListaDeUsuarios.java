@@ -20,7 +20,7 @@ public class ListaDeUsuarios {
     }
 
     
-    public boolean existeUsuario(String nombreUsuario) {
+    private boolean existeUsuario(String nombreUsuario) {
         for (Usuario usuario : usuarios) {
             if (usuario.getNombreUsuario().equals(nombreUsuario)) {
                 return true;
@@ -38,7 +38,7 @@ public class ListaDeUsuarios {
             throw new ContrasenaInvalidaException("La contraseña no puede estar vacia.");
         }
 
-        if (existeUsuario(nombre)) {
+        if (this.existeUsuario(nombre)) {
             throw new UsuarioExistenteException("El usuario ya existe.");
         }
 
@@ -54,7 +54,7 @@ public class ListaDeUsuarios {
         return null;
     }
 
-    public void validarLogin(String nombre, String contrasena) throws LoginInvalidoException {
+    public Usuario validarLogin(String nombre, String contrasena) throws LoginInvalidoException {
         Usuario usuario = this.buscarUsuario(nombre);
 
         if (usuario == null) {
@@ -63,5 +63,7 @@ public class ListaDeUsuarios {
         if (!usuario.getContrasena().equals(contrasena)) {
             throw new LoginInvalidoException("Usuario o contraseña incorrectos.");
         }
+        
+        return usuario;
     }
 }

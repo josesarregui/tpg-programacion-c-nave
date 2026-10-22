@@ -1,7 +1,8 @@
 
-package vista;
+package vista.usuario;
 
-import controlador.ControladorRegistro;
+import controlador.usuario.ControladorRegistro;
+
 
 /**
  *

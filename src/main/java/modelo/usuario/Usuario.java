@@ -2,6 +2,7 @@
 package modelo.usuario;
 
 import java.util.Objects;
+import modelo.nave.Nave;
 
 /**
  *
@@ -9,6 +10,7 @@ import java.util.Objects;
 public class Usuario {
     private String nombreUsuario;
     private String contrasena;
+    private Nave nave;
 
     
     public Usuario(String nombreUsuario, String contrasena) {
@@ -31,6 +33,14 @@ public class Usuario {
 
     public void setContrasena(String contrasena) {
         this.contrasena = contrasena;
+    }
+
+    public Nave getNave() {
+        return nave;
+    }
+
+    public void setNave(Nave nave) {
+        this.nave = nave;
     }
 
     

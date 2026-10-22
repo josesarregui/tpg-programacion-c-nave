@@ -1,6 +1,6 @@
 package app;
 
-import controlador.ControladorLogin;
+import controlador.usuario.ControladorLogin;
 import excepcion.CantidadInvalidaException;
 import excepcion.CapacidadExcedidaException;
 import excepcion.EstadoMotorInvalidoException;
@@ -40,7 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import modelo.usuario.ListaDeUsuarios;
-import vista.VistaLogin;
+import vista.usuario.VistaLogin;
 
 /**
  * Programa principal que simula al usuario (E1-03; Aclaración, R6): da de alta naves en el centro de control,
