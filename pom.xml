@@ -15,6 +15,13 @@
     </properties>
 
     <dependencies>
+        <!-- Controlador JDBC de H2 (E2, persistencia de usuarios con DAO/DTO; Reglas Operativas, punto 5.10).
+             Sólo aporta el driver y la base embebida: el acceso a datos se programa con JDBC estándar (java.sql). -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.3.232</version>
+        </dependency>
         <!-- JUnit 5 para las pruebas automatizadas exigidas en E1 -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
