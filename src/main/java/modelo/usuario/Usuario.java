@@ -1,16 +1,19 @@
 package modelo.usuario;
 
+import modelo.nave.Nave;
+
 /**
  * Operador identificado en el sistema (Enunciado E2, "Control de Acceso al Sistema").
  *
  * Es un objeto del dominio y no guarda la contraseña: las credenciales sólo viajan entre el servicio y el DAO
- * dentro de un {@code UsuarioDTO}. Es inmutable, porque el nombre de usuario es su identidad.
+ * dentro de un {@code UsuarioDTO}. Es inmutable respecto de su identidad (el nombre de usuario).
  *
  * Invariante: nombreUsuario != null y no vacío.
  */
 public class Usuario {
 
     private final String nombreUsuario;
+    private Nave nave;
 
     /**
      * @pre nombreUsuario != null y no vacío (lo valida el servicio antes de crearlo).
@@ -22,6 +25,14 @@ public class Usuario {
 
     public String getNombreUsuario() {
         return nombreUsuario;
+    }
+
+    public Nave getNave() {
+        return nave;
+    }
+
+    public void setNave(Nave nave) {
+        this.nave = nave;
     }
 
     /**

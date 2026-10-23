@@ -1,11 +1,14 @@
 package controlador.usuario;
 
+import controlador.principal.ControladorPrincipal;
 import excepcion.LoginInvalidoException;
 import excepcion.PersistenciaException;
+import java.awt.GraphicsEnvironment;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import modelo.usuario.ServicioUsuarios;
 import modelo.usuario.Usuario;
+import vista.principal.VistaPrincipal;
 import vista.usuario.IVistaLogin;
 import vista.usuario.VistaRegistro;
 
@@ -13,7 +16,7 @@ import vista.usuario.VistaRegistro;
  * Controlador de la pantalla de login (patrón MVC, como el ControlConversor del apunte): recibe los comandos de
  * acción de la vista, invoca al servicio y coordina la respuesta. No contiene reglas de negocio ni SQL.
  *
- * Selección de vista: desde aquí se abre la pantalla de registro.
+ * Selección de vista: desde aquí se abre la pantalla de registro o la ventana principal tras iniciar sesión.
  */
 public class ControladorLogin implements ActionListener {
 
@@ -41,7 +44,7 @@ public class ControladorLogin implements ActionListener {
         try {
             Usuario usuario = modelo.iniciarSesion(vista.getNombreUsuario(), vista.getContrasena());
             vista.mostrarMensaje("Acceso concedido. Bienvenido/a, " + usuario.getNombreUsuario() + ".");
-            // Una vez validada la identidad, aquí se abrirá el panel central cuando su vista esté integrada.
+            abrirVentanaPrincipal(usuario);
         } catch (LoginInvalidoException e) {
             vista.mostrarError(e.getMessage());
             vista.limpiarContrasena();
@@ -55,5 +58,14 @@ public class ControladorLogin implements ActionListener {
         vistaRegistro.setControlador(new ControladorRegistro(vistaRegistro, modelo));
         vista.cerrar();
         vistaRegistro.arrancar();
+    }
+
+    private void abrirVentanaPrincipal(Usuario usuario) {
+        this.vista.cerrar();
+        if (!GraphicsEnvironment.isHeadless()) {
+            VistaPrincipal vistaPrincipal = new VistaPrincipal();
+            ControladorPrincipal controlador = new ControladorPrincipal(vistaPrincipal, usuario, this.modelo);
+            vistaPrincipal.arrancar();
+        }
     }
 }
