@@ -30,7 +30,6 @@ import javax.swing.JTextField;
  * gráficas", ejemplo de la ventana de login con un KeyAdapter).
  */
 public abstract class VentanaAcceso extends JFrame implements IVistaUsuario {
-
     private static final String RUTA_FONDO = "/imagenes/FondoEspacio.gif";
     private static final String RUTA_TITULO = "/imagenes/Titulo.png";
     private static final int ANCHO_TITULO = 400;

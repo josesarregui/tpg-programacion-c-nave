@@ -1,33 +1,34 @@
-
 package vista.principal;
 
-import controlador.principal.ControladorPrincipal;
-import vista.principal.PanelCrearNave.VistaCrearNave;
-import vista.principal.panelMenu.VistaPanelMenu;
+import java.awt.event.ActionListener;
+import vista.principal.panelnave.IVistaNave;
+import vista.principal.paneltripulacion.IVistaTripulacion;
 
 /**
- *
+ * Interfaz de la ventana principal del sistema.
  */
 public interface IVistaPrincipal {
-    public String PANEL_INICIO = "INICIO";
-    public String PANEL_CREAR_NAVE = "CREAR_NAVE";
-    public String PANEL_TRIPULACION = "TRIPULACION";
-    public String PANEL_TRIPULANTES = "TRIPULANTES";
-    public String PANEL_CONTROL_NAVE = "CONTROL_NAVE";
-    public String PANEL_VISOR = "VISOR";
+    String PANEL_NAVE = "PANEL_NAVE";
+    String PANEL_TRIPULACION = "PANEL_TRIPULACION";
+    String PANEL_CONTROL_NAVE = "PANEL_CONTROL_NAVE";
 
-    
-    public VistaCrearNave getPanelCreacionNave();
-    
-    public VistaPanelMenu getPanelMenu();
-    
-    public void habilitarTripulacion(boolean habilitar);
-    
-    public void setControlador(ControladorPrincipal controlador);
+    IVistaNave getPanelNave();
 
-    public void mostrarPanel(String nombrePanel);
+    IVistaTripulacion getPanelTripulacion();
 
-    public void arrancar();
+    void mostrarOperador(String nombreUsuario);
 
-    public void cerrar();
+    void setControlador(ActionListener controlador);
+
+    void mostrarPanel(String nombrePanel);
+
+    void habilitarTripulacion(boolean habilitar);
+
+    void habilitarControlNave(boolean habilitar);
+
+    void mostrarError(String mensaje);
+
+    void arrancar();
+
+    void cerrar();
 }

@@ -1,30 +1,22 @@
+package vista.principal.panelcrearnave;
 
-package vista.principal.PanelCrearNave;
-
-import controlador.crearNave.ControladorCrearNave;
+import java.awt.event.ActionListener;
 import modelo.nave.TipoNave;
 
 /**
- *
+ * Interfaz de la vista de selección y creación de nave.
  */
 public interface IVistaCrearNave {
-    public String SELECCIONAR_EXPLORADORA = "SELECCIONAR_EXPLORADORA";
-    public String SELECCIONAR_CARGUERA = "SELECCIONAR_CARGUERA";
-    public String SELECCIONAR_COMBATE = "SELECCIONAR_COMBATE";
-    public String ACEPTAR = "ACEPTAR";
+    String SELECCIONAR_EXPLORADORA = "SELECCIONAR_EXPLORADORA";
+    String SELECCIONAR_CARGUERA = "SELECCIONAR_CARGUERA";
+    String SELECCIONAR_COMBATE = "SELECCIONAR_COMBATE";
+    String ACEPTAR = "ACEPTAR";
 
-    
-    
-    
-    public TipoNave getTipoSeleccionado();
+    TipoNave getTipoSeleccionado();
 
-    public void setTipoSeleccionado(TipoNave tipo);
+    void setTipoSeleccionado(TipoNave tipo);
 
-    public void setControlador(ControladorCrearNave controlador);
+    void setControlador(ActionListener controlador);
 
-    public void mostrarError(String mensaje);
-
-    public void mostrarMensaje(String mensaje);
-
-    public void bloquearSeleccion();
+    void mostrarError(String mensaje);
 }

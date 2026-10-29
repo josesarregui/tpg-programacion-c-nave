@@ -1,23 +1,20 @@
+package vista.principal.paneltripulacion;
 
-package vista.principal.PanelTripulacion;
-
-import controlador.tripulacion.ControladorTripulacion;
-
+import vista.principal.panelcreartripulacion.IVistaCrearTripulacion;
+import vista.principal.paneldetallestripulacion.IVistaDetallesTripulacion;
 
 /**
- *
+ * Interfaz contenedora de la sección de Tripulación (creación y detalles).
  */
 public interface IVistaTripulacion {
-    
-    
-    
-    
-    
-    public void setControlador(ControladorTripulacion controlador);
+    String CREAR_TRIPULACION = "CREAR_TRIPULACION";
+    String DETALLES_TRIPULACION = "DETALLES_TRIPULACION";
 
-    public void mostrarError(String mensaje);
+    void mostrarCrearTripulacion();
 
-    public void mostrarMensaje(String mensaje);
+    void mostrarDetalleTripulacion();
 
-    public void bloquearSeleccion();
+    IVistaCrearTripulacion getVistaCrearTripulacion();
+
+    IVistaDetallesTripulacion getVistaDetallesTripulacion();
 }

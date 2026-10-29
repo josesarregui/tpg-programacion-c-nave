@@ -1,30 +1,20 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
- */
-package vista.principal.panelMenu;
+package vista.principal.panelmenu;
 
-import controlador.principal.ControladorPrincipal;
+import java.awt.event.ActionListener;
 
 /**
- *
- * @author Damia
+ * Interfaz del panel de menú lateral de la ventana principal.
  */
 public interface IVistaPanelMenu {
-    public String CREAR_NAVE = "CREAR_NAVE";
-    public String TRIPULACION = "TRIPULACION";
-    public String TRIPULANTES = "TRIPULANTES";
-    public String CONTROL_NAVE = "CONTROL_NAVE";
-    public String VISOR = "VISOR";
-    public String CERRAR_SESION = "CERRAR_SESION";
+    String NAVE = "NAVE";
+    String TRIPULACION = "TRIPULACION";
+    String CONTROL_NAVE = "CONTROL_NAVE";
+    String VISOR = "VISOR";
+    String CERRAR_SESION = "CERRAR_SESION";
 
-    
-    
-    public void setControlador(ControladorPrincipal controlador);
+    void setControlador(ActionListener controlador);
 
-    public void habilitarTripulacion(boolean habilitar);
+    void habilitarTripulacion(boolean habilitar);
 
-    public void habilitarTripulantes(boolean habilitar);
-
-    public void habilitarControlNave(boolean habilitar);
+    void habilitarControlNave(boolean habilitar);
 }

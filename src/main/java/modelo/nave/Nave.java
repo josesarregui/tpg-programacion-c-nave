@@ -6,6 +6,10 @@ import excepcion.RecursoInsuficienteException;
 import modelo.tripulacion.Tripulacion;
 import modelo.warp.MotorWarp;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Abstracción común de las naves (E1-01): reúne identidad, tipo, recursos, tripulación y Motor Warp.
  *
@@ -16,23 +20,27 @@ import modelo.warp.MotorWarp;
  * en {@link Recursos} y las transiciones del motor en {@link MotorWarp} (patrón State).
  * Los recursos no se exponen: sólo pueden consultarse o modificarse a través de la nave.
  *
+ * Implementa {@link ObservableNave} (patrón Observer) para notificar a las vistas y componentes
+ * observadores en tiempo real cuando sus recursos o su estado sufren modificaciones.
+ *
  * Invariante:
  *  - id > 0;
- *  - recursos != null y motor != null.
+ *  - recursos != null y motor != null y observadores != null.
  * La tripulación puede no estar asignada todavía (Escenario A: se asigna después de crear la nave).
  */
-public abstract class Nave {
+public abstract class Nave implements ObservableNave {
 
     private static int ultimoIdAsignado = 0;
 
     private final int id;
     private final Recursos recursos;
     private final MotorWarp motor;
+    private final List<ObservadorNave> observadores;
     private Tripulacion tripulacion;
 
     /**
-     * Crea una nave con su configuración inicial de recursos, el motor en estado Disponible
-     * y sin tripulación asignada.
+     * Crea una nave con su configuración inicial de recursos, el motor en estado Disponible,
+     * sin tripulación asignada y lista de observadores vacía.
      *
      * @pre Los valores iniciales están dentro de los rangos de {@link Recursos}.
      * @post La nave tiene un id único, los recursos indicados, el motor inicializado y no tiene tripulación.
@@ -42,6 +50,7 @@ public abstract class Nave {
         this.id = ultimoIdAsignado;
         this.recursos = new Recursos(combustibleInicial, energiaInicial, desgasteInicial);
         this.motor = new MotorWarp();
+        this.observadores = new ArrayList<>();
         this.tripulacion = null;
         assert invariante() : "Fallo invariante: la nave quedó inconsistente tras su creación.";
     }
@@ -79,6 +88,7 @@ public abstract class Nave {
         this.tripulacion = nuevaTripulacion;
         assert this.tripulacion == nuevaTripulacion : "Fallo postcondición al asignar la tripulación.";
         assert invariante() : "Fallo invariante tras asignar la tripulación.";
+        notificarObservadores();
     }
 
     // --- Recursos (E1-09): consultas ---
@@ -121,6 +131,7 @@ public abstract class Nave {
      */
     public void cargarCombustible(int cantidad) throws CantidadInvalidaException, CapacidadExcedidaException {
         recursos.cargarCombustible(cantidad);
+        notificarObservadores();
     }
 
     /**
@@ -129,6 +140,7 @@ public abstract class Nave {
      */
     public void cargarEnergia(int cantidad) throws CantidadInvalidaException, CapacidadExcedidaException {
         recursos.cargarEnergia(cantidad);
+        notificarObservadores();
     }
 
     /**
@@ -142,6 +154,7 @@ public abstract class Nave {
     public void consumirRecursos(int combustible, int energia, int desgaste)
             throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException {
         recursos.consumir(combustible, energia, desgaste);
+        notificarObservadores();
     }
 
     /**
@@ -149,10 +162,42 @@ public abstract class Nave {
      */
     public void realizarMantenimiento() {
         recursos.realizarMantenimiento();
+        notificarObservadores();
     }
 
+    // --- Patron Observer ---
+
+    @Override
+    public void agregarObservador(ObservadorNave observador) {
+        assert observador != null : "El observador a agregar no puede ser nulo.";
+        if (!observadores.contains(observador)) {
+            observadores.add(observador);
+        }
+    }
+
+    @Override
+    public void eliminarObservador(ObservadorNave observador) {
+        observadores.remove(observador);
+    }
+
+    @Override
+    public void notificarObservadores() {
+        for (ObservadorNave observador : observadores) {
+            observador.notificarCambio(this);
+        }
+    }
+
+    /**
+     * @return lista de sólo lectura con los observadores actualmente registrados.
+     */
+    public List<ObservadorNave> getObservadores() {
+        return Collections.unmodifiableList(observadores);
+    }
+
+    
+    
     private boolean invariante() {
-        return id > 0 && recursos != null && motor != null;
+        return id > 0 && recursos != null && motor != null && observadores != null;
     }
 
     @Override

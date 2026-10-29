@@ -13,6 +13,7 @@ import modelo.nave.TipoNave;
 import modelo.tripulacion.Tripulacion;
 
 import java.util.List;
+import modelo.tripulacion.Tripulante;
 
 /**
  * Asistente de comandos de una nave (E1-03; Aclaración, R2, R4 y R5): define QUÉ debe poder hacer
@@ -29,6 +30,15 @@ import java.util.List;
  * mostrarse por consola o en una pantalla sin cambiar el modelo.
  */
 public interface Asistente {
+    
+    
+    // --- Consultas sobre la Tripulacion ---
+    
+    public List<Tripulante> getTripulantes();
+    
+    public Tripulante getCapitan();
+    
+    public int getCantidadTripulantes();
 
     // --- Consultas sobre la nave que opera ---
 
@@ -178,4 +188,20 @@ public interface Asistente {
      * @throws RecursoInsuficienteException si no alcanzan los recursos que requiere la misión.
      */
     InformeMision ejecutarMision() throws NaveNoDisponibleException, RecursoInsuficienteException;
+
+    // --- Patrón Observer (E2 / E3) ---
+
+    /**
+     * Registra un observador en la nave que opera este asistente.
+     *
+     * @param observador el observador a agregar (no nulo).
+     */
+    void agregarObservador(modelo.nave.ObservadorNave observador);
+
+    /**
+     * Elimina un observador previamente registrado en la nave.
+     *
+     * @param observador el observador a eliminar.
+     */
+    void eliminarObservador(modelo.nave.ObservadorNave observador);
 }

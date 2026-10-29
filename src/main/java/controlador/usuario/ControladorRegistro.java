@@ -6,8 +6,10 @@ import excepcion.UsuarioExistenteException;
 import excepcion.UsuarioInvalidoException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import modelo.universo.CentroDeControl;
 import modelo.usuario.ServicioUsuarios;
 import modelo.usuario.Usuario;
+import vista.usuario.IVistaLogin;
 import vista.usuario.IVistaRegistro;
 import vista.usuario.VistaLogin;
 
@@ -21,10 +23,17 @@ public class ControladorRegistro implements ActionListener {
 
     private final IVistaRegistro vista;
     private final ServicioUsuarios modelo;
+    private final CentroDeControl centroDeControl;
 
     public ControladorRegistro(IVistaRegistro vista, ServicioUsuarios modelo) {
+        this(vista, modelo, new CentroDeControl());
+    }
+
+    public ControladorRegistro(IVistaRegistro vista, ServicioUsuarios modelo, CentroDeControl centroDeControl) {
         this.vista = vista;
         this.modelo = modelo;
+        this.centroDeControl = centroDeControl != null ? centroDeControl : new CentroDeControl();
+        this.vista.setControlador(this);
     }
 
     /**
@@ -52,8 +61,8 @@ public class ControladorRegistro implements ActionListener {
     }
 
     private void volverAlLogin() {
-        VistaLogin vistaLogin = new VistaLogin();
-        vistaLogin.setControlador(new ControladorLogin(vistaLogin, modelo));
+        IVistaLogin vistaLogin = new VistaLogin();
+        new ControladorLogin(vistaLogin, modelo, centroDeControl);
         vista.cerrar();
         vistaLogin.arrancar();
     }

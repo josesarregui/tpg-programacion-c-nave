@@ -12,12 +12,14 @@ import modelo.mision.EtapaMision;
 import modelo.mision.InformeMision;
 import modelo.mision.Mision;
 import modelo.nave.Nave;
+import modelo.nave.ObservadorNave;
 import modelo.nave.TipoNave;
 import modelo.tripulacion.Tripulacion;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import modelo.tripulacion.Tripulante;
 
 /**
  * Asistente de comandos de una nave (E1-03): implementación de {@link Asistente}.
@@ -67,7 +69,26 @@ public class AsistenteComando implements Asistente {
                 + nave.getTipo().getDescripcion() + " #" + nave.getId() + "."));
         assert invariante() : "Fallo invariante tras crear el asistente.";
     }
+    
+    
+    
+    // --- Consultas sobre la Tripulacion ---
+    
+    public List<Tripulante> getTripulantes() {
+        return this.nave.getTripulacion().getTripulantes();
+    }
 
+    public Tripulante getCapitan() {
+        return this.nave.getTripulacion().getCapitan();
+    }
+
+    public int getCantidadTripulantes() {
+        return this.nave.getTripulacion().getCantidad();
+    }
+
+    
+    
+    
     // --- Consultas sobre la nave ---
 
     @Override
@@ -225,6 +246,7 @@ public class AsistenteComando implements Asistente {
             throw e;
         }
         registrarEvento(TipoEvento.MOTOR, "Motor Warp: " + getEstadoMotor() + ".");
+        nave.notificarObservadores();
         assert invariante() : "Fallo invariante tras preparar el salto.";
     }
 
@@ -251,8 +273,22 @@ public class AsistenteComando implements Asistente {
             registrarRechazoDelMotor(e);
             throw e;
         }
+        nave.notificarObservadores();
         assert nave.getMotor().estaDisponible() : "Fallo postcondición: al terminar el salto el motor debe quedar Disponible.";
         assert invariante() : "Fallo invariante tras el salto.";
+    }
+
+    // --- Patrón Observer ---
+
+    @Override
+    public void agregarObservador(ObservadorNave observador) {
+        assert observador != null : "El observador no puede ser nulo.";
+        this.nave.agregarObservador(observador);
+    }
+
+    @Override
+    public void eliminarObservador(ObservadorNave observador) {
+        this.nave.eliminarObservador(observador);
     }
 
     // --- Misiones ---
