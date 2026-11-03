@@ -26,8 +26,10 @@ public class VistaDetallesTripulacionTest {
         assertEquals("Sin Asignar", vista.getLblCapitan().getText());
         assertEquals("0 Tripulantes", vista.getLblCantidad().getText());
         assertEquals("Pendiente de Asignación", vista.getLblEstadoOperativo().getText());
+        assertEquals("0.00 PG", vista.getLblCostoNomina().getText());
         assertEquals(0, vista.getModeloLista().getSize());
         assertEquals("Sin oficiales a bordo", vista.getLblContadorLista().getText());
+        assertNotNull(vista.getBtnVerRecibo());
     }
 
     @Test
@@ -99,5 +101,33 @@ public class VistaDetallesTripulacionTest {
             );
             assertNotNull(c);
         }
+    }
+
+    @Test
+    @DisplayName("mostrarCostoNomina actualiza el indicador de presupuesto")
+    public void testMostrarCostoNomina() {
+        VistaDetallesTripulacion vista = new VistaDetallesTripulacion();
+        vista.mostrarCostoNomina(45600.50);
+        assertEquals("45600.50 PG", vista.getLblCostoNomina().getText());
+    }
+
+    @Test
+    @DisplayName("agregarTripulante con sueldo y recibo registra datos y permite consulta")
+    public void testAgregarTripulanteConSueldoYRecibo() throws Exception {
+        VistaDetallesTripulacion vista = new VistaDetallesTripulacion();
+        modelo.tripulacion.Tripulante t = new modelo.tripulacion.Capitan("Kirk", 5, modelo.tripulacion.Origen.TERRICOLA);
+        modelo.liquidacion.ReciboHaberes recibo = new modelo.liquidacion.LiquidadorHaberes().liquidar(t, java.time.YearMonth.now());
+
+        vista.agregarTripulante(t.getId(), t.getNombre(), t.getCargo().toString(), recibo.getTotal(), recibo);
+
+        assertEquals(1, vista.getModeloLista().getSize());
+        assertTrue(vista.getModeloLista().getElementAt(0).contains("Kirk"));
+        assertTrue(vista.getModeloLista().getElementAt(0).contains("PG"));
+        assertEquals(recibo, vista.getRecibosPorId().get(t.getId()));
+
+        vista.limpiarTripulantes();
+        assertEquals(0, vista.getModeloLista().getSize());
+        assertEquals("0.00 PG", vista.getLblCostoNomina().getText());
+        assertTrue(vista.getRecibosPorId().isEmpty());
     }
 }
