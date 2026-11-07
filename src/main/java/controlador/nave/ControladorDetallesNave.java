@@ -1,7 +1,6 @@
 package controlador.nave;
 
 import modelo.asistente.Asistente;
-import modelo.nave.ObservadorNave;
 import vista.principal.paneldetallesnave.IVistaDetallesNave;
 
 /**
@@ -21,8 +20,8 @@ public class ControladorDetallesNave {
     }
 
     private void suscribirObservador() {
-        if (this.vista instanceof ObservadorNave observador && this.asistente != null) {
-            this.asistente.agregarObservador(observador);
+        if (this.asistente != null) {
+            this.asistente.agregarObservador(this.vista);
         }
     }
 
@@ -30,8 +29,8 @@ public class ControladorDetallesNave {
      * Desuscribe la vista del modelo.
      */
     public void desuscribir() {
-        if (this.vista instanceof ObservadorNave observador && this.asistente != null) {
-            this.asistente.eliminarObservador(observador);
+        if (this.asistente != null) {
+            this.asistente.eliminarObservador(this.vista);
         }
     }
 

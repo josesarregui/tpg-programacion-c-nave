@@ -6,6 +6,8 @@ import java.awt.event.ActionListener;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import vista.concurrencia.IVistaConcurrencia;
+import vista.concurrencia.VistaConcurrencia;
 import vista.principal.panelmenu.IVistaPanelMenu;
 import vista.principal.panelmenu.VistaPanelMenu;
 import vista.principal.panelnave.IVistaNave;
@@ -25,6 +27,7 @@ public class VistaPrincipal extends JFrame implements IVistaPrincipal {
     private final VistaNave panelNave;
     private final VistaTripulacion panelTripulacion;
     private final JPanel panelControlNave;
+    private final VistaConcurrencia panelVisor;
 
     public VistaPrincipal() {
         super("Viaje Interestelar");
@@ -43,14 +46,15 @@ public class VistaPrincipal extends JFrame implements IVistaPrincipal {
         this.cardLayout = new CardLayout();
         this.panelContenido = new JPanel(this.cardLayout);
 
-        // Después se reemplaza panelControlNave por su vista específica.
         this.panelNave = new VistaNave();
         this.panelTripulacion = new VistaTripulacion();
         this.panelControlNave = new JPanel();
+        this.panelVisor = new VistaConcurrencia();
 
         this.panelContenido.add(this.panelNave, IVistaPrincipal.PANEL_NAVE);
         this.panelContenido.add(this.panelTripulacion, IVistaPrincipal.PANEL_TRIPULACION);
         this.panelContenido.add(this.panelControlNave, IVistaPrincipal.PANEL_CONTROL_NAVE);
+        this.panelContenido.add(this.panelVisor, IVistaPrincipal.PANEL_VISOR);
 
         this.add(this.panelContenido, BorderLayout.CENTER);
 
@@ -66,6 +70,11 @@ public class VistaPrincipal extends JFrame implements IVistaPrincipal {
     @Override
     public IVistaTripulacion getPanelTripulacion() {
         return this.panelTripulacion;
+    }
+
+    @Override
+    public IVistaConcurrencia getPanelVisor() {
+        return this.panelVisor;
     }
 
     @Override
@@ -101,8 +110,7 @@ public class VistaPrincipal extends JFrame implements IVistaPrincipal {
                 this,
                 mensaje,
                 "Error",
-                JOptionPane.ERROR_MESSAGE
-        );
+                JOptionPane.ERROR_MESSAGE);
     }
 
     @Override

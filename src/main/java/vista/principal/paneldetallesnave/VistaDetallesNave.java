@@ -30,7 +30,7 @@ import modelo.nave.ObservadorNave;
  * los cambios en los recursos y el estado de la nave operada con un diseño espacial
  * translúcido (glassmorphism) coherente con la sección de Tripulación.
  */
-public class VistaDetallesNave extends JPanel implements IVistaDetallesNave, ObservadorNave {
+public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
 
     private final VitrinaNavePanel panelVitrina;
     private final JLabel nombreNave;

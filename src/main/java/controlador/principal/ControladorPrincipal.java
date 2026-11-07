@@ -1,5 +1,6 @@
 package controlador.principal;
 
+import controlador.concurrencia.ControladorConcurrencia;
 import controlador.nave.ControladorNave;
 import controlador.tripulacion.ControladorTripulacion;
 import controlador.usuario.ControladorLogin;
@@ -10,6 +11,7 @@ import modelo.asistente.Asistente;
 import modelo.universo.CentroDeControl;
 import modelo.usuario.ServicioUsuarios;
 import modelo.usuario.Usuario;
+import vista.concurrencia.IVistaConcurrencia;
 import vista.principal.IVistaPrincipal;
 import vista.principal.panelmenu.IVistaPanelMenu;
 import vista.principal.panelnave.IVistaNave;
@@ -19,7 +21,8 @@ import vista.usuario.VistaLogin;
 
 /**
  * Controlador de la ventana principal. Gestiona la navegación entre las
- * secciones principales, coordina los subcontroladores y administra el cierre de sesión.
+ * secciones principales, coordina los subcontroladores y administra el cierre
+ * de sesión.
  */
 public class ControladorPrincipal implements ActionListener {
 
@@ -29,6 +32,7 @@ public class ControladorPrincipal implements ActionListener {
     private final CentroDeControl centroDeControl;
 
     private final ControladorNave controladorNave;
+    private final ControladorConcurrencia controladorConcurrencia;
     private ControladorTripulacion controladorTripulacion;
     private Asistente asistente;
 
@@ -62,6 +66,19 @@ public class ControladorPrincipal implements ActionListener {
         } else {
             this.controladorNave = null;
         }
+
+        IVistaConcurrencia panelVisor = this.vista.getPanelVisor();
+        if (panelVisor != null) {
+            ControladorConcurrencia ctrlConcurrencia = null;
+            try {
+                ctrlConcurrencia = new ControladorConcurrencia(panelVisor);
+            } catch (Exception e) {
+                this.vista.mostrarError(e.getMessage());
+            }
+            this.controladorConcurrencia = ctrlConcurrencia;
+        } else {
+            this.controladorConcurrencia = null;
+        }
     }
 
     // =========================
@@ -75,8 +92,7 @@ public class ControladorPrincipal implements ActionListener {
             this.controladorTripulacion = new ControladorTripulacion(
                     vistaTripulacion,
                     this.asistente,
-                    this
-            );
+                    this);
         }
 
         this.vista.habilitarTripulacion(true);
@@ -131,7 +147,7 @@ public class ControladorPrincipal implements ActionListener {
     // VISOR
     // =========================
     private void abrirVisor() {
-        // Pendiente de integración con la sección del Visor Recóndito.
+        this.vista.mostrarPanel(IVistaPrincipal.PANEL_VISOR);
     }
 
     // =========================
@@ -140,6 +156,9 @@ public class ControladorPrincipal implements ActionListener {
     private void cerrarSesion() {
         if (this.controladorNave != null) {
             this.controladorNave.desuscribir();
+        }
+        if (this.controladorConcurrencia != null) {
+            this.controladorConcurrencia.detenerTodo();
         }
         if (this.servicioUsuarios != null) {
             this.servicioUsuarios.cerrarSesion();
@@ -152,6 +171,10 @@ public class ControladorPrincipal implements ActionListener {
             new ControladorLogin(vistaLogin, this.servicioUsuarios, this.centroDeControl);
             vistaLogin.arrancar();
         }
+    }
+
+    public ControladorConcurrencia getControladorConcurrencia() {
+        return this.controladorConcurrencia;
     }
 
     // =========================

@@ -166,7 +166,7 @@ public class ControladorPrincipalTest {
         @Override public void mostrarError(String mensaje) { this.ultimoError = mensaje; }
     }
 
-    private static class VistaDetallesNaveMock implements IVistaDetallesNave, ObservadorNave {
+    private static class VistaDetallesNaveMock implements IVistaDetallesNave {
         String tipoMostrado;
         int notificacionesObserver = 0;
 
