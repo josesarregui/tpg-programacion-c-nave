@@ -2,8 +2,8 @@ package controlador.concurrencia;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import modelo.concurrencia.GeneradoraDeEnergia;
 import modelo.concurrencia.NaveConsumidora;
 import modelo.concurrencia.ObservadorConcurrencia;
@@ -11,24 +11,19 @@ import modelo.concurrencia.PlataformaDeCarga;
 import vista.concurrencia.IVistaConcurrencia;
 
 /**
- * Controlador del módulo de Concurrencia (Visor del Universo Paralelo).
- * Sigue el mismo lineamiento que
- * {@link controlador.nave.ControladorDetallesNave}:
+ * Controlador del módulo de Concurrencia (Visor del Universo Paralelo). Sigue
+ * el mismo lineamiento que {@link controlador.nave.ControladorDetallesNave}:
  * trabaja contra la interfaz {@link IVistaConcurrencia} y suscribe la vista
  * como observadora si implementa {@link ObservadorConcurrencia}.
  *
  * Implementa {@link ActionListener} para capturar los eventos del usuario
- * (MVC),
- * instanciar las tareas {@link Runnable} y ejecutarlas en nuevos hilos
- * {@link Thread}.
- * Permite además detener hilos individuales al interactuar con las entidades
- * (mediante doble clic sobre la lista de generadoras o naves).
- * El controlador captura cualquier excepción y delega en la vista la
- * presentación
+ * (MVC), instanciar las tareas {@link Runnable} y ejecutarlas en nuevos hilos
+ * {@link Thread}. Permite además detener hilos individuales al interactuar con
+ * las entidades (mediante doble clic sobre la lista de generadoras o naves). El
+ * controlador captura cualquier excepción y delega en la vista la presentación
  * del mensaje de error (sin propagar excepciones al entorno visual).
  */
 public class ControladorConcurrencia implements ActionListener {
-
     private final IVistaConcurrencia vista;
     private final PlataformaDeCarga plataforma;
 
@@ -52,13 +47,13 @@ public class ControladorConcurrencia implements ActionListener {
         }
         this.vista = vista;
         this.plataforma = plataforma;
-        this.generadoras = new CopyOnWriteArrayList<>();
-        this.naves = new CopyOnWriteArrayList<>();
-        this.hilos = new CopyOnWriteArrayList<>();
+        this.generadoras = new ArrayList<>();
+        this.naves = new ArrayList<>();
+        this.hilos = new ArrayList<>();
         this.contadorGeneradoras = 1;
         this.contadorNaves = 1;
 
-        // Patrón Observer: el Modelo notifica directamente a la Vista
+        // Patron Observer: el Modelo notifica directamente a la Vista
         this.plataforma.agregarObservador(this.vista);
 
         this.vista.setControlador(this);
@@ -69,15 +64,11 @@ public class ControladorConcurrencia implements ActionListener {
         this.vista.actualizarEntidades(0, 0);
     }
 
-    
-    
-    
     public void desuscribir() {
         if (this.plataforma != null) {
-            this.plataforma.removerObservador(this.vista);
+            this.plataforma.eliminarObservador(this.vista);
         }
     }
-
 
     public int getGeneradorasActivas() {
         int activas = 0;
@@ -104,14 +95,14 @@ public class ControladorConcurrencia implements ActionListener {
      */
     public void detenerTodo() {
         try {
-            for (GeneradoraDeEnergia g : this.generadoras) {
-                g.detener();
+            for (GeneradoraDeEnergia generador : this.generadoras) {
+                generador.detener();
             }
-            for (NaveConsumidora n : this.naves) {
-                n.detener();
+            for (NaveConsumidora nave : this.naves) {
+                nave.detener();
             }
-            for (Thread h : this.hilos) {
-                h.interrupt();
+            for (Thread hilo : this.hilos) {
+                hilo.interrupt();
             }
             this.generadoras.clear();
             this.naves.clear();
@@ -140,13 +131,7 @@ public class ControladorConcurrencia implements ActionListener {
     public List<Thread> getHilos() {
         return this.hilos;
     }
-    
-    
-    
-    
-    
-    
-    
+
     public synchronized GeneradoraDeEnergia crearGeneradora() {
         try {
             String id = "G-" + this.contadorGeneradoras++;
@@ -195,12 +180,12 @@ public class ControladorConcurrencia implements ActionListener {
      *
      * @param idGeneradora identificador de la generadora a detener.
      * @return true si la generadora existía y fue detenida, false en caso
-     *         contrario.
+     * contrario.
      */
     public synchronized boolean detenerGeneradora(String idGeneradora) {
         if (idGeneradora == null) {
             return false;
-        }else{
+        } else {
             for (GeneradoraDeEnergia g : this.generadoras) {
                 if (g.getIdGeneradora().equalsIgnoreCase(idGeneradora.trim())) {
                     g.detener();
@@ -233,7 +218,7 @@ public class ControladorConcurrencia implements ActionListener {
     public synchronized boolean detenerNave(String idNave) {
         if (idNave == null) {
             return false;
-        }else{
+        } else {
             for (NaveConsumidora n : this.naves) {
                 if (n.getIdNave().equalsIgnoreCase(idNave.trim())) {
                     n.detener();
@@ -256,17 +241,9 @@ public class ControladorConcurrencia implements ActionListener {
             return false;
         }
     }
-    
-    
-    
-    
-    
-    
+
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (e == null) {
-            return;
-        }
         try {
             String comando = e.getActionCommand();
             if (IVistaConcurrencia.COMANDO_CREAR_GENERADORA.equals(comando)) {

@@ -32,6 +32,9 @@ public class NaveConsumidora implements Runnable {
         this.activo = true;
     }
 
+    
+    
+    
     public void detener() {
         this.activo = false;
     }

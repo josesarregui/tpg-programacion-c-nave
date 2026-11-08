@@ -7,7 +7,7 @@ package modelo.concurrencia;
  * respetando la sincronización y exclusión mutua provistas por el monitor.
  */
 public class GeneradoraDeEnergia implements Runnable {
-    public static final int DELAY_POR_DEFECTO_MS = 1500;
+    public static final int DELAY_POR_DEFECTO_MS = 3500;
 
     private final String idGeneradora;
     private final PlataformaDeCarga plataforma;
@@ -32,6 +32,8 @@ public class GeneradoraDeEnergia implements Runnable {
     }
 
 
+    
+    
     public void detener() {
         this.activo = false;
     }
@@ -50,7 +52,7 @@ public class GeneradoraDeEnergia implements Runnable {
     @Override
     public void run() {
         try {
-            while (this.activo) {
+            while(this.activo) {
                 Thread.sleep(this.delayProduccionMs);
 
                 this.plataforma.depositar(this.idGeneradora);

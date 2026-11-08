@@ -12,7 +12,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Invariante: capacidadMaxima > 0 && 0 <= baterias && baterias <= capacidadMaxima.
  */
 public class PlataformaDeCarga {
-
     public static final int CAPACIDAD_POR_DEFECTO = 5;
 
     private final int capacidadMaxima;
@@ -42,30 +41,30 @@ public class PlataformaDeCarga {
     
     
 
-    public int getCapacidadMaxima() {
-        return this.capacidadMaxima;
-    }
-
     public void agregarObservador(ObservadorConcurrencia observador) {
         if (observador != null && !this.observadores.contains(observador)) {
             this.observadores.add(observador);
         }
     }
 
-    public void removerObservador(ObservadorConcurrencia observador) {
+    public void eliminarObservador(ObservadorConcurrencia observador) {
         if (observador != null) {
             this.observadores.remove(observador);
         }
-    }
-
-    public void eliminarObservador(ObservadorConcurrencia observador) {
-        removerObservador(observador);
     }
 
     private void notificar(String mensaje) {
         for (ObservadorConcurrencia obs : this.observadores) {
             obs.notificarEvento(mensaje, this.baterias);
         }
+    }
+    
+    
+    
+    
+
+    public int getCapacidadMaxima() {
+        return this.capacidadMaxima;
     }
 
     
@@ -104,8 +103,7 @@ public class PlataformaDeCarga {
         }
 
         this.baterias++;
-        notificar("Bateria producida y depositada por [" + idGeneradora + "] (" + this.baterias + "/"
-                + this.capacidadMaxima + ").");
+        notificar("Bateria producida y depositada por [" + idGeneradora + "] (" + this.baterias + "/" + this.capacidadMaxima + ").");
         notifyAll();
 
         assert invariante() : "Fallo invariante tras depositar en la plataforma.";
@@ -127,8 +125,7 @@ public class PlataformaDeCarga {
         }
 
         this.baterias--;
-        notificar("Bateria retirada y utilizada por [" + idNave + "] (" + this.baterias + "/" + this.capacidadMaxima
-                + ").");
+        notificar("Bateria retirada y utilizada por [" + idNave + "] (" + this.baterias + "/" + this.capacidadMaxima + ").");
         notifyAll();
 
         assert invariante() : "Fallo invariante tras retirar de la plataforma.";
