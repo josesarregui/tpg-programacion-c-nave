@@ -134,7 +134,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
         this.lblGeneradoras.setFont(new Font("Segoe UI", Font.BOLD, 12));
         this.lblGeneradoras.setForeground(new Color(251, 191, 36));
 
-        this.btnCrearGeneradora = new BotonEstilizado(
+        this.btnCrearGeneradora = crearBotonEstilizado(
                 "Agregar",
                 new Color(245, 158, 11, 200),
                 new Color(217, 119, 6, 230),
@@ -179,7 +179,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
         this.lblBaterias.setFont(new Font("Segoe UI", Font.BOLD, 12));
         this.lblBaterias.setForeground(new Color(52, 211, 153));
 
-        this.btnLimpiarConsola = new BotonEstilizado(
+        this.btnLimpiarConsola = crearBotonEstilizado(
                 "Limpiar",
                 new Color(71, 85, 105, 190),
                 new Color(100, 116, 139, 230),
@@ -215,7 +215,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
         this.lblNaves.setFont(new Font("Segoe UI", Font.BOLD, 12));
         this.lblNaves.setForeground(new Color(56, 189, 248));
 
-        this.btnCrearNave = new BotonEstilizado(
+        this.btnCrearNave = crearBotonEstilizado(
                 "Agregar",
                 new Color(14, 116, 144, 210),
                 new Color(6, 182, 212, 230),
@@ -316,7 +316,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
         columna.add(header, BorderLayout.NORTH);
 
         // Caja contenedora (rectángulo grande del diagrama)
-        PanelTranslucido cardCaja = new PanelTranslucido(16, new Color(15, 23, 42, 185), colorAcento);
+        JPanel cardCaja = crearPanelTranslucido(16, new Color(15, 23, 42, 185), colorAcento);
         cardCaja.setLayout(new BorderLayout(0, 6));
         cardCaja.setBorder(new EmptyBorder(8, 8, 8, 8));
 
@@ -378,7 +378,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
         columna.add(header, BorderLayout.NORTH);
 
         // Caja contenedora de eventos (rectángulo central del diagrama, amplio)
-        PanelTranslucido cardCaja = new PanelTranslucido(16, new Color(3, 7, 18, 225), colorAcento);
+        JPanel cardCaja = crearPanelTranslucido(16, new Color(3, 7, 18, 225), colorAcento);
         cardCaja.setLayout(new BorderLayout());
         cardCaja.setBorder(new EmptyBorder(6, 6, 6, 6));
 
@@ -641,87 +641,42 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
         scroll.getVerticalScrollBar().setPreferredSize(new Dimension(8, 0));
     }
 
-    private static class PanelTranslucido extends JPanel {
-        private final int radio;
-        private final Color fondo;
-        private final Color borde;
-
-        public PanelTranslucido(int radio, Color fondo, Color borde) {
-            this.radio = radio;
-            this.fondo = fondo;
-            this.borde = borde;
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            g2.setColor(this.fondo);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, this.radio, this.radio);
-
-            g2.setColor(this.borde);
-            g2.setStroke(new BasicStroke(1.2f));
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, this.radio, this.radio);
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
+    private JPanel crearPanelTranslucido(int radio, Color fondo, Color borde) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(true);
+        panel.setBackground(fondo);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borde, 1, true),
+                new EmptyBorder(6, 6, 6, 6)
+        ));
+        return panel;
     }
 
-    private static class BotonEstilizado extends JButton {
-        private final Color colorNormal;
-        private final Color colorHover;
-        private final Color colorBorde;
-        private final int radio;
-        private boolean hover;
+    private JButton crearBotonEstilizado(String texto, Color normal, Color hover, Color borde, int radio) {
+        JButton btn = new JButton(texto);
+        btn.setBackground(normal);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setFocusPainted(false);
+        btn.setOpaque(true);
+        btn.setContentAreaFilled(true);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borde, 1, true),
+                new EmptyBorder(8, 14, 8, 14)
+        ));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btn.setBackground(hover);
+            }
 
-        public BotonEstilizado(String texto, Color normal, Color hover, Color borde, int radio) {
-            super(texto);
-            this.colorNormal = normal;
-            this.colorHover = hover;
-            this.colorBorde = borde;
-            this.radio = radio;
-            this.hover = false;
-
-            setContentAreaFilled(false);
-            setFocusPainted(false);
-            setBorderPainted(false);
-            setForeground(Color.WHITE);
-            setFont(new Font("Segoe UI", Font.BOLD, 13));
-            setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-            addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseEntered(MouseEvent e) {
-                    BotonEstilizado.this.hover = true;
-                    repaint();
-                }
-
-                @Override
-                public void mouseExited(MouseEvent e) {
-                    BotonEstilizado.this.hover = false;
-                    repaint();
-                }
-            });
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            g2.setColor(this.hover ? this.colorHover : this.colorNormal);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, this.radio, this.radio);
-
-            g2.setColor(this.colorBorde);
-            g2.setStroke(new BasicStroke(1.2f));
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, this.radio, this.radio);
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btn.setBackground(normal);
+            }
+        });
+        return btn;
     }
 
     // =========================================================================

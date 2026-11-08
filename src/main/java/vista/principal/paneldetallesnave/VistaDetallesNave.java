@@ -1,23 +1,23 @@
 package vista.principal.paneldetallesnave;
 
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
-import java.awt.RenderingHints;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.net.URL;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
@@ -27,12 +27,14 @@ import modelo.nave.ObservadorNave;
 /**
  * Vista de detalles y telemetría de la nave.
  * Implementa {@link ObservadorNave} (patrón Observer) para reflejar en tiempo real
- * los cambios en los recursos y el estado de la nave operada con un diseño espacial
- * translúcido (glassmorphism) coherente con la sección de Tripulación.
+ * los cambios en los recursos y el estado de la nave operada.
+ * Todo el diseño y las tareas visuales se resuelven en la misma clase sin subclases internas.
  */
 public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
+    private final JPanel panelVitrina;
+    private JLabel lblImagenVitrina;
+    private Color colorAcentoVitrina = new Color(56, 189, 248);
 
-    private final VitrinaNavePanel panelVitrina;
     private final JLabel nombreNave;
 
     private final JLabel txtId;
@@ -45,9 +47,17 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
     private final JLabel txtTripulacion;
     private final JLabel txtEstadoOperativo;
 
-    private final TarjetaRecurso barraCombustible;
-    private final TarjetaRecurso barraEnergia;
-    private final TarjetaRecurso barraDesgaste;
+    private final JPanel tarjetaCombustible;
+    private final JProgressBar barraCombustible;
+    private final JLabel lblBadgeCombustible;
+
+    private final JPanel tarjetaEnergia;
+    private final JProgressBar barraEnergia;
+    private final JLabel lblBadgeEnergia;
+
+    private final JPanel tarjetaDesgaste;
+    private final JProgressBar barraDesgaste;
+    private final JLabel lblBadgeDesgaste;
 
     public VistaDetallesNave() {
         this.setLayout(new BorderLayout(0, 16));
@@ -83,13 +93,11 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
         // ===================================
         // TARJETA IDENTIFICACIÓN (IZQUIERDA)
         // ===================================
-        PanelTranslucido cardIdentidad = new PanelTranslucido(
-                18,
+        JPanel cardIdentidad = crearPanelTranslucido(
                 new Color(15, 23, 42, 175),
                 new Color(56, 189, 248, 120)
         );
         cardIdentidad.setLayout(new BorderLayout(0, 12));
-        cardIdentidad.setBorder(new EmptyBorder(18, 22, 18, 22));
 
         cardIdentidad.add(crearEncabezadoTarjeta(
                 "🚀",
@@ -97,7 +105,7 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
                 "Perfil estructural y disponibilidad general de vuelo"
         ), BorderLayout.NORTH);
 
-        // Vitrina central con badges (ID y Tipo), ilustración escalada y nombre
+        // Vitrina central con badges (ID y Tipo), ilustración y nombre
         this.txtId = new JLabel("ID: -");
         this.txtId.setFont(new Font("Segoe UI", Font.BOLD, 11));
         this.txtId.setForeground(new Color(56, 189, 248));
@@ -110,7 +118,7 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
         this.nombreNave.setForeground(Color.WHITE);
         this.nombreNave.setFont(new Font("Segoe UI", Font.BOLD, 20));
 
-        this.panelVitrina = new VitrinaNavePanel(this.txtId, this.txtTipo, this.nombreNave);
+        this.panelVitrina = crearPanelVitrina(this.txtId, this.txtTipo, this.nombreNave);
         cardIdentidad.add(this.panelVitrina, BorderLayout.CENTER);
 
         // Tiles inferiores de estado operativo y tripulación
@@ -141,13 +149,11 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
         // ===================================
         // TARJETA TELEMETRÍA (DERECHA)
         // ===================================
-        PanelTranslucido cardTelemetria = new PanelTranslucido(
-                18,
+        JPanel cardTelemetria = crearPanelTranslucido(
                 new Color(15, 23, 42, 175),
                 new Color(56, 189, 248, 120)
         );
         cardTelemetria.setLayout(new BorderLayout(0, 12));
-        cardTelemetria.setBorder(new EmptyBorder(18, 22, 18, 22));
 
         cardTelemetria.add(crearEncabezadoTarjeta(
                 "⚡",
@@ -157,33 +163,46 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
 
         // Tres tarjetas de recursos con barras de progreso reactivas
         this.txtCombustible = new JLabel("Combustible: 0");
-        this.txtEnergia = new JLabel("Energía: 0");
-        this.txtDesgaste = new JLabel("Desgaste: 0");
-
-        this.barraCombustible = new TarjetaRecurso(
+        this.barraCombustible = new JProgressBar(0, 100);
+        this.lblBadgeCombustible = new JLabel("0 / 100", SwingConstants.RIGHT);
+        this.tarjetaCombustible = crearTarjetaRecurso(
                 "⛽",
                 "Reserva de Combustible",
                 this.txtCombustible,
-                new Color(56, 189, 248)
+                new Color(56, 189, 248),
+                this.barraCombustible,
+                this.lblBadgeCombustible
         );
-        this.barraEnergia = new TarjetaRecurso(
+
+        this.txtEnergia = new JLabel("Energía: 0");
+        this.barraEnergia = new JProgressBar(0, 100);
+        this.lblBadgeEnergia = new JLabel("0 / 100", SwingConstants.RIGHT);
+        this.tarjetaEnergia = crearTarjetaRecurso(
                 "🔋",
                 "Núcleo de Energía",
                 this.txtEnergia,
-                new Color(52, 211, 153)
+                new Color(52, 211, 153),
+                this.barraEnergia,
+                this.lblBadgeEnergia
         );
-        this.barraDesgaste = new TarjetaRecurso(
+
+        this.txtDesgaste = new JLabel("Desgaste: 0");
+        this.barraDesgaste = new JProgressBar(0, 100);
+        this.lblBadgeDesgaste = new JLabel("0 / 100", SwingConstants.RIGHT);
+        this.tarjetaDesgaste = crearTarjetaRecurso(
                 "🔧",
                 "Desgaste Estructural",
                 this.txtDesgaste,
-                new Color(251, 191, 36)
+                new Color(251, 191, 36),
+                this.barraDesgaste,
+                this.lblBadgeDesgaste
         );
 
         JPanel panelBarrasRecursos = new JPanel(new GridLayout(3, 1, 0, 10));
         panelBarrasRecursos.setOpaque(false);
-        panelBarrasRecursos.add(this.barraCombustible);
-        panelBarrasRecursos.add(this.barraEnergia);
-        panelBarrasRecursos.add(this.barraDesgaste);
+        panelBarrasRecursos.add(this.tarjetaCombustible);
+        panelBarrasRecursos.add(this.tarjetaEnergia);
+        panelBarrasRecursos.add(this.tarjetaDesgaste);
 
         cardTelemetria.add(panelBarrasRecursos, BorderLayout.CENTER);
 
@@ -254,9 +273,6 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
         return header;
     }
 
-    /**
-     * Crea un tile con icono y textos reactivos alineado con la estética de Tripulación.
-     */
     private JPanel crearTarjetaMetrica(
             String icono,
             Color colorAcento,
@@ -264,41 +280,19 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
             JLabel lblValor,
             String subtitulo
     ) {
-        JPanel tarjeta = new JPanel(new BorderLayout(14, 0)) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                g2.setColor(new Color(255, 255, 255, 12));
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
-
-                g2.setColor(new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 70));
-                g2.setStroke(new BasicStroke(1.1f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
-
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        tarjeta.setOpaque(false);
-        tarjeta.setBorder(new EmptyBorder(10, 14, 10, 14));
+        JPanel tarjeta = new JPanel(new BorderLayout(14, 0));
+        tarjeta.setOpaque(true);
+        tarjeta.setBackground(new Color(15, 23, 42, 160));
+        tarjeta.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 70), 1, true),
+                new EmptyBorder(10, 14, 10, 14)
+        ));
         tarjeta.setPreferredSize(new Dimension(0, 72));
 
-        JPanel panelIcono = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 35));
-                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                g2.setColor(new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 120));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        panelIcono.setOpaque(false);
+        JPanel panelIcono = new JPanel(new BorderLayout());
+        panelIcono.setOpaque(true);
+        panelIcono.setBackground(new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 35));
+        panelIcono.setBorder(BorderFactory.createLineBorder(new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 120), 1, true));
         panelIcono.setPreferredSize(new Dimension(42, 42));
 
         JLabel lblIcono = new JLabel(icono, SwingConstants.CENTER);
@@ -380,6 +374,168 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
         );
     }
 
+    // ========================================================
+    // TAREAS DE VITRINA Y RECURSOS INTEGRADAS EN LA MISMA CLASE
+    // ========================================================
+
+    private JPanel crearPanelVitrina(JLabel lblId, JLabel lblTipo, JLabel lblNombre) {
+        JPanel vitrina = new JPanel(new BorderLayout(0, 6));
+        vitrina.setOpaque(true);
+        vitrina.setBackground(new Color(8, 15, 30, 105));
+        vitrina.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(this.colorAcentoVitrina.getRed(), this.colorAcentoVitrina.getGreen(), this.colorAcentoVitrina.getBlue(), 85), 1, true),
+                new EmptyBorder(12, 14, 12, 14)
+        ));
+
+        JPanel barraSuperior = new JPanel(new BorderLayout());
+        barraSuperior.setOpaque(false);
+        barraSuperior.add(crearPillComponente(lblId, new Color(56, 189, 248)), BorderLayout.WEST);
+        barraSuperior.add(crearPillComponente(lblTipo, new Color(148, 163, 184)), BorderLayout.EAST);
+
+        this.lblImagenVitrina = new JLabel();
+        this.lblImagenVitrina.setHorizontalAlignment(SwingConstants.CENTER);
+        this.lblImagenVitrina.setVerticalAlignment(SwingConstants.CENTER);
+        this.lblImagenVitrina.setOpaque(false);
+
+        vitrina.add(barraSuperior, BorderLayout.NORTH);
+        vitrina.add(this.lblImagenVitrina, BorderLayout.CENTER);
+        vitrina.add(lblNombre, BorderLayout.SOUTH);
+
+        return vitrina;
+    }
+
+    private void actualizarDatosVisualesVitrina(BufferedImage imagen, Color acento) {
+        this.colorAcentoVitrina = acento;
+        if (this.panelVitrina != null) {
+            this.panelVitrina.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 85), 1, true),
+                    new EmptyBorder(12, 14, 12, 14)
+            ));
+            this.panelVitrina.repaint();
+        }
+        if (imagen != null && this.lblImagenVitrina != null) {
+            int maxW = 300;
+            int maxH = 170;
+            double escala = Math.min((double) maxW / imagen.getWidth(), (double) maxH / imagen.getHeight());
+            int drawW = Math.max(1, (int) Math.round(imagen.getWidth() * escala));
+            int drawH = Math.max(1, (int) Math.round(imagen.getHeight() * escala));
+            Image escalada = imagen.getScaledInstance(drawW, drawH, Image.SCALE_SMOOTH);
+            this.lblImagenVitrina.setIcon(new ImageIcon(escalada));
+        }
+    }
+
+    private JPanel crearPillComponente(JLabel contenido, Color colorBorde) {
+        JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 3));
+        pill.setOpaque(true);
+        pill.setBackground(new Color(15, 23, 42, 190));
+        pill.setBorder(BorderFactory.createLineBorder(new Color(colorBorde.getRed(), colorBorde.getGreen(), colorBorde.getBlue(), 120), 1, true));
+        pill.add(contenido);
+        return pill;
+    }
+
+    private JPanel crearTarjetaRecurso(
+            String icono,
+            String subtituloCategoria,
+            JLabel lblPrincipal,
+            Color colorInicial,
+            JProgressBar barraProgreso,
+            JLabel lblBadge
+    ) {
+        JPanel tarjeta = new JPanel(new BorderLayout(14, 0));
+        tarjeta.setOpaque(true);
+        tarjeta.setBackground(new Color(15, 23, 42, 175));
+        tarjeta.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(colorInicial.getRed(), colorInicial.getGreen(), colorInicial.getBlue(), 75), 1, true),
+                new EmptyBorder(10, 14, 10, 14)
+        ));
+
+        JPanel panelIcono = new JPanel(new BorderLayout());
+        panelIcono.setOpaque(true);
+        panelIcono.setBackground(new Color(colorInicial.getRed(), colorInicial.getGreen(), colorInicial.getBlue(), 35));
+        panelIcono.setBorder(BorderFactory.createLineBorder(new Color(colorInicial.getRed(), colorInicial.getGreen(), colorInicial.getBlue(), 120), 1, true));
+        panelIcono.setPreferredSize(new Dimension(42, 42));
+
+        JLabel lblIcono = new JLabel(icono, SwingConstants.CENTER);
+        lblIcono.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+        panelIcono.add(lblIcono, BorderLayout.CENTER);
+
+        JPanel panelDerecho = new JPanel(new BorderLayout(0, 6));
+        panelDerecho.setOpaque(false);
+
+        JPanel filaTextos = new JPanel(new BorderLayout(8, 0));
+        filaTextos.setOpaque(false);
+
+        JPanel bloqueTitulos = new JPanel(new GridLayout(2, 1, 0, 1));
+        bloqueTitulos.setOpaque(false);
+
+        JLabel lblCategoria = new JLabel(subtituloCategoria.toUpperCase());
+        lblCategoria.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblCategoria.setForeground(new Color(148, 163, 184));
+
+        lblPrincipal.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lblPrincipal.setForeground(Color.WHITE);
+
+        bloqueTitulos.add(lblCategoria);
+        bloqueTitulos.add(lblPrincipal);
+
+        lblBadge.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblBadge.setForeground(colorInicial);
+
+        filaTextos.add(bloqueTitulos, BorderLayout.CENTER);
+        filaTextos.add(lblBadge, BorderLayout.EAST);
+
+        barraProgreso.setPreferredSize(new Dimension(0, 8));
+        barraProgreso.setStringPainted(false);
+        barraProgreso.setForeground(colorInicial);
+        barraProgreso.setBackground(new Color(255, 255, 255, 24));
+        barraProgreso.setBorder(BorderFactory.createEmptyBorder());
+
+        panelDerecho.add(filaTextos, BorderLayout.CENTER);
+        panelDerecho.add(barraProgreso, BorderLayout.SOUTH);
+
+        tarjeta.add(panelIcono, BorderLayout.WEST);
+        tarjeta.add(panelDerecho, BorderLayout.CENTER);
+
+        return tarjeta;
+    }
+
+    private void actualizarTarjetaRecurso(
+            JPanel tarjeta,
+            JProgressBar barra,
+            JLabel badge,
+            int valor,
+            String textoBadge,
+            Color nuevoColor
+    ) {
+        int valorAjustado = Math.max(0, Math.min(100, valor));
+        barra.setValue(valorAjustado);
+        barra.setForeground(nuevoColor);
+        badge.setText(textoBadge);
+        badge.setForeground(nuevoColor);
+        if (tarjeta != null) {
+            tarjeta.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(nuevoColor.getRed(), nuevoColor.getGreen(), nuevoColor.getBlue(), 75), 1, true),
+                    new EmptyBorder(10, 14, 10, 14)
+            ));
+            tarjeta.repaint();
+        }
+    }
+
+    private JPanel crearPanelTranslucido(Color colorFondo, Color colorBorde) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(true);
+        panel.setBackground(colorFondo);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(colorBorde, 1, true),
+                new EmptyBorder(18, 22, 18, 22)
+        ));
+        return panel;
+    }
+
+    // ========================================================
+    // MÉTODOS DE LA INTERFAZ IVISTADETALLESNAVE
+    // ========================================================
+
     @Override
     public void mostrarId(int id) {
         this.txtId.setText("ID: " + id);
@@ -391,17 +547,17 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
         this.nombreNave.setText("NAVE " + tipo.toUpperCase());
 
         if (tipo.equalsIgnoreCase("Exploradora")) {
-            this.panelVitrina.setDatosVisuales(
+            actualizarDatosVisualesVitrina(
                     cargarImagenRecortada("/imagenes/naves/exploradora.png"),
                     new Color(56, 189, 248)
             );
         } else if (tipo.equalsIgnoreCase("Carguero") || tipo.equalsIgnoreCase("Carguera")) {
-            this.panelVitrina.setDatosVisuales(
+            actualizarDatosVisualesVitrina(
                     cargarImagenRecortada("/imagenes/naves/carguera.png"),
                     new Color(251, 191, 36)
             );
         } else if (tipo.equalsIgnoreCase("Combate")) {
-            this.panelVitrina.setDatosVisuales(
+            actualizarDatosVisualesVitrina(
                     cargarImagenRecortada("/imagenes/naves/combate.png"),
                     new Color(192, 132, 252)
             );
@@ -414,7 +570,7 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
         Color color = combustible < 15
                 ? new Color(248, 113, 113)
                 : (combustible < 30 ? new Color(251, 191, 36) : new Color(56, 189, 248));
-        this.barraCombustible.actualizarValor(combustible, combustible + " / 100", color);
+        actualizarTarjetaRecurso(this.tarjetaCombustible, this.barraCombustible, this.lblBadgeCombustible, combustible, combustible + " / 100", color);
     }
 
     @Override
@@ -423,7 +579,7 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
         Color color = energia < 15
                 ? new Color(248, 113, 113)
                 : (energia < 30 ? new Color(251, 191, 36) : new Color(52, 211, 153));
-        this.barraEnergia.actualizarValor(energia, energia + " / 100", color);
+        actualizarTarjetaRecurso(this.tarjetaEnergia, this.barraEnergia, this.lblBadgeEnergia, energia, energia + " / 100", color);
     }
 
     @Override
@@ -432,7 +588,7 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
         Color color = desgaste >= 80
                 ? new Color(248, 113, 113)
                 : (desgaste >= 50 ? new Color(251, 191, 36) : new Color(74, 222, 128));
-        this.barraDesgaste.actualizarValor(desgaste, desgaste + " / 100", color);
+        actualizarTarjetaRecurso(this.tarjetaDesgaste, this.barraDesgaste, this.lblBadgeDesgaste, desgaste, desgaste + " / 100", color);
     }
 
     @Override
@@ -489,8 +645,6 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
     @Override
     public void notificarCambio(Nave nave) {
         if (nave != null) {
-            // Se captura una instantánea inmutable en el hilo invocante antes de despachar al EDT
-            // para evitar condiciones de carrera cuando la misión modifique la nave en otro hilo.
             final int combustible = nave.getCombustible();
             final int energia = nave.getEnergia();
             final int desgaste = nave.getDesgaste();
@@ -565,254 +719,5 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
 
     String getTextoEstadoOperativo() {
         return this.txtEstadoOperativo.getText();
-    }
-
-    // =========================================================================
-    // COMPONENTES PERSONALIZADOS CON TRANSLUCIDEZ (GLASSMORPHISM)
-    // =========================================================================
-
-    /**
-     * Vitrina central para la unidad activa: muestra las insignias de ID y Tipo,
-     * dibuja la ilustración de la nave centrada y escalada proporcionalmente, y el título inferior.
-     */
-    private static class VitrinaNavePanel extends JPanel {
-        private BufferedImage imagen;
-        private Color acento = new Color(56, 189, 248);
-
-        VitrinaNavePanel(JLabel lblId, JLabel lblTipo, JLabel lblNombre) {
-            super(new BorderLayout(0, 6));
-            setOpaque(false);
-            setBorder(new EmptyBorder(12, 14, 12, 14));
-
-            JPanel barraSuperior = new JPanel(new BorderLayout());
-            barraSuperior.setOpaque(false);
-            barraSuperior.add(crearPillComponente(lblId, new Color(56, 189, 248)), BorderLayout.WEST);
-            barraSuperior.add(crearPillComponente(lblTipo, new Color(148, 163, 184)), BorderLayout.EAST);
-
-            JPanel lienzoImagen = new JPanel() {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    super.paintComponent(g);
-                    if (imagen == null) {
-                        return;
-                    }
-                    int w = getWidth();
-                    int h = getHeight();
-                    if (w <= 20 || h <= 20) {
-                        return;
-                    }
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-
-                    double escala = Math.min((double) (w - 24) / imagen.getWidth(), (double) (h - 12) / imagen.getHeight());
-                    int drawW = Math.max(1, (int) Math.round(imagen.getWidth() * escala));
-                    int drawH = Math.max(1, (int) Math.round(imagen.getHeight() * escala));
-                    int drawX = (w - drawW) / 2;
-                    int drawY = (h - drawH) / 2;
-
-                    g2.drawImage(imagen, drawX, drawY, drawW, drawH, null);
-                    g2.dispose();
-                }
-            };
-            lienzoImagen.setOpaque(false);
-
-            add(barraSuperior, BorderLayout.NORTH);
-            add(lienzoImagen, BorderLayout.CENTER);
-            add(lblNombre, BorderLayout.SOUTH);
-        }
-
-        void setDatosVisuales(BufferedImage imagen, Color acento) {
-            this.imagen = imagen;
-            this.acento = acento;
-            repaint();
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            g2.setColor(new Color(8, 15, 30, 105));
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
-
-            g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 85));
-            g2.setStroke(new BasicStroke(1.1f));
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
-
-        private static JPanel crearPillComponente(JLabel contenido, Color colorBorde) {
-            JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 3)) {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(new Color(15, 23, 42, 190));
-                    g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
-                    g2.setColor(new Color(colorBorde.getRed(), colorBorde.getGreen(), colorBorde.getBlue(), 120));
-                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            pill.setOpaque(false);
-            pill.add(contenido);
-            return pill;
-        }
-    }
-
-    /**
-     * Tarjeta reactiva para un recurso (Combustible, Energía o Desgaste) con barra de progreso.
-     */
-    private static class TarjetaRecurso extends JPanel {
-        private final JLabel lblBadge;
-        private int valor = 0;
-        private Color colorAcento;
-
-        TarjetaRecurso(String icono, String subtituloCategoria, JLabel lblPrincipal, Color colorInicial) {
-            super(new BorderLayout(14, 0));
-            this.colorAcento = colorInicial;
-            setOpaque(false);
-            setBorder(new EmptyBorder(10, 14, 10, 14));
-
-            JPanel panelIcono = new JPanel(new BorderLayout()) {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 35));
-                    g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                    g2.setColor(new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 120));
-                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            panelIcono.setOpaque(false);
-            panelIcono.setPreferredSize(new Dimension(42, 42));
-
-            JLabel lblIcono = new JLabel(icono, SwingConstants.CENTER);
-            lblIcono.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
-            panelIcono.add(lblIcono, BorderLayout.CENTER);
-
-            JPanel panelDerecho = new JPanel(new BorderLayout(0, 6));
-            panelDerecho.setOpaque(false);
-
-            JPanel filaTextos = new JPanel(new BorderLayout(8, 0));
-            filaTextos.setOpaque(false);
-
-            JPanel bloqueTitulos = new JPanel(new GridLayout(2, 1, 0, 1));
-            bloqueTitulos.setOpaque(false);
-
-            JLabel lblCategoria = new JLabel(subtituloCategoria.toUpperCase());
-            lblCategoria.setFont(new Font("Segoe UI", Font.BOLD, 10));
-            lblCategoria.setForeground(new Color(148, 163, 184));
-
-            lblPrincipal.setFont(new Font("Segoe UI", Font.BOLD, 15));
-            lblPrincipal.setForeground(Color.WHITE);
-
-            bloqueTitulos.add(lblCategoria);
-            bloqueTitulos.add(lblPrincipal);
-
-            this.lblBadge = new JLabel("0 / 100", SwingConstants.RIGHT);
-            this.lblBadge.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            this.lblBadge.setForeground(colorInicial);
-
-            filaTextos.add(bloqueTitulos, BorderLayout.CENTER);
-            filaTextos.add(this.lblBadge, BorderLayout.EAST);
-
-            JPanel lienzoBarra = new JPanel() {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    super.paintComponent(g);
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                    int w = getWidth();
-                    int h = 8;
-                    int y = (getHeight() - h) / 2;
-
-                    g2.setColor(new Color(255, 255, 255, 24));
-                    g2.fillRoundRect(0, y, w, h, 8, 8);
-
-                    int fillW = Math.max(0, Math.min(w, (int) Math.round((valor / 100.0) * w)));
-                    if (fillW > 0) {
-                        g2.setColor(colorAcento);
-                        g2.fillRoundRect(0, y, fillW, h, 8, 8);
-                    }
-
-                    g2.dispose();
-                }
-            };
-            lienzoBarra.setOpaque(false);
-            lienzoBarra.setPreferredSize(new Dimension(0, 12));
-
-            panelDerecho.add(filaTextos, BorderLayout.CENTER);
-            panelDerecho.add(lienzoBarra, BorderLayout.SOUTH);
-
-            add(panelIcono, BorderLayout.WEST);
-            add(panelDerecho, BorderLayout.CENTER);
-        }
-
-        void actualizarValor(int nuevoValor, String textoBadge, Color nuevoColor) {
-            this.valor = Math.max(0, Math.min(100, nuevoValor));
-            this.colorAcento = nuevoColor;
-            this.lblBadge.setText(textoBadge);
-            this.lblBadge.setForeground(nuevoColor);
-            repaint();
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            g2.setColor(new Color(255, 255, 255, 12));
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
-
-            g2.setColor(new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 75));
-            g2.setStroke(new BasicStroke(1.1f));
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
-    }
-
-    /**
-     * Panel contenedor translúcido con bordes redondeados (glassmorphism).
-     */
-    private static class PanelTranslucido extends JPanel {
-        private final int radio;
-        private final Color colorFondo;
-        private final Color colorBorde;
-
-        PanelTranslucido(int radio, Color colorFondo, Color colorBorde) {
-            this.radio = radio;
-            this.colorFondo = colorFondo;
-            this.colorBorde = colorBorde;
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            g2.setColor(colorFondo);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-
-            if (colorBorde != null) {
-                g2.setColor(colorBorde);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-            }
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
     }
 }

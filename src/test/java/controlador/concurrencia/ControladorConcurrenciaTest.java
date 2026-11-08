@@ -67,37 +67,30 @@ public class ControladorConcurrenciaTest {
 
         @Override
         public void agregarGeneradora(String idGeneradora) {
-            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
         }
 
         @Override
         public void agregarNaveConsumidora(String idNave) {
-            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
         }
 
         @Override
         public void removerGeneradora(String idGeneradora) {
-            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
         }
 
         @Override
         public void removerNaveConsumidora(String idNave) {
-            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
         }
 
         @Override
         public void limpiarEntidades() {
-            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
         }
 
         @Override
         public void setOyenteDetenerGeneradora(Consumer<String> oyente) {
-            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
         }
 
         @Override
         public void setOyenteDetenerNave(Consumer<String> oyente) {
-            throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
         }
     }
 
@@ -168,10 +161,12 @@ public class ControladorConcurrenciaTest {
 
         // Al ejecutar la acción, no debe lanzarse excepción hacia afuera
         assertDoesNotThrow(() -> {
-            ctrl.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaConcurrencia.COMANDO_CREAR_GENERADORA));
+            ctrl.actionPerformed(
+                    new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaConcurrencia.COMANDO_CREAR_GENERADORA));
         });
 
-        // La excepción fue capturada por el controlador y enviada a la vista como mensaje
+        // La excepción fue capturada por el controlador y enviada a la vista como
+        // mensaje
         assertNotNull(vistaMock.ultimoError);
         assertEquals("Simulación de fallo en plataforma", vistaMock.ultimoError);
 
