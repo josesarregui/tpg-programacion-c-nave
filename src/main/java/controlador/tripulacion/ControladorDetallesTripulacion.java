@@ -5,7 +5,7 @@ import modelo.asistente.Asistente;
 import modelo.liquidacion.LiquidadorHaberes;
 import modelo.liquidacion.ReciboHaberes;
 import modelo.tripulacion.Tripulante;
-import vista.principal.paneldetallestripulacion.IVistaDetallesTripulacion;
+import vista.principal.paneltripulacion.paneldetallestripulacion.IVistaDetallesTripulacion;
 
 import java.time.YearMonth;
 

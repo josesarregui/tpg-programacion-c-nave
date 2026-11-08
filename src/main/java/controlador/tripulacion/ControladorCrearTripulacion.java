@@ -1,9 +1,11 @@
 package controlador.tripulacion;
 
+import excepcion.LiquidacionInvalidaException;
 import excepcion.TripulacionInvalidaException;
 import excepcion.TripulanteInvalidoException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import modelo.asistente.Asistente;
@@ -15,7 +17,7 @@ import modelo.tripulacion.Origen;
 import modelo.tripulacion.Teniente;
 import modelo.tripulacion.Tripulacion;
 import modelo.tripulacion.Tripulante;
-import vista.principal.panelcreartripulacion.IVistaCrearTripulacion;
+import vista.principal.paneltripulacion.panelcreartripulacion.IVistaCrearTripulacion;
 
 /**
  * Controlador para la creación y configuración de la tripulación.
@@ -47,14 +49,20 @@ public class ControladorCrearTripulacion implements ActionListener {
 
             this.tripulantesTemporales.add(tripulante);
 
-            this.vistaCrearTripulacion.agregarTripulanteLista(
-                    tripulante.getNombre()
+            String descripcion = tripulante.getNombre()
                     + " — "
                     + tripulante.getCargo()
                     + " (" + tripulante.getOrigen() + ", "
-                    + tripulante.getAntiguedad() + (tripulante.getAntiguedad() == 1 ? " año)" : " años)")
-            );
+                    + tripulante.getAntiguedad() + (tripulante.getAntiguedad() == 1 ? " año" : " años");
 
+            if (tripulante instanceof Consejero consejero) {
+                int consejos = consejero.getCantidadConsejos(YearMonth.now());
+                descripcion += ", " + consejos + (consejos == 1 ? " consejo)" : " consejos)");
+            } else {
+                descripcion += ")";
+            }
+
+            this.vistaCrearTripulacion.agregarTripulanteLista(descripcion);
             this.vistaCrearTripulacion.limpiarCampos();
 
         } catch (NumberFormatException e) {
@@ -96,7 +104,36 @@ public class ControladorCrearTripulacion implements ActionListener {
         // Las validaciones de nombre vacío, antigüedad negativa y origen nulo las realiza Tripulante en el modelo.
         return switch (cargo) {
             case CAPITAN -> new Capitan(nombre, antiguedad, origen);
-            case CONSEJERO -> new Consejero(nombre, antiguedad, origen);
+            case CONSEJERO -> {
+                Consejero consejero = new Consejero(nombre, antiguedad, origen);
+                String textoConsejos = this.vistaCrearTripulacion.getTextoConsejos();
+                if (textoConsejos != null && !textoConsejos.isBlank()) {
+                    int cantidadConsejos;
+                    try {
+                        cantidadConsejos = Integer.parseInt(textoConsejos.trim());
+                    } catch (NumberFormatException e) {
+                        throw new TripulanteInvalidoException(
+                                "La cantidad de consejos iniciales debe ser un número entero mayor o igual a 0.",
+                                nombre, antiguedad, origen
+                        );
+                    }
+                    if (cantidadConsejos < 0) {
+                        throw new TripulanteInvalidoException(
+                                "La cantidad de consejos iniciales no puede ser negativa.",
+                                nombre, antiguedad, origen
+                        );
+                    }
+                    YearMonth ahora = YearMonth.now();
+                    for (int i = 0; i < cantidadConsejos; i++) {
+                        try {
+                            consejero.registrarConsejo(ahora);
+                        } catch (LiquidacionInvalidaException e) {
+                            throw new TripulanteInvalidoException(e.getMessage(), nombre, antiguedad, origen);
+                        }
+                    }
+                }
+                yield consejero;
+            }
             case TENIENTE -> new Teniente(nombre, antiguedad, origen);
             case ALFEREZ -> new Alferez(nombre, antiguedad, origen);
         };

@@ -7,8 +7,8 @@ import java.awt.Image;
 import java.net.URL;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
-import vista.principal.panelselectmision.IVistaSelectMision;
-import vista.principal.panelselectmision.VistaSelectMision;
+import vista.principal.panelcontrol.panelselectmision.IVistaSelectMision;
+import vista.principal.panelcontrol.panelselectmision.VistaSelectMision;
 
 /**
  * Panel contenedor principal para la seccion Control de Nave y Ejecucion de Misiones.

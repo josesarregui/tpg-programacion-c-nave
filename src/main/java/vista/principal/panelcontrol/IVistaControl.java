@@ -1,6 +1,6 @@
 package vista.principal.panelcontrol;
 
-import vista.principal.panelselectmision.IVistaSelectMision;
+import vista.principal.panelcontrol.panelselectmision.IVistaSelectMision;
 
 /**
  * Interfaz contenedora de la seccion Control de Nave y Ejecucion de Misiones.

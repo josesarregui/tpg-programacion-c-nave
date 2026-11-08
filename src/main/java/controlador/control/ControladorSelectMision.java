@@ -8,7 +8,7 @@ import modelo.mision.Mision;
 import modelo.mision.MisionIntercepcion;
 import modelo.mision.MisionRecoleccion;
 import modelo.mision.MisionRetorno;
-import vista.principal.panelselectmision.IVistaSelectMision;
+import vista.principal.panelcontrol.panelselectmision.IVistaSelectMision;
 
 /**
  * Controlador para la pantalla de seleccion de mision y bitacora

@@ -4,7 +4,7 @@ import controlador.principal.ControladorPrincipal;
 import modelo.asistente.Asistente;
 import modelo.mision.Mision;
 import vista.principal.panelcontrol.IVistaControl;
-import vista.principal.panelselectmision.IVistaSelectMision;
+import vista.principal.panelcontrol.panelselectmision.IVistaSelectMision;
 
 /**
  * Controlador coordinador del panel de Control de Nave y ciclo de Misiones.

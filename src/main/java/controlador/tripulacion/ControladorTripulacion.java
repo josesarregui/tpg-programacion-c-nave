@@ -2,8 +2,8 @@ package controlador.tripulacion;
 
 import controlador.principal.ControladorPrincipal;
 import modelo.asistente.Asistente;
-import vista.principal.panelcreartripulacion.IVistaCrearTripulacion;
-import vista.principal.paneldetallestripulacion.IVistaDetallesTripulacion;
+import vista.principal.paneltripulacion.panelcreartripulacion.IVistaCrearTripulacion;
+import vista.principal.paneltripulacion.paneldetallestripulacion.IVistaDetallesTripulacion;
 import vista.principal.paneltripulacion.IVistaTripulacion;
 
 /**

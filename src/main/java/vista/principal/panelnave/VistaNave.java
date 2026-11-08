@@ -7,10 +7,10 @@ import java.awt.Image;
 import java.net.URL;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
-import vista.principal.panelcrearnave.IVistaCrearNave;
-import vista.principal.panelcrearnave.VistaCrearNave;
-import vista.principal.paneldetallesnave.IVistaDetallesNave;
-import vista.principal.paneldetallesnave.VistaDetallesNave;
+import vista.principal.panelnave.panelcrearnave.IVistaCrearNave;
+import vista.principal.panelnave.panelcrearnave.VistaCrearNave;
+import vista.principal.panelnave.paneldetallesnave.IVistaDetallesNave;
+import vista.principal.panelnave.paneldetallesnave.VistaDetallesNave;
 
 /**
  * Panel contenedor de la sección Nave: alterna entre la creación y los detalles de la nave

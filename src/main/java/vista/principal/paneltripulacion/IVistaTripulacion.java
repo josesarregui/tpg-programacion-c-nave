@@ -1,7 +1,7 @@
 package vista.principal.paneltripulacion;
 
-import vista.principal.panelcreartripulacion.IVistaCrearTripulacion;
-import vista.principal.paneldetallestripulacion.IVistaDetallesTripulacion;
+import vista.principal.paneltripulacion.panelcreartripulacion.IVistaCrearTripulacion;
+import vista.principal.paneltripulacion.paneldetallestripulacion.IVistaDetallesTripulacion;
 
 /**
  * Interfaz contenedora de la sección de Tripulación (creación y detalles).

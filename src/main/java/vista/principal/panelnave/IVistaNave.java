@@ -1,7 +1,7 @@
 package vista.principal.panelnave;
 
-import vista.principal.panelcrearnave.IVistaCrearNave;
-import vista.principal.paneldetallesnave.IVistaDetallesNave;
+import vista.principal.panelnave.panelcrearnave.IVistaCrearNave;
+import vista.principal.panelnave.paneldetallesnave.IVistaDetallesNave;
 
 /**
  * Interfaz contenedora de la sección de Nave (creación y detalles).

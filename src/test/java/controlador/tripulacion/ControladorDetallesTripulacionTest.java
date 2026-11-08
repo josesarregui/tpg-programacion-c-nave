@@ -13,7 +13,7 @@ import modelo.tripulacion.Tripulacion;
 import modelo.tripulacion.Tripulante;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import vista.principal.paneldetallestripulacion.IVistaDetallesTripulacion;
+import vista.principal.paneltripulacion.paneldetallestripulacion.IVistaDetallesTripulacion;
 import modelo.liquidacion.ReciboHaberes;
 
 import java.util.ArrayList;

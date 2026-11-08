@@ -25,7 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import vista.principal.panelcontrol.IVistaControl;
-import vista.principal.panelselectmision.IVistaSelectMision;
+import vista.principal.panelcontrol.panelselectmision.IVistaSelectMision;
 
 import static org.junit.jupiter.api.Assertions.*;
 

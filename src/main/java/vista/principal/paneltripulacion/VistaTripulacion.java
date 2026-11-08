@@ -6,10 +6,10 @@ import java.awt.Image;
 import java.net.URL;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
-import vista.principal.panelcreartripulacion.IVistaCrearTripulacion;
-import vista.principal.panelcreartripulacion.VistaCrearTripulacion;
-import vista.principal.paneldetallestripulacion.IVistaDetallesTripulacion;
-import vista.principal.paneldetallestripulacion.VistaDetallesTripulacion;
+import vista.principal.paneltripulacion.panelcreartripulacion.IVistaCrearTripulacion;
+import vista.principal.paneltripulacion.panelcreartripulacion.VistaCrearTripulacion;
+import vista.principal.paneltripulacion.paneldetallestripulacion.IVistaDetallesTripulacion;
+import vista.principal.paneltripulacion.paneldetallestripulacion.VistaDetallesTripulacion;
 
 /**
  * Panel contenedor de la sección Tripulación: alterna entre el armado y los detalles de la dotación.

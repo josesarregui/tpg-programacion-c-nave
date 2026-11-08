@@ -1,7 +1,7 @@
 package controlador.nave;
 
 import modelo.asistente.Asistente;
-import vista.principal.paneldetallesnave.IVistaDetallesNave;
+import vista.principal.panelnave.paneldetallesnave.IVistaDetallesNave;
 
 /**
  * Controlador del panel de detalles de la nave.

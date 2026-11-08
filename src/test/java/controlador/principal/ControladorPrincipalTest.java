@@ -22,9 +22,9 @@ import org.junit.jupiter.api.Test;
 import persistencia.UsuarioDAO;
 import persistencia.UsuarioDTO;
 import vista.principal.IVistaPrincipal;
-import vista.principal.panelcrearnave.IVistaCrearNave;
-import vista.principal.paneldetallesnave.IVistaDetallesNave;
-import vista.principal.paneldetallestripulacion.IVistaDetallesTripulacion;
+import vista.principal.panelnave.panelcrearnave.IVistaCrearNave;
+import vista.principal.panelnave.paneldetallesnave.IVistaDetallesNave;
+import vista.principal.paneltripulacion.paneldetallestripulacion.IVistaDetallesTripulacion;
 import vista.principal.panelnave.IVistaNave;
 import vista.principal.paneltripulacion.IVistaTripulacion;
 

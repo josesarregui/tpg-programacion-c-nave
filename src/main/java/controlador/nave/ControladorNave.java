@@ -3,8 +3,8 @@ package controlador.nave;
 import controlador.principal.ControladorPrincipal;
 import modelo.asistente.Asistente;
 import modelo.universo.CentroDeControl;
-import vista.principal.panelcrearnave.IVistaCrearNave;
-import vista.principal.paneldetallesnave.IVistaDetallesNave;
+import vista.principal.panelnave.panelcrearnave.IVistaCrearNave;
+import vista.principal.panelnave.paneldetallesnave.IVistaDetallesNave;
 import vista.principal.panelnave.IVistaNave;
 
 /**

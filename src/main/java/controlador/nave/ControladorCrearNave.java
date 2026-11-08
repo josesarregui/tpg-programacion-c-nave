@@ -10,7 +10,7 @@ import modelo.nave.Nave;
 import modelo.nave.NaveFactory;
 import modelo.nave.TipoNave;
 import modelo.universo.CentroDeControl;
-import vista.principal.panelcrearnave.IVistaCrearNave;
+import vista.principal.panelnave.panelcrearnave.IVistaCrearNave;
 
 /**
  * Controlador de la vista de creación de nave.

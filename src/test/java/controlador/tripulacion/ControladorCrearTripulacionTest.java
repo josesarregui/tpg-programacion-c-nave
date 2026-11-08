@@ -2,6 +2,7 @@ package controlador.tripulacion;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import modelo.asistente.Asistente;
@@ -10,11 +11,12 @@ import modelo.nave.Nave;
 import modelo.nave.NaveFactory;
 import modelo.nave.TipoNave;
 import modelo.tripulacion.Cargo;
+import modelo.tripulacion.Consejero;
 import modelo.tripulacion.Origen;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import vista.principal.panelcreartripulacion.IVistaCrearTripulacion;
+import vista.principal.paneltripulacion.panelcreartripulacion.IVistaCrearTripulacion;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -62,6 +64,43 @@ public class ControladorCrearTripulacionTest {
     @DisplayName("Controlador: agregar tripulante con antigüedad no numérica muestra error")
     public void testAgregarTripulanteAntiguedadInvalida() {
         VistaCrearTripulacionMock vista = new VistaCrearTripulacionMock("Spock", Cargo.CONSEJERO, Origen.VULCANO, "abc");
+        ControladorCrearTripulacion controlador = new ControladorCrearTripulacion(vista, asistente, null);
+
+        controlador.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaCrearTripulacion.AGREGAR));
+
+        assertNotNull(vista.ultimoError);
+        assertEquals(0, vista.tripulantesEnLista.size());
+    }
+
+    @Test
+    @DisplayName("Controlador: agregar Consejero con consejos iniciales registra los consejos correctamente")
+    public void testAgregarConsejeroConConsejosIniciales() {
+        VistaCrearTripulacionMock vista = new VistaCrearTripulacionMock("Spock", Cargo.CONSEJERO, Origen.VULCANO, "5", "3");
+        ControladorCrearTripulacion controlador = new ControladorCrearTripulacion(vista, asistente, null);
+
+        controlador.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaCrearTripulacion.AGREGAR));
+
+        assertNull(vista.ultimoError);
+        assertEquals(1, vista.tripulantesEnLista.size());
+        assertTrue(vista.tripulantesEnLista.get(0).contains("3 consejos"));
+    }
+
+    @Test
+    @DisplayName("Controlador: rechazar Consejero con cantidad de consejos negativa")
+    public void testAgregarConsejeroConConsejosNegativos() {
+        VistaCrearTripulacionMock vista = new VistaCrearTripulacionMock("Spock", Cargo.CONSEJERO, Origen.VULCANO, "5", "-2");
+        ControladorCrearTripulacion controlador = new ControladorCrearTripulacion(vista, asistente, null);
+
+        controlador.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaCrearTripulacion.AGREGAR));
+
+        assertNotNull(vista.ultimoError);
+        assertEquals(0, vista.tripulantesEnLista.size());
+    }
+
+    @Test
+    @DisplayName("Controlador: rechazar Consejero con cantidad de consejos no numérica")
+    public void testAgregarConsejeroConConsejosNoNumericos() {
+        VistaCrearTripulacionMock vista = new VistaCrearTripulacionMock("Spock", Cargo.CONSEJERO, Origen.VULCANO, "5", "muchos");
         ControladorCrearTripulacion controlador = new ControladorCrearTripulacion(vista, asistente, null);
 
         controlador.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaCrearTripulacion.AGREGAR));
@@ -131,22 +170,29 @@ public class ControladorCrearTripulacionTest {
         Cargo cargo;
         Origen origen;
         String textoAntiguedad;
+        String textoConsejos = "0";
         String ultimoError;
         String ultimoMensaje;
         boolean camposLimpiados = false;
         final List<String> tripulantesEnLista = new ArrayList<>();
 
         VistaCrearTripulacionMock(String nombre, Cargo cargo, Origen origen, String textoAntiguedad) {
+            this(nombre, cargo, origen, textoAntiguedad, "0");
+        }
+
+        VistaCrearTripulacionMock(String nombre, Cargo cargo, Origen origen, String textoAntiguedad, String textoConsejos) {
             this.nombre = nombre;
             this.cargo = cargo;
             this.origen = origen;
             this.textoAntiguedad = textoAntiguedad;
+            this.textoConsejos = textoConsejos;
         }
 
         @Override public String getNombre() { return nombre; }
         @Override public Cargo getCargo() { return cargo; }
         @Override public Origen getOrigen() { return origen; }
         @Override public String getTextoAntiguedad() { return textoAntiguedad; }
+        @Override public String getTextoConsejos() { return textoConsejos; }
 
         @Override
         public void agregarTripulanteLista(String descripcion) {
