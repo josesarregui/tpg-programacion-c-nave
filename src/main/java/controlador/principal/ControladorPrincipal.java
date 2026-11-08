@@ -1,6 +1,7 @@
 package controlador.principal;
 
 import controlador.concurrencia.ControladorConcurrencia;
+import controlador.control.ControladorControl;
 import controlador.nave.ControladorNave;
 import controlador.tripulacion.ControladorTripulacion;
 import controlador.usuario.ControladorLogin;
@@ -13,6 +14,7 @@ import modelo.usuario.ServicioUsuarios;
 import modelo.usuario.Usuario;
 import vista.concurrencia.IVistaConcurrencia;
 import vista.principal.IVistaPrincipal;
+import vista.principal.panelcontrol.IVistaControl;
 import vista.principal.panelmenu.IVistaPanelMenu;
 import vista.principal.panelnave.IVistaNave;
 import vista.principal.paneltripulacion.IVistaTripulacion;
@@ -20,12 +22,11 @@ import vista.usuario.IVistaLogin;
 import vista.usuario.VistaLogin;
 
 /**
- * Controlador de la ventana principal. Gestiona la navegación entre las
+ * Controlador de la ventana principal. Gestiona la navegacion entre las
  * secciones principales, coordina los subcontroladores y administra el cierre
- * de sesión.
+ * de sesion.
  */
 public class ControladorPrincipal implements ActionListener {
-
     private final IVistaPrincipal vista;
     private final Usuario usuario;
     private final ServicioUsuarios servicioUsuarios;
@@ -34,6 +35,7 @@ public class ControladorPrincipal implements ActionListener {
     private final ControladorNave controladorNave;
     private final ControladorConcurrencia controladorConcurrencia;
     private ControladorTripulacion controladorTripulacion;
+    private ControladorControl controladorControl;
     private Asistente asistente;
 
     public ControladorPrincipal(IVistaPrincipal vista, Usuario usuario) {
@@ -53,6 +55,7 @@ public class ControladorPrincipal implements ActionListener {
 
         this.asistente = null;
         this.controladorTripulacion = null;
+        this.controladorControl = null;
 
         if (this.usuario != null) {
             this.vista.mostrarOperador(this.usuario.getNombreUsuario());
@@ -116,6 +119,10 @@ public class ControladorPrincipal implements ActionListener {
     // =========================
     public void tripulacionCreada() {
         this.vista.habilitarControlNave(true);
+        IVistaControl vistaControl = this.vista.getPanelControl();
+        if (vistaControl != null && this.asistente != null) {
+            this.controladorControl = new ControladorControl(vistaControl, this.asistente, this);
+        }
     }
 
     // =========================
@@ -139,8 +146,18 @@ public class ControladorPrincipal implements ActionListener {
         } else if (!this.asistente.tieneTripulacion()) {
             this.vista.mostrarError("Primero debe configurar una tripulación.");
         } else {
+            if (this.controladorControl == null && this.vista.getPanelControl() != null) {
+                this.controladorControl = new ControladorControl(this.vista.getPanelControl(), this.asistente, this);
+            }
+            if (this.controladorControl != null) {
+                this.controladorControl.actualizarVista();
+            }
             this.vista.mostrarPanel(IVistaPrincipal.PANEL_CONTROL_NAVE);
         }
+    }
+
+    public ControladorControl getControladorControl() {
+        return this.controladorControl;
     }
 
     // =========================
@@ -185,15 +202,15 @@ public class ControladorPrincipal implements ActionListener {
         String comando = e.getActionCommand();
 
         if (IVistaPanelMenu.NAVE.equals(comando)) {
-            mostrarNave();
+            this.mostrarNave();
         } else if (IVistaPanelMenu.TRIPULACION.equals(comando)) {
-            mostrarTripulacion();
+            this.mostrarTripulacion();
         } else if (IVistaPanelMenu.CONTROL_NAVE.equals(comando)) {
-            mostrarControlNave();
+            this.mostrarControlNave();
         } else if (IVistaPanelMenu.VISOR.equals(comando)) {
-            abrirVisor();
+            this.abrirVisor();
         } else if (IVistaPanelMenu.CERRAR_SESION.equals(comando)) {
-            cerrarSesion();
+            this.cerrarSesion();
         }
     }
 }

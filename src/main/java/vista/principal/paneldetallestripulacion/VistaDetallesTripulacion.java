@@ -93,8 +93,7 @@ public class VistaDetallesTripulacion extends JPanel implements IVistaDetallesTr
         // ===================================
         // TARJETA RESUMEN DE MANDO (IZQUIERDA)
         // ===================================
-        PanelTranslucido cardResumen = new PanelTranslucido(
-                18,
+        JPanel cardResumen = crearPanelTranslucido(
                 new Color(15, 23, 42, 175),
                 new Color(56, 189, 248, 120)
         );
@@ -179,8 +178,7 @@ public class VistaDetallesTripulacion extends JPanel implements IVistaDetallesTr
         // ===================================
         // TARJETA LISTA DE TRIPULANTES (DERECHA)
         // ===================================
-        PanelTranslucido cardLista = new PanelTranslucido(
-                18,
+        JPanel cardLista = crearPanelTranslucido(
                 new Color(15, 23, 42, 175),
                 new Color(56, 189, 248, 120)
         );
@@ -228,12 +226,11 @@ public class VistaDetallesTripulacion extends JPanel implements IVistaDetallesTr
         footerLista.setOpaque(false);
         footerLista.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        this.btnVerRecibo = new BotonEstilizado(
+        this.btnVerRecibo = crearBotonEstilizado(
                 "📄 Ver Recibo de Haberes",
                 new Color(14, 116, 144, 200),
                 new Color(6, 182, 212, 230),
-                new Color(56, 189, 248),
-                10
+                new Color(56, 189, 248)
         );
         this.btnVerRecibo.setPreferredSize(new Dimension(210, 36));
         this.btnVerRecibo.addActionListener(e -> abrirReciboSeleccionado());
@@ -827,12 +824,11 @@ public class VistaDetallesTripulacion extends JPanel implements IVistaDetallesTr
         panelCuerpo.add(panelTotal);
 
         // 4. Botón de cierre
-        BotonEstilizado btnCerrar = new BotonEstilizado(
+        JButton btnCerrar = crearBotonEstilizado(
                 "Entendido",
                 new Color(14, 116, 144, 200),
                 new Color(6, 182, 212, 230),
-                new Color(56, 189, 248),
-                10
+                new Color(56, 189, 248)
         );
         btnCerrar.setPreferredSize(new Dimension(130, 36));
         btnCerrar.addActionListener(e -> dialog.dispose());
@@ -957,97 +953,48 @@ public class VistaDetallesTripulacion extends JPanel implements IVistaDetallesTr
     }
 
     // =========================================================================
-    // COMPONENTE PANEL TRANSLÚCIDO (GLASSMORPHISM)
+    // MÉTODOS AUXILIARES VISUALES (SIN SUBCLASES INTERNAS)
     // =========================================================================
 
-    private static class PanelTranslucido extends JPanel {
-        private final int radio;
-        private final Color colorFondo;
-        private final Color colorBorde;
-
-        public PanelTranslucido(int radio, Color colorFondo, Color colorBorde) {
-            this.radio = radio;
-            this.colorFondo = colorFondo;
-            this.colorBorde = colorBorde;
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            g2.setColor(colorFondo);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-
-            if (colorBorde != null) {
-                g2.setColor(colorBorde);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-            }
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
+    private JPanel crearPanelTranslucido(Color colorFondo, Color colorBorde) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(true);
+        panel.setBackground(colorFondo);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(colorBorde, 1, true),
+                new EmptyBorder(14, 16, 14, 16)
+        ));
+        return panel;
     }
 
-    /**
-     * Botón estilizado con estética espacial y soporte hover translúcido.
-     */
-    private static class BotonEstilizado extends JButton {
-        private final Color colorNormal;
-        private final Color colorHover;
-        private final Color colorBorde;
-        private final int radio;
-        private boolean hover = false;
-
-        BotonEstilizado(String texto, Color normal, Color hover, Color borde, int radio) {
-            super(texto);
-            this.colorNormal = normal;
-            this.colorHover = hover;
-            this.colorBorde = borde;
-            this.radio = radio;
-
-            setContentAreaFilled(false);
-            setBorderPainted(false);
-            setFocusPainted(false);
-            setOpaque(false);
-            setForeground(Color.WHITE);
-            setFont(new Font("Segoe UI", Font.BOLD, 13));
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-            addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseEntered(MouseEvent e) {
-                    BotonEstilizado.this.hover = true;
-                    repaint();
+    private JButton crearBotonEstilizado(String texto, Color normal, Color hover, Color borde) {
+        JButton btn = new JButton(texto);
+        btn.setBackground(normal);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setFocusPainted(false);
+        btn.setOpaque(true);
+        btn.setContentAreaFilled(true);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borde, 1, true),
+                new EmptyBorder(8, 14, 8, 14)
+        ));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (btn.isEnabled()) {
+                    btn.setBackground(hover);
                 }
+            }
 
-                @Override
-                public void mouseExited(MouseEvent e) {
-                    BotonEstilizado.this.hover = false;
-                    repaint();
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (btn.isEnabled()) {
+                    btn.setBackground(normal);
                 }
-            });
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            Color fondo = !isEnabled()
-                    ? new Color(51, 65, 85, 140)
-                    : (hover ? colorHover : colorNormal);
-            g2.setColor(fondo);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-
-            g2.setColor(isEnabled() ? colorBorde : new Color(100, 116, 139, 100));
-            g2.setStroke(new BasicStroke(1.2f));
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
+            }
+        });
+        return btn;
     }
 }

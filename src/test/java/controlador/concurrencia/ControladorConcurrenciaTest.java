@@ -2,7 +2,6 @@ package controlador.concurrencia;
 
 import modelo.concurrencia.GeneradoraDeEnergia;
 import modelo.concurrencia.NaveConsumidora;
-import modelo.concurrencia.ObservadorConcurrencia;
 import modelo.concurrencia.PlataformaDeCarga;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

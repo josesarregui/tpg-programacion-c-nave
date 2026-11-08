@@ -1,6 +1,5 @@
 package vista.concurrencia;
 
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -46,18 +45,18 @@ import modelo.concurrencia.ObservadorConcurrencia;
 import modelo.concurrencia.PlataformaDeCarga;
 
 /**
- * Vista de la pantalla de Concurrencia ("Universo Paralelo").
- * 1. Generadora de Energia (productores, con boton Agregar y soporte para
- * detener hilo con doble clic)
- * 2. Eventos (consola central informa en tiempo real)
- * 3. Naves Consumidoras (consumidores, con boton Agregar y soporte para detener
- * hilo con doble clic)
+ * Vista de la pantalla de Concurrencia ("Universo Paralelo"). 1. Generadora de
+ * Energia (productores, con boton Agregar y soporte para detener hilo con doble
+ * clic) 2. Eventos (consola central informa en tiempo real) 3. Naves
+ * Consumidoras (consumidores, con boton Agregar y soporte para detener hilo con
+ * doble clic)
  *
- * Implementa {@link IVistaConcurrencia} (que extiende {@link ObservadorConcurrencia}),
- * recibiendo directamente las notificaciones de la {@link PlataformaDeCarga} y
- * despachandolas.
+ * Implementa {@link IVistaConcurrencia} (que extiende
+ * {@link ObservadorConcurrencia}), recibiendo directamente las notificaciones
+ * de la {@link PlataformaDeCarga} y despachandolas.
  */
 public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
+
     private static final DateTimeFormatter HORA_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     private final JLabel lblBaterias;
@@ -109,8 +108,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
 
         JLabel subtitulo = new JLabel(
                 "Monitoreo de Concurrencia • Productor - Monitor - Consumidor",
-                SwingConstants.CENTER
-        );
+                SwingConstants.CENTER);
         subtitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
         subtitulo.setForeground(new Color(186, 230, 253));
         subtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -139,8 +137,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
                 new Color(245, 158, 11, 200),
                 new Color(217, 119, 6, 230),
                 new Color(251, 191, 36),
-                10
-        );
+                10);
         this.btnCrearGeneradora.setActionCommand(COMANDO_CREAR_GENERADORA);
         this.btnCrearGeneradora.setPreferredSize(new Dimension(105, 36));
 
@@ -169,8 +166,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
                 this.btnCrearGeneradora,
                 this.lblGeneradoras,
                 this.listaGeneradoras,
-                new Color(245, 158, 11, 140)
-        );
+                new Color(245, 158, 11, 140));
 
         // ---------------------------------------------------------------------
         // COLUMNA 2: Eventos (Espacio ampliado)
@@ -184,8 +180,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
                 new Color(71, 85, 105, 190),
                 new Color(100, 116, 139, 230),
                 new Color(148, 163, 184),
-                10
-        );
+                10);
         this.btnLimpiarConsola.setActionCommand(COMANDO_LIMPIAR_CONSOLA);
         this.btnLimpiarConsola.setPreferredSize(new Dimension(90, 36));
 
@@ -205,8 +200,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
                 this.btnLimpiarConsola,
                 this.lblBaterias,
                 this.areaConsola,
-                new Color(56, 189, 248, 150)
-        );
+                new Color(56, 189, 248, 150));
 
         // ---------------------------------------------------------------------
         // COLUMNA 3: Naves Consumidoras
@@ -220,8 +214,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
                 new Color(14, 116, 144, 210),
                 new Color(6, 182, 212, 230),
                 new Color(56, 189, 248),
-                10
-        );
+                10);
         this.btnCrearNave.setActionCommand(COMANDO_CREAR_NAVE);
         this.btnCrearNave.setPreferredSize(new Dimension(105, 36));
 
@@ -250,13 +243,12 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
                 this.btnCrearNave,
                 this.lblNaves,
                 this.listaNaves,
-                new Color(6, 182, 212, 140)
-        );
+                new Color(6, 182, 212, 140));
 
         // Disposición con GridBagLayout:
         // Columna 1 (Generadoras): weightx = 0.25
-        // Columna 2 (Eventos):     weightx = 0.50 (el doble de ancha)
-        // Columna 3 (Naves):       weightx = 0.25
+        // Columna 2 (Eventos): weightx = 0.50 (el doble de ancha)
+        // Columna 3 (Naves): weightx = 0.25
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridy = 0;
         gbc.fill = GridBagConstraints.BOTH;
@@ -283,14 +275,12 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
     // =========================================================================
     // CREACIÓN DE LAS COLUMNAS BASADAS EN EL DIAGRAMA
     // =========================================================================
-
     private JPanel crearColumna(
             String titulo,
             JButton btnAgregar,
             JLabel lblContador,
             JList<String> lista,
-            Color colorAcento
-    ) {
+            Color colorAcento) {
         JPanel columna = new JPanel(new BorderLayout(0, 10));
         columna.setOpaque(false);
 
@@ -343,8 +333,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
             JButton btnLimpiar,
             JLabel lblBaterias,
             JTextArea areaTexto,
-            Color colorAcento
-    ) {
+            Color colorAcento) {
         JPanel columna = new JPanel(new BorderLayout(0, 10));
         columna.setOpaque(false);
 
@@ -408,8 +397,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
                     Object value,
                     int index,
                     boolean isSelected,
-                    boolean cellHasFocus
-            ) {
+                    boolean cellHasFocus) {
                 JPanel item = new JPanel(new BorderLayout(8, 0)) {
                     @Override
                     protected void paintComponent(Graphics g) {
@@ -421,7 +409,8 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
                             g2.setColor(index % 2 == 0 ? new Color(255, 255, 255, 14) : new Color(255, 255, 255, 6));
                         }
                         g2.fillRoundRect(2, 2, getWidth() - 4, getHeight() - 4, 10, 10);
-                        g2.setColor(new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), isSelected ? 200 : 40));
+                        g2.setColor(new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(),
+                                isSelected ? 200 : 40));
                         g2.drawRoundRect(2, 2, getWidth() - 5, getHeight() - 5, 10, 10);
                         g2.dispose();
                         super.paintComponent(g);
@@ -456,7 +445,6 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
     // =========================================================================
     // DIBUJO DEL FONDO
     // =========================================================================
-
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -473,7 +461,6 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
     // =========================================================================
     // IMPLEMENTACIÓN IVISTACONCURRENCIA / OBSERVADOR
     // =========================================================================
-
     @Override
     public void setControlador(ActionListener controlador) {
         this.btnCrearGeneradora.addActionListener(controlador);
@@ -595,14 +582,12 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
                 this,
                 mensaje,
                 "Error en Universo Paralelo",
-                JOptionPane.ERROR_MESSAGE
-        );
+                JOptionPane.ERROR_MESSAGE);
     }
 
     // =========================================================================
     // COMPONENTES AUXILIARES Y ESTILOS
     // =========================================================================
-
     private void estilizarScrollBar(JScrollPane scroll) {
         scroll.getVerticalScrollBar().setUI(new BasicScrollBarUI() {
             @Override
@@ -634,7 +619,8 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(thumbColor);
-                g2.fillRoundRect(thumbBounds.x + 2, thumbBounds.y + 2, thumbBounds.width - 4, thumbBounds.height - 4, 8, 8);
+                g2.fillRoundRect(thumbBounds.x + 2, thumbBounds.y + 2, thumbBounds.width - 4, thumbBounds.height - 4, 8,
+                        8);
                 g2.dispose();
             }
         });
@@ -647,8 +633,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
         panel.setBackground(fondo);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(borde, 1, true),
-                new EmptyBorder(6, 6, 6, 6)
-        ));
+                new EmptyBorder(6, 6, 6, 6)));
         return panel;
     }
 
@@ -662,8 +647,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
         btn.setContentAreaFilled(true);
         btn.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(borde, 1, true),
-                new EmptyBorder(8, 14, 8, 14)
-        ));
+                new EmptyBorder(8, 14, 8, 14)));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.addMouseListener(new MouseAdapter() {
             @Override
@@ -682,7 +666,6 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
     // =========================================================================
     // GETTERS PARA PRUEBAS Y CONTROLADOR
     // =========================================================================
-
     public JLabel getLblBaterias() {
         return this.lblBaterias;
     }

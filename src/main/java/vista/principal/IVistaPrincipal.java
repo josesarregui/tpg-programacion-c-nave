@@ -2,6 +2,7 @@ package vista.principal;
 
 import java.awt.event.ActionListener;
 import vista.concurrencia.IVistaConcurrencia;
+import vista.principal.panelcontrol.IVistaControl;
 import vista.principal.panelnave.IVistaNave;
 import vista.principal.paneltripulacion.IVistaTripulacion;
 
@@ -9,32 +10,32 @@ import vista.principal.paneltripulacion.IVistaTripulacion;
  * Interfaz de la ventana principal del sistema.
  */
 public interface IVistaPrincipal {
-    String PANEL_NAVE = "PANEL_NAVE";
-    String PANEL_TRIPULACION = "PANEL_TRIPULACION";
-    String PANEL_CONTROL_NAVE = "PANEL_CONTROL_NAVE";
-    String PANEL_VISOR = "PANEL_VISOR";
+    public String PANEL_NAVE = "PANEL_NAVE";
+    public String PANEL_TRIPULACION = "PANEL_TRIPULACION";
+    public String PANEL_CONTROL_NAVE = "PANEL_CONTROL_NAVE";
+    public String PANEL_VISOR = "PANEL_VISOR";
 
-    IVistaNave getPanelNave();
+    public IVistaNave getPanelNave();
 
-    IVistaTripulacion getPanelTripulacion();
+    public IVistaTripulacion getPanelTripulacion();
 
-    default IVistaConcurrencia getPanelVisor() {
-        return null;
-    }
+    public IVistaControl getPanelControl();
 
-    void mostrarOperador(String nombreUsuario);
+    public IVistaConcurrencia getPanelVisor();
 
-    void setControlador(ActionListener controlador);
+    public void mostrarOperador(String nombreUsuario);
 
-    void mostrarPanel(String nombrePanel);
+    public void setControlador(ActionListener controlador);
 
-    void habilitarTripulacion(boolean habilitar);
+    public void mostrarPanel(String nombrePanel);
 
-    void habilitarControlNave(boolean habilitar);
+    public void habilitarTripulacion(boolean habilitar);
 
-    void mostrarError(String mensaje);
+    public void habilitarControlNave(boolean habilitar);
 
-    void arrancar();
+    public void mostrarError(String mensaje);
 
-    void cerrar();
+    public void arrancar();
+
+    public void cerrar();
 }

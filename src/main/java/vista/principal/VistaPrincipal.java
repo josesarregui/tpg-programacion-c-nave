@@ -8,6 +8,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import vista.concurrencia.IVistaConcurrencia;
 import vista.concurrencia.VistaConcurrencia;
+import vista.principal.panelcontrol.IVistaControl;
+import vista.principal.panelcontrol.VistaControl;
 import vista.principal.panelmenu.IVistaPanelMenu;
 import vista.principal.panelmenu.VistaPanelMenu;
 import vista.principal.panelnave.IVistaNave;
@@ -26,7 +28,7 @@ public class VistaPrincipal extends JFrame implements IVistaPrincipal {
 
     private final VistaNave panelNave;
     private final VistaTripulacion panelTripulacion;
-    private final JPanel panelControlNave;
+    private final VistaControl panelControlNave;
     private final VistaConcurrencia panelVisor;
 
     public VistaPrincipal() {
@@ -48,7 +50,7 @@ public class VistaPrincipal extends JFrame implements IVistaPrincipal {
 
         this.panelNave = new VistaNave();
         this.panelTripulacion = new VistaTripulacion();
-        this.panelControlNave = new JPanel();
+        this.panelControlNave = new VistaControl();
         this.panelVisor = new VistaConcurrencia();
 
         this.panelContenido.add(this.panelNave, IVistaPrincipal.PANEL_NAVE);
@@ -70,6 +72,11 @@ public class VistaPrincipal extends JFrame implements IVistaPrincipal {
     @Override
     public IVistaTripulacion getPanelTripulacion() {
         return this.panelTripulacion;
+    }
+
+    @Override
+    public IVistaControl getPanelControl() {
+        return this.panelControlNave;
     }
 
     @Override
