@@ -327,7 +327,7 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
     private BufferedImage cargarImagenRecortada(String rutaImagen) {
         URL ruta = getClass().getResource(rutaImagen);
         if (ruta == null) {
-            throw new RuntimeException("No se encontró la imagen: " + rutaImagen);
+            return null;
         }
 
         ImageIcon iconoOriginal = new ImageIcon(ruta);

@@ -21,7 +21,8 @@ import vista.principal.paneltripulacion.panelcreartripulacion.IVistaCrearTripula
 
 /**
  * Controlador para la creación y configuración de la tripulación.
- * Recibe los tipos enumerados directamente de la vista y delega las reglas de negocio en el modelo.
+ * Recibe los tipos enumerados directamente de la vista y delega las reglas de
+ * negocio en el modelo.
  */
 public class ControladorCrearTripulacion implements ActionListener {
     private final IVistaCrearTripulacion vistaCrearTripulacion;
@@ -45,7 +46,7 @@ public class ControladorCrearTripulacion implements ActionListener {
         try {
             Tripulante tripulante = crearTripulanteDesdeVista();
 
-            validarCapitanUnicoEnArmado(tripulante);
+            this.validarCapitanUnicoEnArmado(tripulante);
 
             this.tripulantesTemporales.add(tripulante);
 
@@ -66,9 +67,7 @@ public class ControladorCrearTripulacion implements ActionListener {
             this.vistaCrearTripulacion.limpiarCampos();
 
         } catch (NumberFormatException e) {
-            this.vistaCrearTripulacion.mostrarError(
-                    "La antigüedad debe ser un número entero mayor o igual a 0."
-            );
+            this.vistaCrearTripulacion.mostrarError("La antigüedad debe ser un número entero mayor o igual a 0.");
         } catch (TripulanteInvalidoException | TripulacionInvalidaException e) {
             this.vistaCrearTripulacion.mostrarError(e.getMessage());
         }
@@ -101,7 +100,8 @@ public class ControladorCrearTripulacion implements ActionListener {
             throw new TripulanteInvalidoException("Debe seleccionar un cargo.", nombre, antiguedad, origen);
         }
 
-        // Las validaciones de nombre vacío, antigüedad negativa y origen nulo las realiza Tripulante en el modelo.
+        // Las validaciones de nombre vacio, antigüedad negativa y origen nulo las
+        // realiza Tripulante en el modelo.
         return switch (cargo) {
             case CAPITAN -> new Capitan(nombre, antiguedad, origen);
             case CONSEJERO -> {
@@ -114,14 +114,12 @@ public class ControladorCrearTripulacion implements ActionListener {
                     } catch (NumberFormatException e) {
                         throw new TripulanteInvalidoException(
                                 "La cantidad de consejos iniciales debe ser un número entero mayor o igual a 0.",
-                                nombre, antiguedad, origen
-                        );
+                                nombre, antiguedad, origen);
                     }
                     if (cantidadConsejos < 0) {
                         throw new TripulanteInvalidoException(
                                 "La cantidad de consejos iniciales no puede ser negativa.",
-                                nombre, antiguedad, origen
-                        );
+                                nombre, antiguedad, origen);
                     }
                     YearMonth ahora = YearMonth.now();
                     for (int i = 0; i < cantidadConsejos; i++) {
@@ -154,9 +152,9 @@ public class ControladorCrearTripulacion implements ActionListener {
         String comando = e.getActionCommand();
 
         if (IVistaCrearTripulacion.AGREGAR.equals(comando)) {
-            agregarTripulante();
+            this.agregarTripulante();
         } else if (IVistaCrearTripulacion.ACEPTAR.equals(comando)) {
-            aceptarTripulacion();
+            this.aceptarTripulacion();
         }
     }
 }

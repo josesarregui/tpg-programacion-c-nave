@@ -1,6 +1,5 @@
 package vista.principal.paneltripulacion.panelcreartripulacion;
 
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -8,16 +7,12 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GridLayout;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
 import java.awt.event.ActionListener;
-import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import java.awt.event.MouseAdapter;
+import java.awt.event.FocusListener;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -35,33 +30,31 @@ import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import javax.swing.plaf.basic.BasicComboBoxUI;
-import javax.swing.plaf.basic.BasicScrollBarUI;
 import modelo.tripulacion.Cargo;
 import modelo.tripulacion.Origen;
 
 /**
  * Vista para la creación y gestión de la tripulación de la nave.
- * Posee un diseño espacial translúcido (efecto glassmorphism) para que
- * se aprecie la animación del fondo del panel contenedor.
+ * Posee un diseño espacial translúcido (efecto glassmorphism) coherente con el resto de la aplicación.
+ * Todo el diseño y las tareas visuales se resuelven en la misma clase sin subclases internas.
  */
 public class VistaCrearTripulacion extends JPanel implements IVistaCrearTripulacion {
 
-    private JTextField txtNombre;
-    private JTextField txtAntiguedad;
-    private JTextField txtConsejos;
-    private JPanel seccionConsejos;
+    private final JTextField txtNombre;
+    private final JTextField txtAntiguedad;
+    private final JTextField txtConsejos;
+    private final JPanel seccionConsejos;
 
-    private JComboBox<Cargo> cbCargo;
-    private JComboBox<Origen> cbOrigen;
+    private final JComboBox<Cargo> cbCargo;
+    private final JComboBox<Origen> cbOrigen;
 
-    private JButton bAgregar;
-    private JButton bAceptar;
+    private final JButton bAgregar;
+    private final JButton bAceptar;
 
-    private DefaultListModel<String> modeloLista;
-    private JList<String> listaTripulantes;
-    private JLabel lblContador;
-    private OyenteCamposTripulacion oyenteCampos;
+    private final DefaultListModel<String> modeloLista;
+    private final JList<String> listaTripulantes;
+    private final JLabel lblContador;
+    private final OyenteCamposTripulacion oyenteCampos;
 
     public VistaCrearTripulacion() {
         this.setLayout(new BorderLayout(0, 16));
@@ -94,8 +87,7 @@ public class VistaCrearTripulacion extends JPanel implements IVistaCrearTripulac
         // ===================================
         // TARJETA FORMULARIO (IZQUIERDA)
         // ===================================
-        PanelTranslucido cardFormulario = new PanelTranslucido(
-                18,
+        JPanel cardFormulario = crearPanelTranslucido(
                 new Color(15, 23, 42, 175),
                 new Color(56, 189, 248, 120)
         );
@@ -122,28 +114,28 @@ public class VistaCrearTripulacion extends JPanel implements IVistaCrearTripulac
         cardFormulario.add(headerFormulario, BorderLayout.NORTH);
 
         // Campos de entrada
-        this.txtNombre = new CampoTextoEstilizado(15);
-        this.txtAntiguedad = new CampoTextoEstilizado(5);
-        this.txtConsejos = new CampoTextoEstilizado(5);
+        this.txtNombre = crearCampoTexto(15);
+        this.txtAntiguedad = crearCampoTexto(5);
+        this.txtConsejos = crearCampoTexto(5);
         this.txtConsejos.setText("0");
 
-        this.cbCargo = new ComboBoxEstilizado<>();
+        this.cbCargo = crearComboBox();
         this.cbCargo.addItem(Cargo.CAPITAN);
         this.cbCargo.addItem(Cargo.TENIENTE);
         this.cbCargo.addItem(Cargo.ALFEREZ);
         this.cbCargo.addItem(Cargo.CONSEJERO);
 
-        this.cbOrigen = new ComboBoxEstilizado<>();
+        this.cbOrigen = crearComboBox();
         for (Origen origen : Origen.values()) {
             this.cbOrigen.addItem(origen);
         }
 
-        this.bAgregar = new BotonEstilizado(
+        this.bAgregar = crearBoton(
                 "➕  Agregar Tripulante",
                 new Color(14, 116, 144, 210),
                 new Color(6, 182, 212, 240),
                 new Color(56, 189, 248, 210),
-                12
+                8
         );
         this.bAgregar.setPreferredSize(new Dimension(100, 40));
         this.bAgregar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
@@ -189,8 +181,7 @@ public class VistaCrearTripulacion extends JPanel implements IVistaCrearTripulac
         // ===================================
         // TARJETA LISTA (DERECHA)
         // ===================================
-        PanelTranslucido cardLista = new PanelTranslucido(
-                18,
+        JPanel cardLista = crearPanelTranslucido(
                 new Color(15, 23, 42, 175),
                 new Color(56, 189, 248, 120)
         );
@@ -228,7 +219,8 @@ public class VistaCrearTripulacion extends JPanel implements IVistaCrearTripulac
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
         scroll.setBorder(BorderFactory.createEmptyBorder());
-        estilizarScrollBar(scroll);
+        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(8, 0));
+        scroll.getVerticalScrollBar().setOpaque(false);
 
         cardLista.add(scroll, BorderLayout.CENTER);
 
@@ -245,12 +237,12 @@ public class VistaCrearTripulacion extends JPanel implements IVistaCrearTripulac
         // =========================
         // BOTON ACEPTAR (INFERIOR)
         // =========================
-        this.bAceptar = new BotonEstilizado(
+        this.bAceptar = crearBoton(
                 "✓  Aceptar Tripulación",
                 new Color(16, 185, 129, 215),
                 new Color(34, 197, 94, 245),
                 new Color(74, 222, 128, 220),
-                14
+                10
         );
         this.bAceptar.setFont(new Font("Segoe UI", Font.BOLD, 15));
         this.bAceptar.setPreferredSize(new Dimension(320, 44));
@@ -280,119 +272,134 @@ public class VistaCrearTripulacion extends JPanel implements IVistaCrearTripulac
         return seccion;
     }
 
-    /**
-     * Renderer estilizado para cada elemento de la lista de tripulantes.
-     */
-    private ListCellRenderer<String> crearRendererLista() {
-        return new ListCellRenderer<String>() {
+    private JPanel crearPanelTranslucido(Color colorFondo, Color colorBorde) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(true);
+        panel.setBackground(colorFondo);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(colorBorde, 1, true),
+                new EmptyBorder(18, 22, 18, 22)
+        ));
+        return panel;
+    }
+
+    private JTextField crearCampoTexto(int columnas) {
+        JTextField campo = new JTextField(columnas);
+        campo.setOpaque(true);
+        campo.setBackground(new Color(15, 23, 42, 180));
+        campo.setForeground(Color.WHITE);
+        campo.setCaretColor(new Color(56, 189, 248));
+        campo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        campo.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(100, 116, 139, 130), 1, true),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        campo.setPreferredSize(new Dimension(campo.getPreferredSize().width, 38));
+        campo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        campo.addFocusListener(new FocusListener() {
             @Override
-            public Component getListCellRendererComponent(JList<? extends String> list, String value, int index,
-                                                          boolean isSelected, boolean cellHasFocus) {
-                JPanel itemPanel = new JPanel(new BorderLayout(10, 0)) {
-                    @Override
-                    protected void paintComponent(Graphics g) {
-                        Graphics2D g2 = (Graphics2D) g.create();
-                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                        if (isSelected) {
-                            g2.setColor(new Color(14, 116, 144, 220));
-                        } else {
-                            if (index % 2 == 0) {
-                                g2.setColor(new Color(255, 255, 255, 22));
-                            } else {
-                                g2.setColor(new Color(255, 255, 255, 10));
-                            }
-                        }
-                        g2.fillRoundRect(2, 2, getWidth() - 4, getHeight() - 4, 10, 10);
-
-                        if (isSelected) {
-                            g2.setColor(new Color(56, 189, 248, 220));
-                            g2.setStroke(new BasicStroke(1.2f));
-                            g2.drawRoundRect(2, 2, getWidth() - 5, getHeight() - 5, 10, 10);
-                        }
-                        g2.dispose();
-                        super.paintComponent(g);
-                    }
-                };
-                itemPanel.setOpaque(false);
-                itemPanel.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-
-                String valStr = value != null ? value.toString() : "";
-                JLabel lblTexto = new JLabel(valStr);
-                lblTexto.setFont(new Font("Segoe UI", Font.BOLD, 13));
-                lblTexto.setForeground(Color.WHITE);
-
-                JLabel lblIcono = new JLabel();
-                if (valStr.contains("Capitán")) {
-                    lblIcono.setText("⭐");
-                } else if (valStr.contains("Teniente")) {
-                    lblIcono.setText("🛡️");
-                } else if (valStr.contains("Alférez")) {
-                    lblIcono.setText("🚀");
-                } else if (valStr.contains("Consejero")) {
-                    lblIcono.setText("🔮");
-                } else {
-                    lblIcono.setText("👤");
-                }
-                lblIcono.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 15));
-                lblIcono.setForeground(new Color(56, 189, 248));
-
-                itemPanel.add(lblIcono, BorderLayout.WEST);
-                itemPanel.add(lblTexto, BorderLayout.CENTER);
-
-                return itemPanel;
+            public void focusGained(FocusEvent e) {
+                campo.setBackground(new Color(30, 41, 59, 215));
+                campo.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(56, 189, 248, 230), 1, true),
+                        BorderFactory.createEmptyBorder(8, 12, 8, 12)
+                ));
             }
-        };
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                campo.setBackground(new Color(15, 23, 42, 180));
+                campo.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(100, 116, 139, 130), 1, true),
+                        BorderFactory.createEmptyBorder(8, 12, 8, 12)
+                ));
+            }
+        });
+        return campo;
+    }
+
+    private <E> JComboBox<E> crearComboBox() {
+        JComboBox<E> cb = new JComboBox<>();
+        cb.setOpaque(true);
+        cb.setBackground(new Color(15, 23, 42, 220));
+        cb.setForeground(Color.WHITE);
+        cb.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        cb.setPreferredSize(new Dimension(cb.getPreferredSize().width, 38));
+        cb.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        cb.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(100, 116, 139, 130), 1, true),
+                BorderFactory.createEmptyBorder(4, 10, 4, 8)
+        ));
+        return cb;
+    }
+
+    private JButton crearBoton(String texto, Color normal, Color hover, Color borde, int paddingV) {
+        JButton btn = new JButton(texto);
+        btn.setOpaque(true);
+        btn.setBackground(normal);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borde, 1, true),
+                BorderFactory.createEmptyBorder(paddingV, 20, paddingV, 20)
+        ));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.addMouseListener(new MouseListener() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (btn.isEnabled()) {
+                    btn.setBackground(hover);
+                }
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (btn.isEnabled()) {
+                    btn.setBackground(normal);
+                }
+            }
+
+            @Override public void mouseClicked(MouseEvent e) {}
+            @Override public void mousePressed(MouseEvent e) {}
+            @Override public void mouseReleased(MouseEvent e) {}
+        });
+        return btn;
     }
 
     /**
-     * Aplica estilo translúcido y moderno a la barra de desplazamiento.
+     * Renderer estilizado para cada elemento de la lista de tripulantes sin subclases internas.
      */
-    private void estilizarScrollBar(JScrollPane scroll) {
-        scroll.getVerticalScrollBar().setUI(new BasicScrollBarUI() {
-            @Override
-            protected void configureScrollBarColors() {
-                this.thumbColor = new Color(56, 189, 248, 130);
-                this.trackColor = new Color(0, 0, 0, 30);
-            }
+    private ListCellRenderer<String> crearRendererLista() {
+        DefaultListCellRenderer rendererBase = new DefaultListCellRenderer();
+        return (list, value, index, isSelected, cellHasFocus) -> {
+            JLabel label = (JLabel) rendererBase.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            label.setOpaque(true);
+            label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            label.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
 
-            @Override
-            protected JButton createDecreaseButton(int orientation) {
-                return crearBotonInvisible();
+            String valStr = value != null ? value.toString() : "";
+            String icono = "👤  ";
+            if (valStr.contains("Capitán")) {
+                icono = "⭐  ";
+            } else if (valStr.contains("Teniente")) {
+                icono = "🛡️  ";
+            } else if (valStr.contains("Alférez")) {
+                icono = "🚀  ";
+            } else if (valStr.contains("Consejero")) {
+                icono = "🔮  ";
             }
+            label.setText(icono + valStr);
 
-            @Override
-            protected JButton createIncreaseButton(int orientation) {
-                return crearBotonInvisible();
+            if (isSelected) {
+                label.setBackground(new Color(14, 116, 144, 220));
+                label.setForeground(Color.WHITE);
+            } else {
+                label.setBackground(index % 2 == 0 ? new Color(15, 23, 42, 180) : new Color(15, 23, 42, 120));
+                label.setForeground(new Color(224, 242, 254));
             }
-
-            @Override
-            protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(thumbColor);
-                g2.fillRoundRect(thumbBounds.x + 1, thumbBounds.y + 1, thumbBounds.width - 2, thumbBounds.height - 2, 8, 8);
-                g2.dispose();
-            }
-
-            @Override
-            protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setColor(trackColor);
-                g2.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
-                g2.dispose();
-            }
-
-            private JButton crearBotonInvisible() {
-                JButton btn = new JButton();
-                btn.setPreferredSize(new Dimension(0, 0));
-                btn.setMinimumSize(new Dimension(0, 0));
-                btn.setMaximumSize(new Dimension(0, 0));
-                return btn;
-            }
-        });
-        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(8, 0));
-        scroll.getVerticalScrollBar().setOpaque(false);
+            return label;
+        };
     }
 
     /**
@@ -497,268 +504,5 @@ public class VistaCrearTripulacion extends JPanel implements IVistaCrearTripulac
     public void setControlador(ActionListener controlador) {
         this.bAgregar.addActionListener(controlador);
         this.bAceptar.addActionListener(controlador);
-    }
-
-    // =========================================================================
-    // COMPONENTES PERSONALIZADOS CON TRANSLUCIDEZ (GLASSMORPHISM)
-    // =========================================================================
-
-    /**
-     * Panel con fondo translúcido y bordes redondeados con resplandor suave.
-     */
-    private static class PanelTranslucido extends JPanel {
-        private final int radio;
-        private final Color colorFondo;
-        private final Color colorBorde;
-
-        public PanelTranslucido(int radio, Color colorFondo, Color colorBorde) {
-            this.radio = radio;
-            this.colorFondo = colorFondo;
-            this.colorBorde = colorBorde;
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            g2.setColor(colorFondo);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-
-            if (colorBorde != null) {
-                g2.setColor(colorBorde);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-            }
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
-    }
-
-    /**
-     * Campo de texto con fondo translúcido, borde suave y realce con foco.
-     */
-    private static class CampoTextoEstilizado extends JTextField {
-        private final int radio = 10;
-        private boolean enfocado = false;
-
-        public CampoTextoEstilizado(int columnas) {
-            super(columnas);
-            setOpaque(false);
-            setForeground(Color.WHITE);
-            setCaretColor(new Color(56, 189, 248));
-            setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            setBorder(BorderFactory.createEmptyBorder(8, 14, 8, 14));
-            setPreferredSize(new Dimension(getPreferredSize().width, 38));
-            setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
-
-            addFocusListener(new FocusAdapter() {
-                @Override
-                public void focusGained(FocusEvent e) {
-                    enfocado = true;
-                    repaint();
-                }
-
-                @Override
-                public void focusLost(FocusEvent e) {
-                    enfocado = false;
-                    repaint();
-                }
-            });
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            if (enfocado) {
-                g2.setColor(new Color(30, 41, 59, 215));
-            } else {
-                g2.setColor(new Color(15, 23, 42, 160));
-            }
-            g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, radio, radio);
-
-            if (enfocado) {
-                g2.setColor(new Color(56, 189, 248, 230));
-                g2.setStroke(new BasicStroke(1.8f));
-            } else {
-                g2.setColor(new Color(100, 116, 139, 130));
-                g2.setStroke(new BasicStroke(1.0f));
-            }
-            g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, radio, radio);
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
-    }
-
-    /**
-     * ComboBox con fondo translúcido y flecha personalizada.
-     */
-    private static class ComboBoxEstilizado<E> extends JComboBox<E> {
-        private final int radio = 10;
-        private boolean enfocado = false;
-
-        public ComboBoxEstilizado() {
-            super();
-            setOpaque(false);
-            setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            setForeground(Color.WHITE);
-            setPreferredSize(new Dimension(getPreferredSize().width, 38));
-            setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
-
-            setRenderer(new DefaultListCellRenderer() {
-                @Override
-                public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                                                              boolean isSelected, boolean cellHasFocus) {
-                    JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                    l.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-                    l.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-
-                    if (index == -1) {
-                        l.setOpaque(false);
-                        l.setForeground(Color.WHITE);
-                    } else {
-                        l.setOpaque(true);
-                        if (isSelected) {
-                            l.setBackground(new Color(14, 116, 144, 230));
-                            l.setForeground(Color.WHITE);
-                        } else {
-                            l.setBackground(new Color(15, 23, 42, 235));
-                            l.setForeground(new Color(226, 232, 240));
-                        }
-                    }
-                    return l;
-                }
-            });
-
-            setUI(new BasicComboBoxUI() {
-                @Override
-                protected JButton createArrowButton() {
-                    JButton btn = new JButton("▾");
-                    btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-                    btn.setForeground(new Color(56, 189, 248));
-                    btn.setContentAreaFilled(false);
-                    btn.setBorderPainted(false);
-                    btn.setFocusPainted(false);
-                    btn.setOpaque(false);
-                    btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                    return btn;
-                }
-
-                @Override
-                public void paintCurrentValueBackground(Graphics g, Rectangle bounds, boolean hasFocus) {
-                    // Evita pintar fondo opaco por defecto
-                }
-            });
-
-            setBorder(BorderFactory.createEmptyBorder(4, 12, 4, 8));
-
-            addFocusListener(new FocusAdapter() {
-                @Override
-                public void focusGained(FocusEvent e) {
-                    enfocado = true;
-                    repaint();
-                }
-
-                @Override
-                public void focusLost(FocusEvent e) {
-                    enfocado = false;
-                    repaint();
-                }
-            });
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            if (enfocado) {
-                g2.setColor(new Color(30, 41, 59, 215));
-            } else {
-                g2.setColor(new Color(15, 23, 42, 160));
-            }
-            g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, radio, radio);
-
-            if (enfocado) {
-                g2.setColor(new Color(56, 189, 248, 230));
-                g2.setStroke(new BasicStroke(1.8f));
-            } else {
-                g2.setColor(new Color(100, 116, 139, 130));
-                g2.setStroke(new BasicStroke(1.0f));
-            }
-            g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, radio, radio);
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
-    }
-
-    /**
-     * Botón con bordes redondeados, colores translúcidos y animación de hover.
-     */
-    private static class BotonEstilizado extends JButton {
-        private final Color colorNormal;
-        private final Color colorHover;
-        private final Color colorBorde;
-        private final int radio;
-        private boolean hover = false;
-
-        public BotonEstilizado(String texto, Color normal, Color hover, Color borde, int radio) {
-            super(texto);
-            this.colorNormal = normal;
-            this.colorHover = hover;
-            this.colorBorde = borde;
-            this.radio = radio;
-
-            setContentAreaFilled(false);
-            setBorderPainted(false);
-            setFocusPainted(false);
-            setOpaque(false);
-            setForeground(Color.WHITE);
-            setFont(new Font("Segoe UI", Font.BOLD, 14));
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-            addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseEntered(MouseEvent e) {
-                    BotonEstilizado.this.hover = true;
-                    repaint();
-                }
-
-                @Override
-                public void mouseExited(MouseEvent e) {
-                    BotonEstilizado.this.hover = false;
-                    repaint();
-                }
-            });
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            Color fondo = !isEnabled()
-                    ? new Color(51, 65, 85, 140)
-                    : (hover ? colorHover : colorNormal);
-            g2.setColor(fondo);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-
-            if (colorBorde != null) {
-                g2.setColor(!isEnabled()
-                        ? new Color(100, 116, 139, 90)
-                        : (hover ? colorBorde.brighter() : colorBorde));
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-            }
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
     }
 }

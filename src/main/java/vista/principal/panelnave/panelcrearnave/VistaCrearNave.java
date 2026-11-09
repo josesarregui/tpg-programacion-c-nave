@@ -1,25 +1,21 @@
 package vista.principal.panelnave.panelcrearnave;
 
-import java.awt.AlphaComposite;
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Composite;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
-import java.awt.RenderingHints;
+import java.awt.Image;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.net.URL;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -27,21 +23,27 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import modelo.nave.TipoNave;
 
 /**
  * Vista para la selección y creación de la nave interestelar.
- * Emplea tarjetas translúcidas (glassmorphism) coherentes con el diseño visual
- * de los paneles de Tripulación.
+ * Emplea un diseño espacial translúcido y tarjetas interactivas de naves.
+ * Todo el diseño y las tareas visuales se resuelven en la misma clase sin
+ * subclases internas.
  */
 public class VistaCrearNave extends JPanel implements IVistaCrearNave {
 
-    private final TarjetaNave bExploradora;
-    private final TarjetaNave bCarguera;
-    private final TarjetaNave bCombate;
-    private final BotonEstilizado bAceptar;
+    private final JButton bExploradora;
+    private final JButton bCarguera;
+    private final JButton bCombate;
+    private final JButton bAceptar;
+
+    private final JLabel lblEstadoExploradora;
+    private final JLabel lblEstadoCarguera;
+    private final JLabel lblEstadoCombate;
 
     private final JLabel txtSeleccion;
 
@@ -66,8 +68,7 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
 
         JLabel subtitulo = new JLabel(
                 "Elige la embarcación interestelar que comandarás durante la travesía",
-                SwingConstants.CENTER
-        );
+                SwingConstants.CENTER);
         subtitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
         subtitulo.setForeground(new Color(186, 230, 253));
         subtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -85,7 +86,8 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
         BufferedImage imgCarguera = cargarImagenRecortada("/imagenes/naves/carguera.png");
         BufferedImage imgCombate = cargarImagenRecortada("/imagenes/naves/combate.png");
 
-        this.bExploradora = new TarjetaNave(
+        this.lblEstadoExploradora = new JLabel();
+        this.bExploradora = crearTarjetaNave(
                 "Exploradora",
                 "RECONOCIMIENTO",
                 "Sensores de largo alcance y equilibrio energético",
@@ -93,11 +95,12 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
                 new Color(56, 189, 248),
                 60,
                 80,
-                0
-        );
+                0,
+                this.lblEstadoExploradora);
         this.bExploradora.setActionCommand(IVistaCrearNave.SELECCIONAR_EXPLORADORA);
 
-        this.bCarguera = new TarjetaNave(
+        this.lblEstadoCarguera = new JLabel();
+        this.bCarguera = crearTarjetaNave(
                 "Carguero",
                 "LOGÍSTICA PESADA",
                 "Máxima autonomía inicial de combustible en ruta",
@@ -105,11 +108,12 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
                 new Color(251, 191, 36),
                 100,
                 60,
-                0
-        );
+                0,
+                this.lblEstadoCarguera);
         this.bCarguera.setActionCommand(IVistaCrearNave.SELECCIONAR_CARGUERA);
 
-        this.bCombate = new TarjetaNave(
+        this.lblEstadoCombate = new JLabel();
+        this.bCombate = crearTarjetaNave(
                 "Combate",
                 "DEFENSA TÁCTICA",
                 "Núcleo energético de máxima potencia táctica",
@@ -117,8 +121,8 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
                 new Color(192, 132, 252),
                 80,
                 100,
-                0
-        );
+                0,
+                this.lblEstadoCombate);
         this.bCombate.setActionCommand(IVistaCrearNave.SELECCIONAR_COMBATE);
 
         JPanel panelNaves = new JPanel(new GridLayout(1, 3, 20, 0));
@@ -136,11 +140,9 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
         this.txtSeleccion.setForeground(new Color(186, 230, 253));
         this.txtSeleccion.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
-        PanelTranslucido badgeSeleccion = new PanelTranslucido(
-                14,
+        JPanel badgeSeleccion = crearPanelTranslucido(
                 new Color(15, 23, 42, 180),
-                new Color(56, 189, 248, 95)
-        );
+                new Color(56, 189, 248, 95));
         badgeSeleccion.setLayout(new FlowLayout(FlowLayout.CENTER, 16, 6));
         badgeSeleccion.add(this.txtSeleccion);
 
@@ -148,14 +150,12 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
         filaSeleccion.setOpaque(false);
         filaSeleccion.add(badgeSeleccion);
 
-        this.bAceptar = new BotonEstilizado(
+        this.bAceptar = crearBoton(
                 "Confirmar y Crear Nave",
                 new Color(16, 185, 129, 215),
                 new Color(34, 197, 94, 245),
                 new Color(74, 222, 128, 220),
-                14
-        );
-        this.bAceptar.setFont(new Font("Segoe UI", Font.BOLD, 15));
+                10);
         this.bAceptar.setPreferredSize(new Dimension(320, 44));
         this.bAceptar.setActionCommand(IVistaCrearNave.ACEPTAR);
 
@@ -173,18 +173,304 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
         this.add(panelInferior, BorderLayout.SOUTH);
     }
 
+    private JButton crearTarjetaNave(
+            String nombre,
+            String rol,
+            String descripcion,
+            BufferedImage imagen,
+            Color colorAcento,
+            int combustible,
+            int energia,
+            int desgaste,
+            JLabel lblEstado) {
+        JButton tarjeta = new JButton();
+        tarjeta.setLayout(new BorderLayout(0, 10));
+        tarjeta.setOpaque(true);
+        tarjeta.setBackground(new Color(15, 23, 42, 175));
+        tarjeta.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(56, 189, 248, 120), 1, true),
+                new EmptyBorder(16, 16, 16, 16)));
+        tarjeta.setFocusPainted(false);
+        tarjeta.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        // 1. Fila superior: Badge de rol (izquierda) y estado (derecha)
+        JPanel filaSuperior = new JPanel(new BorderLayout());
+        filaSuperior.setOpaque(false);
+
+        JLabel lblRol = new JLabel(rol);
+        lblRol.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblRol.setForeground(colorAcento);
+        lblRol.setOpaque(true);
+        lblRol.setBackground(new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 35));
+        lblRol.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(
+                        new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 120), 1, true),
+                new EmptyBorder(2, 8, 2, 8)));
+
+        lblEstado.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblEstado.setText("DISPONIBLE");
+        lblEstado.setForeground(new Color(148, 163, 184));
+        lblEstado.setOpaque(true);
+        lblEstado.setBackground(new Color(255, 255, 255, 15));
+        lblEstado.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(148, 163, 184, 60), 1, true),
+                new EmptyBorder(2, 8, 2, 8)));
+
+        filaSuperior.add(lblRol, BorderLayout.WEST);
+        filaSuperior.add(lblEstado, BorderLayout.EAST);
+
+        // 2. Títulos: nombre y descripción
+        JPanel bloqueTexto = new JPanel(new GridLayout(2, 1, 0, 4));
+        bloqueTexto.setOpaque(false);
+
+        JLabel lblNombre = new JLabel(nombre.toUpperCase());
+        lblNombre.setFont(new Font("Segoe UI", Font.BOLD, 19));
+        lblNombre.setForeground(Color.WHITE);
+
+        JLabel lblDesc = new JLabel(descripcion);
+        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblDesc.setForeground(new Color(148, 163, 184));
+
+        bloqueTexto.add(lblNombre);
+        bloqueTexto.add(lblDesc);
+
+        JPanel panelNorte = new JPanel();
+        panelNorte.setLayout(new BoxLayout(panelNorte, BoxLayout.Y_AXIS));
+        panelNorte.setOpaque(false);
+        panelNorte.add(filaSuperior);
+        panelNorte.add(Box.createVerticalStrut(8));
+        panelNorte.add(bloqueTexto);
+
+        tarjeta.add(panelNorte, BorderLayout.NORTH);
+
+        // 3. Vitrina central con la ilustración
+        JPanel panelVitrina = new JPanel(new BorderLayout());
+        panelVitrina.setOpaque(true);
+        panelVitrina.setBackground(new Color(8, 15, 30, 95));
+        panelVitrina.setBorder(BorderFactory.createLineBorder(
+                new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 80), 1, true));
+
+        if (imagen != null) {
+            int maxW = 220;
+            int maxH = 140;
+            double factor = Math.min((double) maxW / imagen.getWidth(), (double) maxH / imagen.getHeight());
+            int drawW = Math.max(1, (int) Math.round(imagen.getWidth() * factor));
+            int drawH = Math.max(1, (int) Math.round(imagen.getHeight() * factor));
+            Image escalada = imagen.getScaledInstance(drawW, drawH, Image.SCALE_SMOOTH);
+            JLabel lblImagen = new JLabel(new ImageIcon(escalada), SwingConstants.CENTER);
+            panelVitrina.add(lblImagen, BorderLayout.CENTER);
+        }
+
+        tarjeta.add(panelVitrina, BorderLayout.CENTER);
+
+        // 4. Panel inferior de configuración inicial
+        JPanel panelConfig = new JPanel(new GridLayout(4, 1, 0, 4));
+        panelConfig.setOpaque(true);
+        panelConfig.setBackground(new Color(255, 255, 255, 12));
+        panelConfig.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(
+                        new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 60), 1, true),
+                new EmptyBorder(8, 12, 8, 12)));
+
+        JPanel filaEncabezado = new JPanel(new BorderLayout());
+        filaEncabezado.setOpaque(false);
+        JLabel lblTituloConfig = new JLabel("CONFIGURACIÓN INICIAL");
+        lblTituloConfig.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblTituloConfig.setForeground(new Color(186, 230, 253));
+        JLabel lblMotor = new JLabel("Warp: Disponible");
+        lblMotor.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblMotor.setForeground(new Color(74, 222, 128));
+        filaEncabezado.add(lblTituloConfig, BorderLayout.WEST);
+        filaEncabezado.add(lblMotor, BorderLayout.EAST);
+
+        panelConfig.add(filaEncabezado);
+        panelConfig.add(crearFilaBarraRecurso("Combustible", combustible, new Color(56, 189, 248)));
+        panelConfig.add(crearFilaBarraRecurso("Energía", energia, new Color(52, 211, 153)));
+        panelConfig.add(crearFilaBarraRecurso("Desgaste", desgaste, new Color(251, 191, 36)));
+
+        tarjeta.add(panelConfig, BorderLayout.SOUTH);
+
+        // Efectos hover
+        tarjeta.addMouseListener(new MouseListener() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (tipoSeleccionado == null || !tarjetaEsSeleccionada(nombre)) {
+                    tarjeta.setBackground(new Color(20, 32, 56, 205));
+                    lblEstado.setText("SELECCIONAR");
+                    lblEstado.setForeground(Color.WHITE);
+                }
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                boolean seleccionada = tarjetaEsSeleccionada(nombre);
+                boolean atenuada = tipoSeleccionado != null && !seleccionada;
+                actualizarEstadoTarjeta(tarjeta, lblEstado, colorAcento, seleccionada, atenuada);
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+            }
+        });
+
+        return tarjeta;
+    }
+
+    private JPanel crearFilaBarraRecurso(String etiqueta, int valor, Color colorBarra) {
+        JPanel fila = new JPanel(new BorderLayout(6, 2));
+        fila.setOpaque(false);
+
+        JLabel lbl = new JLabel(etiqueta);
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lbl.setForeground(new Color(226, 232, 240));
+
+        JLabel val = new JLabel(valor + " / 100", SwingConstants.RIGHT);
+        val.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        val.setForeground(colorBarra);
+
+        JProgressBar barra = new JProgressBar(0, 100);
+        barra.setValue(valor);
+        barra.setPreferredSize(new Dimension(0, 6));
+        barra.setForeground(colorBarra);
+        barra.setBackground(new Color(255, 255, 255, 24));
+        barra.setBorder(BorderFactory.createEmptyBorder());
+
+        JPanel textos = new JPanel(new BorderLayout());
+        textos.setOpaque(false);
+        textos.add(lbl, BorderLayout.WEST);
+        textos.add(val, BorderLayout.EAST);
+
+        fila.add(textos, BorderLayout.NORTH);
+        fila.add(barra, BorderLayout.SOUTH);
+        return fila;
+    }
+
+    private boolean tarjetaEsSeleccionada(String nombre) {
+        if (this.tipoSeleccionado == null) {
+            return false;
+        }
+        return (tipoSeleccionado == TipoNave.EXPLORADORA && "Exploradora".equalsIgnoreCase(nombre))
+                || (tipoSeleccionado == TipoNave.CARGUERO && "Carguero".equalsIgnoreCase(nombre))
+                || (tipoSeleccionado == TipoNave.COMBATE && "Combate".equalsIgnoreCase(nombre));
+    }
+
+    private void actualizarEstadoTarjeta(
+            JButton tarjeta,
+            JLabel lblEstado,
+            Color colorAcento,
+            boolean seleccionada,
+            boolean atenuada) {
+        if (seleccionada) {
+            tarjeta.setBackground(new Color(18, 30, 54, 220));
+            tarjeta.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(
+                            new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 235), 2,
+                            true),
+                    new EmptyBorder(15, 15, 15, 15)));
+            lblEstado.setText("● ACTIVA");
+            lblEstado.setForeground(new Color(74, 222, 128));
+            lblEstado.setBackground(new Color(16, 185, 129, 45));
+            lblEstado.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(74, 222, 128, 180), 1, true),
+                    new EmptyBorder(2, 8, 2, 8)));
+        } else if (atenuada) {
+            tarjeta.setBackground(new Color(15, 23, 42, 140));
+            tarjeta.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(100, 116, 139, 75), 1, true),
+                    new EmptyBorder(16, 16, 16, 16)));
+            lblEstado.setText("DISPONIBLE");
+            lblEstado.setForeground(new Color(148, 163, 184));
+            lblEstado.setBackground(new Color(255, 255, 255, 15));
+            lblEstado.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(148, 163, 184, 60), 1, true),
+                    new EmptyBorder(2, 8, 2, 8)));
+        } else {
+            tarjeta.setBackground(new Color(15, 23, 42, 175));
+            tarjeta.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(
+                            new Color(colorAcento.getRed(), colorAcento.getGreen(), colorAcento.getBlue(), 120), 1,
+                            true),
+                    new EmptyBorder(16, 16, 16, 16)));
+            lblEstado.setText("DISPONIBLE");
+            lblEstado.setForeground(new Color(148, 163, 184));
+            lblEstado.setBackground(new Color(255, 255, 255, 15));
+            lblEstado.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(148, 163, 184, 60), 1, true),
+                    new EmptyBorder(2, 8, 2, 8)));
+        }
+        tarjeta.repaint();
+    }
+
+    private JPanel crearPanelTranslucido(Color colorFondo, Color colorBorde) {
+        JPanel panel = new JPanel();
+        panel.setOpaque(true);
+        panel.setBackground(colorFondo);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(colorBorde, 1, true),
+                new EmptyBorder(6, 16, 6, 16)));
+        return panel;
+    }
+
+    private JButton crearBoton(String texto, Color normal, Color hover, Color borde, int paddingV) {
+        JButton btn = new JButton(texto);
+        btn.setOpaque(true);
+        btn.setBackground(normal);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borde, 1, true),
+                BorderFactory.createEmptyBorder(paddingV, 20, paddingV, 20)));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.addMouseListener(new MouseListener() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (btn.isEnabled()) {
+                    btn.setBackground(hover);
+                }
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (btn.isEnabled()) {
+                    btn.setBackground(normal);
+                }
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+            }
+        });
+        return btn;
+    }
+
     private BufferedImage cargarImagenRecortada(String rutaImagen) {
         URL ruta = getClass().getResource(rutaImagen);
         if (ruta == null) {
-            throw new RuntimeException("No se encontró la imagen: " + rutaImagen);
+            return null;
         }
 
         ImageIcon iconoOriginal = new ImageIcon(ruta);
         BufferedImage original = new BufferedImage(
                 iconoOriginal.getIconWidth(),
                 iconoOriginal.getIconHeight(),
-                BufferedImage.TYPE_INT_ARGB
-        );
+                BufferedImage.TYPE_INT_ARGB);
 
         Graphics2D gOriginal = original.createGraphics();
         gOriginal.drawImage(iconoOriginal.getImage(), 0, 0, null);
@@ -219,8 +505,7 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
                 minX,
                 minY,
                 maxX - minX + 1,
-                maxY - minY + 1
-        );
+                maxY - minY + 1);
     }
 
     @Override
@@ -233,9 +518,12 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
         this.tipoSeleccionado = tipo;
 
         boolean haySeleccion = tipo != null;
-        this.bExploradora.actualizarEstado(tipo == TipoNave.EXPLORADORA, haySeleccion && tipo != TipoNave.EXPLORADORA);
-        this.bCarguera.actualizarEstado(tipo == TipoNave.CARGUERO, haySeleccion && tipo != TipoNave.CARGUERO);
-        this.bCombate.actualizarEstado(tipo == TipoNave.COMBATE, haySeleccion && tipo != TipoNave.COMBATE);
+        actualizarEstadoTarjeta(this.bExploradora, this.lblEstadoExploradora, new Color(56, 189, 248),
+                tipo == TipoNave.EXPLORADORA, haySeleccion && tipo != TipoNave.EXPLORADORA);
+        actualizarEstadoTarjeta(this.bCarguera, this.lblEstadoCarguera, new Color(251, 191, 36),
+                tipo == TipoNave.CARGUERO, haySeleccion && tipo != TipoNave.CARGUERO);
+        actualizarEstadoTarjeta(this.bCombate, this.lblEstadoCombate, new Color(192, 132, 252),
+                tipo == TipoNave.COMBATE, haySeleccion && tipo != TipoNave.COMBATE);
 
         if (tipo == TipoNave.EXPLORADORA) {
             this.txtSeleccion.setText("Nave seleccionada: Exploradora");
@@ -269,8 +557,7 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
                 this,
                 mensaje,
                 "Error",
-                JOptionPane.ERROR_MESSAGE
-        );
+                JOptionPane.ERROR_MESSAGE);
     }
 
     // =========================================================================
@@ -295,400 +582,5 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
 
     JLabel getLblSeleccion() {
         return this.txtSeleccion;
-    }
-
-    // =========================================================================
-    // COMPONENTES PERSONALIZADOS CON TRANSLUCIDEZ (GLASSMORPHISM)
-    // =========================================================================
-
-    /**
-     * Tarjeta interactiva de selección de nave con ilustración escalada proporcionalmente,
-     * insignia de rol e indicadores de configuración inicial.
-     */
-    private static class TarjetaNave extends JButton {
-        private final String nombre;
-        private final String rol;
-        private final String descripcion;
-        private final BufferedImage imagen;
-        private final Color acento;
-        private final int combustible;
-        private final int energia;
-        private final int desgaste;
-
-        private boolean seleccionada = false;
-        private boolean atenuada = false;
-        private boolean hover = false;
-
-        TarjetaNave(
-                String nombre,
-                String rol,
-                String descripcion,
-                BufferedImage imagen,
-                Color acento,
-                int combustible,
-                int energia,
-                int desgaste
-        ) {
-            this.nombre = nombre;
-            this.rol = rol;
-            this.descripcion = descripcion;
-            this.imagen = imagen;
-            this.acento = acento;
-            this.combustible = combustible;
-            this.energia = energia;
-            this.desgaste = desgaste;
-
-            setContentAreaFilled(false);
-            setBorderPainted(false);
-            setFocusPainted(false);
-            setOpaque(false);
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-            addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseEntered(MouseEvent e) {
-                    hover = true;
-                    repaint();
-                }
-
-                @Override
-                public void mouseExited(MouseEvent e) {
-                    hover = false;
-                    repaint();
-                }
-            });
-        }
-
-        void actualizarEstado(boolean seleccionada, boolean atenuada) {
-            this.seleccionada = seleccionada;
-            this.atenuada = atenuada;
-            repaint();
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-
-            int w = getWidth();
-            int h = getHeight();
-            int padX = 18;
-            int padY = 16;
-
-            // 1. Fondo y borde translúcido de la tarjeta
-            Color fondoTarjeta;
-            if (seleccionada) {
-                fondoTarjeta = new Color(18, 30, 54, 210);
-            } else if (hover) {
-                fondoTarjeta = new Color(20, 32, 56, 195);
-            } else if (atenuada) {
-                fondoTarjeta = new Color(15, 23, 42, 145);
-            } else {
-                fondoTarjeta = new Color(15, 23, 42, 175);
-            }
-            g2.setColor(fondoTarjeta);
-            g2.fillRoundRect(1, 1, w - 2, h - 2, 18, 18);
-
-            if (seleccionada) {
-                g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 235));
-                g2.setStroke(new BasicStroke(2.2f));
-            } else if (hover) {
-                g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 180));
-                g2.setStroke(new BasicStroke(1.5f));
-            } else if (atenuada) {
-                g2.setColor(new Color(100, 116, 139, 75));
-                g2.setStroke(new BasicStroke(1.0f));
-            } else {
-                g2.setColor(new Color(56, 189, 248, 120));
-                g2.setStroke(new BasicStroke(1.2f));
-            }
-            g2.drawRoundRect(1, 1, w - 3, h - 3, 18, 18);
-
-            // 2. Fila superior: Badge de rol (izquierda) y estado (derecha)
-            dibujarPill(
-                    g2,
-                    padX,
-                    padY,
-                    rol,
-                    new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), seleccionada ? 55 : 35),
-                    new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), seleccionada ? 200 : 120),
-                    acento,
-                    false,
-                    false
-            );
-
-            String textoEstado = seleccionada ? "ACTIVA" : (hover ? "SELECCIONAR" : "DISPONIBLE");
-            Color colorTextoEstado = seleccionada
-                    ? new Color(74, 222, 128)
-                    : (hover ? Color.WHITE : new Color(148, 163, 184));
-            Color fondoEstado = seleccionada
-                    ? new Color(16, 185, 129, 45)
-                    : new Color(255, 255, 255, hover ? 25 : 12);
-            Color bordeEstado = seleccionada
-                    ? new Color(74, 222, 128, 180)
-                    : new Color(148, 163, 184, hover ? 130 : 60);
-            dibujarPill(g2, w - padX, padY, textoEstado, fondoEstado, bordeEstado, colorTextoEstado, true, seleccionada);
-
-            // 3. Título y descripción de la clase de nave
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 20));
-            g2.setColor(atenuada && !hover ? new Color(203, 213, 225) : Color.WHITE);
-            g2.drawString(nombre.toUpperCase(), padX, padY + 46);
-
-            g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            g2.setColor(new Color(148, 163, 184));
-            g2.drawString(recortarTexto(g2, descripcion, w - 2 * padX), padX, padY + 65);
-
-            // 4. Caja inferior de configuración inicial (Ficha de Inicio)
-            int teleH = 118;
-            int teleY = h - padY - teleH;
-            int teleW = w - 2 * padX;
-
-            g2.setColor(new Color(255, 255, 255, seleccionada ? 16 : 10));
-            g2.fillRoundRect(padX, teleY, teleW, teleH, 12, 12);
-            g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), seleccionada ? 95 : 45));
-            g2.setStroke(new BasicStroke(1.0f));
-            g2.drawRoundRect(padX, teleY, teleW, teleH, 12, 12);
-
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
-            g2.setColor(new Color(186, 230, 253));
-            g2.drawString("CONFIGURACIÓN INICIAL", padX + 12, teleY + 18);
-
-            String textoMotor = "Warp: Disponible";
-            FontMetrics fmHeader = g2.getFontMetrics();
-            g2.setColor(new Color(74, 222, 128));
-            g2.drawString(textoMotor, padX + teleW - 12 - fmHeader.stringWidth(textoMotor), teleY + 18);
-
-            dibujarBarraInicial(
-                    g2, padX + 12, teleY + 34, teleW - 24,
-                    "Combustible", combustible, new Color(56, 189, 248)
-            );
-            dibujarBarraInicial(
-                    g2, padX + 12, teleY + 62, teleW - 24,
-                    "Energía", energia, new Color(52, 211, 153)
-            );
-            dibujarBarraInicial(
-                    g2, padX + 12, teleY + 90, teleW - 24,
-                    "Desgaste", desgaste, new Color(251, 191, 36)
-            );
-
-            // 5. Vitrina central con la ilustración de la nave
-            int showY = padY + 76;
-            int showH = Math.max(70, teleY - 12 - showY);
-            int showW = w - 2 * padX;
-
-            g2.setColor(seleccionada
-                    ? new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 24)
-                    : new Color(8, 15, 30, 95));
-            g2.fillRoundRect(padX, showY, showW, showH, 14, 14);
-
-            g2.setColor(seleccionada
-                    ? new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 110)
-                    : new Color(255, 255, 255, 20));
-            g2.setStroke(new BasicStroke(1.0f));
-            g2.drawRoundRect(padX, showY, showW, showH, 14, 14);
-
-            if (imagen != null && showW > 24 && showH > 24) {
-                int maxImgW = showW - 28;
-                int maxImgH = showH - 20;
-                double factorEscala = seleccionarEscala(imagen.getWidth(), imagen.getHeight(), maxImgW, maxImgH);
-                if (atenuada && !hover) {
-                    factorEscala *= 0.90;
-                }
-                int drawW = Math.max(1, (int) Math.round(imagen.getWidth() * factorEscala));
-                int drawH = Math.max(1, (int) Math.round(imagen.getHeight() * factorEscala));
-                int drawX = padX + (showW - drawW) / 2;
-                int drawY = showY + (showH - drawH) / 2;
-
-                Composite compOriginal = g2.getComposite();
-                float opacidad = (atenuada && !hover) ? 0.45f : (atenuada ? 0.80f : 1.0f);
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacidad));
-                g2.drawImage(imagen, drawX, drawY, drawW, drawH, null);
-                g2.setComposite(compOriginal);
-            }
-
-            g2.dispose();
-        }
-
-        private static double seleccionarEscala(int imgW, int imgH, int cajaW, int cajaH) {
-            return Math.min((double) cajaW / imgW, (double) cajaH / imgH);
-        }
-
-        private static void dibujarPill(
-                Graphics2D g2,
-                int xRef,
-                int y,
-                String texto,
-                Color fondo,
-                Color borde,
-                Color colorTexto,
-                boolean alinearDerecha,
-                boolean conPuntoActivo
-        ) {
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
-            FontMetrics fm = g2.getFontMetrics();
-            int extraPunto = conPuntoActivo ? 11 : 0;
-            int pillW = fm.stringWidth(texto) + 16 + extraPunto;
-            int pillH = 20;
-            int x = alinearDerecha ? (xRef - pillW) : xRef;
-
-            g2.setColor(fondo);
-            g2.fillRoundRect(x, y, pillW, pillH, 8, 8);
-            g2.setColor(borde);
-            g2.setStroke(new BasicStroke(1.0f));
-            g2.drawRoundRect(x, y, pillW, pillH, 8, 8);
-
-            g2.setColor(colorTexto);
-            int textX = x + 8;
-            if (conPuntoActivo) {
-                g2.fillOval(textX, y + 7, 6, 6);
-                textX += 11;
-            }
-            int textY = y + ((pillH - fm.getHeight()) / 2) + fm.getAscent();
-            g2.drawString(texto, textX, textY);
-        }
-
-        private static void dibujarBarraInicial(
-                Graphics2D g2,
-                int x,
-                int y,
-                int ancho,
-                String etiqueta,
-                int valor,
-                Color colorBarra
-        ) {
-            g2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-            g2.setColor(new Color(226, 232, 240));
-            g2.drawString(etiqueta, x, y);
-
-            String txtValor = valor + " / 100";
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            FontMetrics fm = g2.getFontMetrics();
-            g2.setColor(colorBarra);
-            g2.drawString(txtValor, x + ancho - fm.stringWidth(txtValor), y);
-
-            int barY = y + 5;
-            int barH = 6;
-            g2.setColor(new Color(255, 255, 255, 24));
-            g2.fillRoundRect(x, barY, ancho, barH, 6, 6);
-
-            int fillW = Math.max(0, Math.min(ancho, (int) Math.round((valor / 100.0) * ancho)));
-            if (fillW > 0) {
-                g2.setColor(colorBarra);
-                g2.fillRoundRect(x, barY, fillW, barH, 6, 6);
-            }
-        }
-
-        private static String recortarTexto(Graphics2D g2, String texto, int anchoMaximo) {
-            FontMetrics fm = g2.getFontMetrics();
-            if (fm.stringWidth(texto) <= anchoMaximo) {
-                return texto;
-            }
-            String sufijo = "...";
-            int len = texto.length();
-            while (len > 0 && fm.stringWidth(texto.substring(0, len) + sufijo) > anchoMaximo) {
-                len--;
-            }
-            return texto.substring(0, Math.max(0, len)) + sufijo;
-        }
-    }
-
-    /**
-     * Panel con fondo translúcido y bordes redondeados.
-     */
-    private static class PanelTranslucido extends JPanel {
-        private final int radio;
-        private final Color colorFondo;
-        private final Color colorBorde;
-
-        PanelTranslucido(int radio, Color colorFondo, Color colorBorde) {
-            this.radio = radio;
-            this.colorFondo = colorFondo;
-            this.colorBorde = colorBorde;
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            g2.setColor(colorFondo);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-
-            if (colorBorde != null) {
-                g2.setColor(colorBorde);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-            }
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
-    }
-
-    /**
-     * Botón estilizado con bordes redondeados y efecto hover translúcido.
-     */
-    private static class BotonEstilizado extends JButton {
-        private final Color colorNormal;
-        private final Color colorHover;
-        private final Color colorBorde;
-        private final int radio;
-        private boolean hover = false;
-
-        BotonEstilizado(String texto, Color normal, Color hover, Color borde, int radio) {
-            super(texto);
-            this.colorNormal = normal;
-            this.colorHover = hover;
-            this.colorBorde = borde;
-            this.radio = radio;
-
-            setContentAreaFilled(false);
-            setBorderPainted(false);
-            setFocusPainted(false);
-            setOpaque(false);
-            setForeground(Color.WHITE);
-            setFont(new Font("Segoe UI", Font.BOLD, 14));
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-            addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseEntered(MouseEvent e) {
-                    BotonEstilizado.this.hover = true;
-                    repaint();
-                }
-
-                @Override
-                public void mouseExited(MouseEvent e) {
-                    BotonEstilizado.this.hover = false;
-                    repaint();
-                }
-            });
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            Color fondo = !isEnabled()
-                    ? new Color(51, 65, 85, 140)
-                    : (hover ? colorHover : colorNormal);
-            g2.setColor(fondo);
-            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-
-            if (colorBorde != null) {
-                g2.setColor(!isEnabled()
-                        ? new Color(100, 116, 139, 90)
-                        : (hover ? colorBorde.brighter() : colorBorde));
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radio, radio);
-            }
-
-            g2.dispose();
-            super.paintComponent(g);
-        }
     }
 }
