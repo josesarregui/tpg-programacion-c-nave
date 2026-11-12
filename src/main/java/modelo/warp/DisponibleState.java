@@ -60,6 +60,16 @@ public class DisponibleState implements State {
     }
 
     @Override
+    public void saltar() {
+        // Salto normal permitido, permanece disponible
+    }
+
+    @Override
+    public void saltarWarp() {
+        prepararSalto();
+    }
+
+    @Override
     public String toString() {
         return NOMBRE;
     }

@@ -113,6 +113,20 @@ public class MotorWarp {
         return estado.estaDisponible();
     }
 
+    /**
+     * Realiza un salto simple (avance de 1 casillero con camino despejado).
+     */
+    public void saltar() throws EstadoMotorInvalidoException {
+        estado.saltar();
+    }
+
+    /**
+     * Realiza un salto Warp (maniobra de evasión avanzando 2 casilleros).
+     */
+    public void saltarWarp() throws EstadoMotorInvalidoException {
+        estado.saltarWarp();
+    }
+
     private boolean invariante() {
         return estado != null;
     }

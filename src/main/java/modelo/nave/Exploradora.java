@@ -1,7 +1,11 @@
 package modelo.nave;
 
+import modelo.universo.NaveEnemiga;
+import modelo.universo.ResultadoCombate;
+
 /**
- * Nave exploradora (E1-01). Se diferencia de las demás por su configuración inicial de recursos
+ * Nave exploradora (E1-01). Se diferencia de las demás por su configuración
+ * inicial de recursos
  * (Ficha de Inicio, punto 2). Sólo puede crearse mediante {@link NaveFactory}.
  */
 public class Exploradora extends Nave {
@@ -20,5 +24,10 @@ public class Exploradora extends Nave {
     @Override
     public TipoNave getTipo() {
         return TipoNave.EXPLORADORA;
+    }
+
+    @Override
+    public ResultadoCombate enfrentar(NaveEnemiga enemiga) {
+        return enemiga.enfrentarCon(this);
     }
 }

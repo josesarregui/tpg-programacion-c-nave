@@ -78,6 +78,7 @@ public class VistaDetallesNaveTest {
 
         // Al instanciar el controlador, suscribe la vista a la nave
         ControladorDetallesNave controlador = new ControladorDetallesNave((IVistaDetallesNave) (vista.principal.paneldetallesnave.IVistaDetallesNave) (IVistaDetallesNave) vista, asistente);
+
         controlador.actualizarVista();
 
         assertEquals("Combustible: 60", vista.getTextoCombustible());

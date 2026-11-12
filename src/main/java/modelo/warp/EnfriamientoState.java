@@ -62,6 +62,11 @@ public class EnfriamientoState implements State {
     }
 
     @Override
+    public void saltarWarp() {
+        enfriar();
+    }
+
+    @Override
     public String toString() {
         return NOMBRE;
     }
