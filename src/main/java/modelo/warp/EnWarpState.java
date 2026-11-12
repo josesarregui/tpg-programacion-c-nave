@@ -3,7 +3,8 @@ package modelo.warp;
 import excepcion.EstadoMotorInvalidoException;
 
 /**
- * Representa la fase en la cual la nave se encuentra navegando en hiperespacio (Warp).
+ * Representa la fase en la cual la nave se encuentra navegando en hiperespacio
+ * (Warp).
  * En este estado, los reactores operan a máxima potencia de distorsión.
  * La única acción válida es desactivar Warp para salir del hiperespacio
  * e iniciar la fase de enfriamiento térmico.
@@ -16,8 +17,10 @@ public class EnWarpState implements State {
     private final MotorWarp motor;
 
     /**
-     * Constructor de paquete: sólo lo usan el motor y los demás estados al completar una transición válida.
-     * Así ningún cliente puede crear un estado para forzar un cambio que saltee el ciclo (E1-02).
+     * Constructor de paquete: sólo lo usan el motor y los demás estados al
+     * completar una transición válida.
+     * Así ningún cliente puede crear un estado para forzar un cambio que saltee el
+     * ciclo (E1-02).
      *
      * @pre motor != null.
      */
@@ -30,16 +33,14 @@ public class EnWarpState implements State {
     public void prepararSalto() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
                 "Transición inválida: No se puede preparar un salto mientras la nave ya está navegando en Warp.",
-                NOMBRE
-        );
+                NOMBRE);
     }
 
     @Override
     public void iniciarWarp() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
                 "Transición inválida: El motor ya se encuentra activo en velocidad Warp.",
-                NOMBRE
-        );
+                NOMBRE);
     }
 
     @Override
@@ -52,13 +53,17 @@ public class EnWarpState implements State {
     public void enfriar() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
                 "Transición inválida: No se puede enfriar el motor mientras el campo Warp continúe activo. Debe desactivarse primero.",
-                NOMBRE
-        );
+                NOMBRE);
     }
 
     @Override
     public boolean estaDisponible() {
         return false;
+    }
+
+    @Override
+    public void saltarWarp() {
+        desactivarWarp();
     }
 
     @Override

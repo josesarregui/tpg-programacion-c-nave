@@ -61,6 +61,11 @@ public class PreparandoSaltoState implements State {
     }
 
     @Override
+    public void saltarWarp() {
+        iniciarWarp();
+    }
+
+    @Override
     public String toString() {
         return NOMBRE;
     }

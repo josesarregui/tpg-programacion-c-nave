@@ -1,5 +1,8 @@
 package modelo.nave;
 
+import modelo.universo.NaveEnemiga;
+import modelo.universo.ResultadoCombate;
+
 /**
  * Nave de combate (E1-01). Se diferencia de las demás por su configuración inicial de recursos
  * (Ficha de Inicio, punto 2). Sólo puede crearse mediante {@link NaveFactory}.
@@ -20,5 +23,10 @@ public class Combate extends Nave {
     @Override
     public TipoNave getTipo() {
         return TipoNave.COMBATE;
+    }
+
+    @Override
+    public ResultadoCombate enfrentar(NaveEnemiga enemiga) {
+        return enemiga.enfrentarCon(this);
     }
 }

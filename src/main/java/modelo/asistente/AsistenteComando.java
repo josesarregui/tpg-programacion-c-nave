@@ -71,7 +71,6 @@ public class AsistenteComando implements Asistente {
     }
     
     
-    
     // --- Consultas sobre la Tripulacion ---
     
     public List<Tripulante> getTripulantes() {
@@ -90,6 +89,11 @@ public class AsistenteComando implements Asistente {
     
     
     // --- Consultas sobre la nave ---
+    
+    @Override
+    public Nave getNave() {
+        return this.nave;
+    }
 
     @Override
     public int getIdNave() {

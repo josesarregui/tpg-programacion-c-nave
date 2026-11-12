@@ -13,6 +13,7 @@ import modelo.nave.TipoNave;
 import modelo.tripulacion.Tripulacion;
 
 import java.util.List;
+import modelo.nave.Nave;
 import modelo.tripulacion.Tripulante;
 
 /**
@@ -41,6 +42,11 @@ public interface Asistente {
     public int getCantidadTripulantes();
 
     // --- Consultas sobre la nave que opera ---
+    
+    /**
+     * @return la nave operada por el asistente.
+     */
+    Nave getNave();
 
     /**
      * @return identificador de la nave que opera el asistente.
