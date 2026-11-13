@@ -75,14 +75,14 @@ public class NaveTest {
     public void testMotorNoDisponible() throws Exception {
         nave.asignarTripulacion(tripulacion);
 
-        nave.getMotor().prepararSalto();
-        assertFalse(nave.estaListaParaOperar());
+        nave.getMotor().saltarWarp();
+        assertFalse(nave.estaListaParaOperar(), "Preparando el salto el motor no está disponible.");
 
-        nave.getMotor().iniciarWarp();
-        nave.getMotor().desactivarWarp();
+        nave.getMotor().saltarWarp();
+        nave.getMotor().saltarWarp();
         assertFalse(nave.estaListaParaOperar(), "En Enfriamiento el motor todavía no está disponible.");
 
-        nave.getMotor().enfriar();
+        nave.getMotor().saltarWarp();
         assertTrue(nave.estaListaParaOperar());
     }
 

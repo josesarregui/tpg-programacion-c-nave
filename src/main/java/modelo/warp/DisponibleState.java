@@ -1,11 +1,11 @@
 package modelo.warp;
 
-import excepcion.EstadoMotorInvalidoException;
+import excepcion.RecursoInsuficienteException;
+import modelo.nave.TipoRecurso;
 
 /**
- * Estado inicial del motor (Ficha de Inicio, punto 2): el motor está libre y la nave puede iniciar
- * una nueva operación. La única acción válida es preparar el salto; las demás se rechazan
- * con {@link EstadoMotorInvalidoException} sin cambiar el estado.
+ * Estado inicial del motor: no hay ninguna maniobra en curso.
+ * Permite el salto normal y comenzar la preparación del salto warp.
  */
 public class DisponibleState implements State {
 
@@ -14,8 +14,8 @@ public class DisponibleState implements State {
     private final MotorWarp motor;
 
     /**
-     * Constructor de paquete: sólo lo usan el motor y los demás estados al completar una transición válida.
-     * Así ningún cliente puede crear un estado para forzar un cambio que saltee el ciclo (E1-02).
+     * Constructor de paquete: sólo lo usan el motor y los demás estados al completar un paso de la maniobra.
+     * Así ningún cliente puede crear un estado para forzar un cambio que saltee el ciclo.
      *
      * @pre motor != null.
      */
@@ -24,49 +24,37 @@ public class DisponibleState implements State {
         this.motor = motor;
     }
 
+    /**
+     * Salto normal: si hay combustible, lo consume y la nave avanza un casillero. El motor sigue Disponible.
+     *
+     * @throws RecursoInsuficienteException si no alcanza el combustible; nada cambia.
+     */
     @Override
-    public void prepararSalto() {
-        // Única transición válida
-        this.motor.setEstado(new PreparandoSaltoState(this.motor));
+    public int saltar() throws RecursoInsuficienteException {
+        SuministroMotor suministro = motor.getSuministro();
+        if (suministro.getCombustible() < MotorWarp.COMBUSTIBLE_SALTO_NORMAL) {
+            throw new RecursoInsuficienteException(TipoRecurso.COMBUSTIBLE, suministro.getCombustible(),
+                    MotorWarp.COMBUSTIBLE_SALTO_NORMAL);
+        }
+        suministro.consumirCombustible(MotorWarp.COMBUSTIBLE_SALTO_NORMAL);
+        return MotorWarp.CASILLEROS_SALTO_NORMAL;
     }
 
+    /**
+     * Comienza la maniobra warp: el motor pasa a Preparando salto y este turno ya cuenta como el primero
+     * de preparación (si hay energía suficiente).
+     */
     @Override
-    public void iniciarWarp() throws EstadoMotorInvalidoException {
-        throw new EstadoMotorInvalidoException(
-                "Transición inválida: No se puede entrar a Warp directamente sin preparar el salto previo.",
-                NOMBRE
-        );
-    }
-
-    @Override
-    public void desactivarWarp() throws EstadoMotorInvalidoException {
-        throw new EstadoMotorInvalidoException(
-                "Transición inválida: No se puede desactivar Warp porque el motor no está en hiperespacio.",
-                NOMBRE
-        );
-    }
-
-    @Override
-    public void enfriar() throws EstadoMotorInvalidoException {
-        throw new EstadoMotorInvalidoException(
-                "Transición inválida: El motor ya se encuentra frío y disponible en temperatura nominal.",
-                NOMBRE
-        );
+    public int saltarWarp() {
+        PreparandoSaltoState preparando = new PreparandoSaltoState(motor);
+        motor.setEstado(preparando);
+        preparando.prepararTurno();
+        return 0;
     }
 
     @Override
     public boolean estaDisponible() {
         return true;
-    }
-
-    @Override
-    public void saltar() {
-        // Salto normal permitido, permanece disponible
-    }
-
-    @Override
-    public void saltarWarp() {
-        prepararSalto();
     }
 
     @Override

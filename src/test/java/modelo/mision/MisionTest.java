@@ -117,23 +117,18 @@ public class MisionTest {
     }
 
     @Test
-    @DisplayName("Aclaración R4: una misión exitosa hace que la nave prepare su salto y salte, y vuelve a Disponible")
-    public void testSaltoAlCerrar() throws Exception {
+    @DisplayName("E2: el cierre ya no ordena el salto warp (la nave se desplaza durante el recorrido); el motor queda Disponible")
+    public void testCierreSinSalto() throws Exception {
         asistente.asignarTripulacion(tripulacion);
 
         realizar(new MisionIntercepcion());
 
         assertEquals("Disponible", asistente.getEstadoMotor());
-        List<Evento> eventosMotor = eventosDeTipo(TipoEvento.MOTOR);
-        assertEquals(4, eventosMotor.size());
-        assertTrue(eventosMotor.get(0).getDescripcion().contains("Preparando salto"));
-        assertTrue(eventosMotor.get(1).getDescripcion().contains("En warp"));
-        assertTrue(eventosMotor.get(2).getDescripcion().contains("Enfriamiento"));
-        assertTrue(eventosMotor.get(3).getDescripcion().contains("Disponible"));
+        assertTrue(eventosDeTipo(TipoEvento.MOTOR).isEmpty());
     }
 
     @Test
-    @DisplayName("E1-05: la Bitácora registra la ejecución de la misión, los recursos y el motor en orden temporal")
+    @DisplayName("E1-05: la Bitácora registra la ejecución de la misión y los recursos en orden temporal")
     public void testRegistroEnBitacora() throws Exception {
         asistente.asignarTripulacion(tripulacion);
 
@@ -141,7 +136,6 @@ public class MisionTest {
 
         assertFalse(eventosDeTipo(TipoEvento.MISION).isEmpty());
         assertEquals(1, eventosDeTipo(TipoEvento.RECURSO).size());
-        assertFalse(eventosDeTipo(TipoEvento.MOTOR).isEmpty());
         List<Evento> eventos = asistente.getEventos();
         for (int i = 1; i < eventos.size(); i++) {
             assertFalse(eventos.get(i).getFechaHora().isBefore(eventos.get(i - 1).getFechaHora()));

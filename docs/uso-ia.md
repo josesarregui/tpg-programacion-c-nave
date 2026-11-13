@@ -208,3 +208,20 @@
   * Luego de analizar el código propuesto por Claude a partir lo que hicimos, aplicamos las correciones que vimos necesarias y decidimos que estaba listo para ser mergeado a la rama main.
   
 * **Forma en que se verificó el resultado:** `mvn test` pasa con 148 pruebas en verde (antes 120), `app.App` inicia y crea `datos/nave.mv.db`, y `app.DemostracionEntrega1` reproduce la salida de la E1.
+
+### Registro de Asistencia: Motor Warp por turnos según el Anexo (13/11/2026)
+
+* **Herramienta utilizada:** Claude Code (Anthropic).
+
+* **Propósito de la consulta:** analizar el Anexo "Misiones y Motor Warp" junto con José Arregui, comparar alternativas de diseño para el motor (quién verifica y cobra los costos) y adaptar el paquete `modelo.warp` y su uso, verificando cada decisión contra el Anexo, la Aclaración y el Enunciado de la Parte 2.
+
+* **Componente o documento afectado:** paquete `modelo.warp` (`MotorWarp`, `State`, los cuatro estados y la nueva interfaz `SuministroMotor`); `Nave` (clase interna `SuministroDeNave`) y `Recursos` (`sumarDesgaste`); `Asistente` y `AsistenteComando` (`saltar()` y `saltarWarp()`); `Mision.cerrar()`; `DemostracionEntrega1` (Escenario C); pruebas `MotorWarpTest`, `AsistenteComandoTest`, `NaveTest`, `NaveFactoryTest`, `ObservadorNaveTest` y `MisionTest`; `README.md`, `docs/diseño.md` y `docs/diagrama_clases.md`.
+
+* **Resultado aprovechado:**
+  * Motor que expone sólo `saltar()` y `saltarWarp()`, con preparación de 2 turnos, verificación de energía, aborto del salto, enfriamiento con desgaste y salto normal con consumo de combustible.
+  * Elección entre tres alternativas (motor que cobra, motor que sólo informa el costo, motor que sólo cuenta turnos): se eligió que cada estado verifique, cobre y cambie de estado en el mismo paso.
+  * Decisiones de interpretación documentadas en `docs/diseño.md`, sección 4 (warp sin combustible, salto normal rechazado durante la maniobra, desgaste del enfriamiento limitado a 100, cierre de misión sin salto).
+
+* **Revisión o modificación realizada por el equipo:** *(a completar por el equipo).*
+
+* **Forma en que se verificó el resultado:** `mvn test` pasa con 217 pruebas en verde (28 omitidas por no tener entorno gráfico) y `app.DemostracionEntrega1` muestra el nuevo Escenario C.

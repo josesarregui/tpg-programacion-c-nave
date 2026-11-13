@@ -137,7 +137,7 @@ public class AsistenteComando implements Asistente {
 
     @Override
     public String getEstadoMotor() {
-        return nave.getMotor().getEstado().toString();
+        return nave.getMotor().getEstado();
     }
 
     // --- Bitácora ---
@@ -238,48 +238,44 @@ public class AsistenteComando implements Asistente {
     }
 
     /**
-     * Ordena al Motor Warp preparar el salto (Disponible -> Preparando salto).
-     * Si la transición se rechaza, registra el rechazo con el estado en que ocurrió y lo propaga (Escenario C).
+     * Ordena un salto normal al Motor Warp y registra el resultado en la Bitácora.
+     * Si el motor o los recursos lo rechazan, registra el motivo y propaga la excepción; nada cambia
+     * (Escenario C: las transiciones inválidas quedan registradas).
      */
     @Override
-    public void prepararSalto() throws EstadoMotorInvalidoException {
+    public int saltar() throws EstadoMotorInvalidoException, RecursoInsuficienteException {
+        int casilleros;
         try {
-            nave.getMotor().prepararSalto();
+            casilleros = nave.getMotor().saltar();
         } catch (EstadoMotorInvalidoException e) {
             registrarRechazoDelMotor(e);
             throw e;
+        } catch (RecursoInsuficienteException e) {
+            registrarEvento(TipoEvento.ERROR, "Salto normal rechazado: " + e.getMessage());
+            throw e;
         }
-        registrarEvento(TipoEvento.MOTOR, "Motor Warp: " + getEstadoMotor() + ".");
+        registrarEvento(TipoEvento.MOTOR, "Salto normal: la nave avanza " + casilleros + " casillero. " + nave);
         nave.notificarObservadores();
-        assert invariante() : "Fallo invariante tras preparar el salto.";
+        assert invariante() : "Fallo invariante tras el salto normal.";
+        return casilleros;
     }
 
     /**
-     * Ordena saltar: el motor entra en warp y, al terminar el salto, vuelve a Disponible pasando por
-     * Enfriamiento, tal como recorre el Escenario C. Como todavía no se modela el paso del tiempo, el
-     * enfriamiento es inmediato y la nave queda Disponible cuando termina el salto (Aclaración, R3).
-     * Cada cambio del motor queda registrado en la Bitácora.
-     *
-     * Si el motor no estaba preparando el salto, la primera transición se rechaza y el motor no cambia:
-     * se registra el rechazo con el estado en que ocurrió y se propaga (Escenario C). Las transiciones
-     * siguientes no pueden fallar, porque cada una parte del estado al que llevó la anterior.
+     * Ordena al Motor Warp avanzar un turno de la maniobra warp y registra en la Bitácora el estado en que
+     * quedó el motor y lo que avanzó la nave.
      */
     @Override
-    public void saltar() throws EstadoMotorInvalidoException {
-        try {
-            nave.getMotor().iniciarWarp();
-            registrarEvento(TipoEvento.MOTOR, "Motor Warp: " + getEstadoMotor() + ".");
-            nave.getMotor().desactivarWarp();
-            registrarEvento(TipoEvento.MOTOR, "Motor Warp: " + getEstadoMotor() + ".");
-            nave.getMotor().enfriar();
-            registrarEvento(TipoEvento.MOTOR, "Motor Warp: " + getEstadoMotor() + ".");
-        } catch (EstadoMotorInvalidoException e) {
-            registrarRechazoDelMotor(e);
-            throw e;
+    public int saltarWarp() {
+        String estadoAnterior = getEstadoMotor();
+        int casilleros = nave.getMotor().saltarWarp();
+        String descripcion = "Maniobra warp: " + estadoAnterior + " -> " + getEstadoMotor() + ".";
+        if (casilleros > 0) {
+            descripcion += " La nave avanza " + casilleros + " casilleros.";
         }
+        registrarEvento(TipoEvento.MOTOR, descripcion + " " + nave);
         nave.notificarObservadores();
-        assert nave.getMotor().estaDisponible() : "Fallo postcondición: al terminar el salto el motor debe quedar Disponible.";
-        assert invariante() : "Fallo invariante tras el salto.";
+        assert invariante() : "Fallo invariante tras el turno de la maniobra warp.";
+        return casilleros;
     }
 
     // --- Patrón Observer ---

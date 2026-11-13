@@ -5,6 +5,7 @@ import excepcion.CapacidadExcedidaException;
 import excepcion.RecursoInsuficienteException;
 import modelo.tripulacion.Tripulacion;
 import modelo.warp.MotorWarp;
+import modelo.warp.SuministroMotor;
 import modelo.universo.NaveEnemiga;
 import modelo.universo.ResultadoCombate;
 
@@ -61,7 +62,7 @@ public abstract class Nave implements ObservableNave {
         ultimoIdAsignado++;
         this.id = ultimoIdAsignado;
         this.recursos = new Recursos(combustibleInicial, energiaInicial, desgasteInicial);
-        this.motor = new MotorWarp();
+        this.motor = new MotorWarp(new SuministroDeNave());
         this.observadores = new ArrayList<>();
         this.tripulacion = null;
         assert invariante() : "Fallo invariante: la nave quedó inconsistente tras su creación.";
@@ -227,6 +228,51 @@ public abstract class Nave implements ObservableNave {
 
     private boolean invariante() {
         return id > 0 && recursos != null && motor != null && observadores != null;
+    }
+
+    /**
+     * Da al Motor Warp acceso a los recursos de esta nave (Anexo: el motor verifica la energía y cobra los
+     * costos del salto). Es una clase interna privada: las operaciones de consumo sólo las ve el motor y no
+     * quedan públicas en la nave.
+     */
+    private class SuministroDeNave implements SuministroMotor {
+
+        @Override
+        public int getCombustible() {
+            return recursos.getCombustible();
+        }
+
+        @Override
+        public int getEnergia() {
+            return recursos.getEnergia();
+        }
+
+        @Override
+        public void consumirCombustible(int cantidad) {
+            consumirSinRechazo(cantidad, 0);
+        }
+
+        @Override
+        public void consumirEnergia(int cantidad) {
+            consumirSinRechazo(0, cantidad);
+        }
+
+        @Override
+        public void sumarDesgaste(int cantidad) {
+            recursos.sumarDesgaste(cantidad);
+        }
+
+        /**
+         * El estado del motor ya verificó que el recurso alcanza, por eso un rechazo sólo puede deberse a un
+         * error de programación (apunte de Excepciones: RuntimeException).
+         */
+        private void consumirSinRechazo(int combustible, int energia) {
+            try {
+                recursos.consumir(combustible, energia, 0);
+            } catch (CantidadInvalidaException | RecursoInsuficienteException | CapacidadExcedidaException e) {
+                throw new IllegalStateException("Error de programación: el motor pidió consumir sin verificar.", e);
+            }
+        }
     }
 
     @Override

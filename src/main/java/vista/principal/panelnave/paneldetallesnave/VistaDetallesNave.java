@@ -649,7 +649,7 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
             final int energia = nave.getEnergia();
             final int desgaste = nave.getDesgaste();
             final boolean requiereMantenimiento = nave.requiereMantenimiento();
-            final String estadoMotor = nave.getMotor().getEstado().toString();
+            final String estadoMotor = nave.getMotor().getEstado();
             final boolean tieneTripulacion = nave.getTripulacion() != null;
             final boolean listaParaOperar = nave.estaListaParaOperar();
 
