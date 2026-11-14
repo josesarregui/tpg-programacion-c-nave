@@ -242,3 +242,20 @@
 * **Revisión o modificación realizada por el equipo:** Luca Zuanetti aprobó las firmas antes de implementarlas, revisó el código resultante y la documentación, y decidió mover el módulo de la cátedra a `modelo.universo` en lugar de duplicarlo. La resolución completa de las batallas (Double Dispatch puro y destrucción de la nave) queda para el Paso 2.
 
 * **Forma en que se verificó el resultado:** `mvn test` pasa con 230 pruebas en verde (antes 217: 15 nuevas de Asteroide, Estación de carga y Recursos, y 2 de `TableroYDestinoTest` reemplazadas por ellas).
+
+### Registro de Asistencia: Paso 2 de la E2 — batallas por Double Dispatch y estado de destrucción (14/11/2026)
+
+* **Herramienta utilizada:** Claude Code (Anthropic).
+
+* **Propósito de la consulta:** completar el Paso 2 del Plan de Trabajo de la E2 en la rama `luca-Batallas`: que `Nave` implemente `ElementoDelUniverso`, resolver las batallas por Double Dispatch puro según la tabla del Enunciado de la Parte 2 (punto A), incorporar el estado de destrucción de la nave (Fase 2) y las operaciones mínimas de gemas y suministros para M-01 y M-02, respetando la Aclaración (R2 y R5) y los apuntes de Interfaces, Excepciones y Diseño por Contrato.
+
+* **Componente o documento afectado:** `Nave` (`ElementoDelUniverso`, `enfrentarseCon`, métodos de vuelta, `aplicarResultado`, `destruida`, gemas y suministros), `Exploradora`, `Carguero`, `Combate`, `TipoNave` (símbolo), `Recursos` (`agotados`) y el nuevo `ResultadoBatalla`; `Asistente` y `AsistenteComando` (`enfrentarseCon`, `naveDestruida`, `getGemas`, `acreditarGemas`, `entregarSuministros` y el registro de la destrucción); `Mision` (aborto con la nave destruida) y `NaveNoDisponibleException` (`naveDestruida`). Se eliminaron `NaveEnemiga`, `ExploradoraEnemiga`, `CargueroEnemigo`, `CombateEnemigo` y `ResultadoCombate`. Pruebas nuevas `BatallaTest`, `DestruccionNaveTest` y `GemasYSuministrosTest`; adaptadas `TableroYDestinoTest`, `AsteroideTest` y `MisionTest`; `README.md`, `docs/diseño.md` y `docs/diagrama_clases.md`.
+
+* **Resultado aprovechado:**
+  * Luca Zuanetti hizo el código del paso. Partió de las naves enemigas provisorias y de la primera tabla de resultados que había escrito Sebastian Barrionuebo (commit `f142b6b`); esa tabla se conserva en los métodos de vuelta de cada subclase. Claude propuso las firmas (`enfrentarseCon(Nave)`, los tres `serEnfrentadaPor...` de paquete, `ResultadoBatalla` con `destruyeNavePropia()`, `aplicarResultado`), el estado de destrucción y su registro en la Bitácora, y las pruebas.
+  * Revisamos y corregimos juntos las propuestas: que la ida pase por el asistente (R2); que cada subclase implemente su columna de la tabla y no su fila, porque el resultado se expresa para la nave propia; que la tabla quede separada de sus consecuencias; que la destrucción sea definitiva y se actualice después de todo consumo, incluido el Motor Warp; que la muerte de la tripulación sea un estado derivado; y que no queden excepciones capturadas para ignorarlas.
+  * Implementamos todo de la forma más coherente posible con el diseño existente: delegación en `Recursos`, contratos con aserciones e invariante de `Nave` ("recursos agotados implica nave destruida"), sin `instanceof`, `getClass()` ni condicionales de tipo, y sin consola ni Swing en el modelo. Las decisiones de interpretación quedaron en `docs/diseño.md`, sección 4.
+
+* **Revisión o modificación realizada por el equipo:** Luca Zuanetti aprobó las firmas antes de implementarlas, discutió y confirmó la eliminación de las clases provisorias, y revisó el código y la documentación resultantes. La lógica de las misiones sobre el tablero (radares, travesía por turnos y aplicación de gemas y suministros en el cierre) queda para el Paso 3.
+
+* **Forma en que se verificó el resultado:** `mvn test` pasa con 276 pruebas en verde (antes 230: 46 nuevas de batallas, destrucción, gemas, suministros y misiones; la prueba de Double Dispatch de `TableroYDestinoTest` se reemplazó por una con naves de la fábrica).

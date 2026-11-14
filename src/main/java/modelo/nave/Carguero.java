@@ -1,8 +1,5 @@
 package modelo.nave;
 
-import modelo.universo.NaveEnemiga;
-import modelo.universo.ResultadoCombate;
-
 /**
  * Nave de tipo carguero (E1-01). Se diferencia de las demás por su
  * configuración inicial de recursos
@@ -26,8 +23,45 @@ public class Carguero extends Nave {
         return TipoNave.CARGUERO;
     }
 
+    /**
+     * Ida del Double Dispatch: le avisa a la enemiga que la enfrenta un Carguero (vuelta).
+     */
     @Override
-    public ResultadoCombate enfrentar(NaveEnemiga enemiga) {
-        return enemiga.enfrentarCon(this);
+    public ResultadoBatalla enfrentarseCon(Nave enemiga) {
+        assert enemiga != null : "La nave enemiga no puede ser nula.";
+        return enemiga.serEnfrentadaPorCarguero(this);
+    }
+
+    /**
+     * Columna "vs. Carguero" de la tabla de enfrentamientos: una Exploradora gana a un Carguero.
+     *
+     * @post Retorna GANA.
+     */
+    @Override
+    ResultadoBatalla serEnfrentadaPorExploradora(Exploradora propia) {
+        assert propia != null : "La nave propia no puede ser nula.";
+        return ResultadoBatalla.GANA;
+    }
+
+    /**
+     * Columna "vs. Carguero" de la tabla de enfrentamientos: mismo tipo: pacto de paz.
+     *
+     * @post Retorna PACTO_DE_PAZ.
+     */
+    @Override
+    ResultadoBatalla serEnfrentadaPorCarguero(Carguero propia) {
+        assert propia != null : "La nave propia no puede ser nula.";
+        return ResultadoBatalla.PACTO_DE_PAZ;
+    }
+
+    /**
+     * Columna "vs. Carguero" de la tabla de enfrentamientos: una nave de Combate pierde contra un Carguero.
+     *
+     * @post Retorna PIERDE.
+     */
+    @Override
+    ResultadoBatalla serEnfrentadaPorCombate(Combate propia) {
+        assert propia != null : "La nave propia no puede ser nula.";
+        return ResultadoBatalla.PIERDE;
     }
 }

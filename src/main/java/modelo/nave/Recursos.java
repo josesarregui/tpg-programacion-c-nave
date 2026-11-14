@@ -72,6 +72,16 @@ class Recursos {
     }
 
     /**
+     * Indica si los recursos llegaron a un valor que destruye la nave (Enunciado E2, Fase 2: el desgaste
+     * alcanza 100, la energía queda en 0 o el combustible queda en 0).
+     *
+     * @post Retorna true si combustible == 0, energia == 0 o desgaste == DESGASTE_MAXIMO.
+     */
+    boolean agotados() {
+        return combustible == 0 || energia == 0 || desgaste == DESGASTE_MAXIMO;
+    }
+
+    /**
      * Carga combustible.
      *
      * @param cantidad combustible a cargar.
@@ -175,7 +185,7 @@ class Recursos {
 
     /**
      * Descuenta energía por una consecuencia del recorrido (impacto de un asteroide, Enunciado E2). A diferencia
-     * de {@link #consumir(int, int, int)}, no se rechaza si no alcanza: la energía queda en 0 (nave inoperativa).
+     * de {@link #consumir(int, int, int)}, no se rechaza si no alcanza: la energía queda en 0 (la nave se destruye, Enunciado E2).
      *
      * @pre cantidad >= 0.
      * @post energia == max(energia anterior - cantidad, 0).
