@@ -46,7 +46,7 @@ recursos y mantenimiento con el **Escenario D**; el **Escenario B** y el **Escen
 ```
 mvn test
 ```
-Ejecuta las 217 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Ejecuta las 230 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
 Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/nave.mv.db`. Las pruebas de las vistas Swing
 (`VistasAccesoTest`) se omiten si no hay entorno gráfico.
 
@@ -58,6 +58,14 @@ Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/n
 | Persistencia (DAO/DTO, JDBC) | Las credenciales se conservan para otra ejecución; consultas parametrizadas (sin inyección de SQL); toda `SQLException` se transforma en `PersistenciaException`. | `UsuarioDAOJDBCTest`, `ServicioUsuariosTest` |
 | MVC | Los controladores trabajan con las vistas por su interfaz: se prueban con vistas sin ventanas. Los errores del servicio se muestran en la vista. | `ControladorLoginTest` |
 | Validación de formato en la Vista | "Ingresar" y "Registrar" se habilitan sólo con los campos completos; el registro avisa si las contraseñas no coinciden. | `VistasAccesoTest` |
+
+### Matriz de verificación — Entrega 2: entorno espacial
+| Caso | Qué se verifica (resultado esperado) | Prueba automática |
+|---|---|---|
+| Tablero y Destino (módulo de la cátedra en `modelo.universo`) | El tablero ubica la nave en el centro, elige objetivo y notifica a sus observadores; Destino mueve elementos y avisa al cerrar el turno. | `TableroYDestinoTest` |
+| Asteroide (E2, punto B) | Descuenta 25 de energía sin tocar combustible ni desgaste; si la energía no alcanza queda en 0. El impacto y la pérdida real quedan en la Bitácora. | `AsteroideTest`, `RecursosTest` |
+| Estación de carga (E2, punto C) | Recarga 30 de combustible y 30 de energía sin superar 100. El acople y lo realmente cargado quedan en la Bitácora. | `EstacionDeCargaTest`, `RecursosTest` |
+| Polimorfismo en `ElementoDelUniverso` | La interacción y el símbolo para la vista se obtienen sin condicionales de tipo. | `AsteroideTest`, `EstacionDeCargaTest` |
 
 ### Matriz de verificación — Entrega 1
 | Caso | Qué se verifica (resultado esperado) | Prueba automática | En `DemostracionEntrega1` |

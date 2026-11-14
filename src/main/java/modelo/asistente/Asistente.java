@@ -124,6 +124,25 @@ public interface Asistente {
             throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException;
 
     /**
+     * Aplica a la nave la energía que le quita un impacto (asteroide, Enunciado E2). No se rechaza:
+     * la energía no baja de 0.
+     *
+     * @pre energia >= 0.
+     * @post getEnergia() == max(energía anterior - energia, 0) y quedó registrado en la Bitácora.
+     */
+    void recibirImpacto(int energia);
+
+    /**
+     * Reabastece la nave (estación de carga, Enunciado E2). No se rechaza: cada recurso queda, como máximo,
+     * en su capacidad máxima.
+     *
+     * @pre combustible >= 0 y energia >= 0.
+     * @post cada recurso aumentó la cantidad indicada sin superar su capacidad máxima y quedó registrado
+     *       en la Bitácora.
+     */
+    void reabastecer(int combustible, int energia);
+
+    /**
      * Ordena un salto normal al Motor Warp (Anexo): la nave avanza 1 casillero y consume combustible.
      * Es una orden directa al motor: verificar que la nave esté lista para operar (tripulación y
      * mantenimiento) es responsabilidad de la misión antes de actuar (Aclaración, R4).

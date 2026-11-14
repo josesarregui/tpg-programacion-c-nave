@@ -1,4 +1,4 @@
-package modelo.destinoytablero;
+package modelo.universo;
 
 /** Indica que alguna dimensión del tablero está fuera del rango permitido. */
 public class DimensionesDeTableroInconsistentesException extends Exception {

@@ -1,4 +1,4 @@
-package modelo.destinoytablero;
+package modelo.universo;
 
 import java.util.ArrayList;
 import modelo.nave.Carguero;
@@ -6,7 +6,6 @@ import modelo.nave.Combate;
 import modelo.nave.Exploradora;
 import modelo.nave.NaveFactory;
 import modelo.nave.TipoNave;
-import modelo.universo.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -107,38 +106,4 @@ public class TableroYDestinoTest {
         assertEquals(ResultadoCombate.PACTO_DE_PAZ, propiaComb.enfrentar(enemigaComb));
     }
 
-    @Test
-    @DisplayName("Interacción con Asteroide descuenta energía y suma desgaste")
-    public void testInteraccionAsteroide() {
-        Combate nave = (Combate) naveFactory.crearNave(TipoNave.COMBATE);
-        int energiaInicial = nave.getEnergia();
-        int desgasteInicial = nave.getDesgaste();
-
-        Asteroide asteroide = new Asteroide();
-        ResultadoInteraccion resultado = asteroide.interactuar(nave);
-
-        assertNotNull(resultado);
-        assertTrue(resultado.getEnergiaModificada() < 0);
-        assertTrue(resultado.getDesgasteModificado() > 0);
-        assertEquals(energiaInicial - Asteroide.ENERGIA_DESCONTADA, nave.getEnergia());
-        assertEquals(desgasteInicial + Asteroide.DESGASTE_SUMADO, nave.getDesgaste());
-    }
-
-    @Test
-    @DisplayName("Interacción con Estación de Carga recarga combustible y energía")
-    public void testInteraccionEstacionDeCarga() throws Exception {
-        Exploradora nave = (Exploradora) naveFactory.crearNave(TipoNave.EXPLORADORA);
-        nave.consumirRecursos(20, 20, 0);
-
-        int combustibleAntes = nave.getCombustible();
-        int energiaAntes = nave.getEnergia();
-
-        EstacionDeCarga estacion = new EstacionDeCarga();
-        ResultadoInteraccion resultado = estacion.interactuar(nave);
-
-        assertNotNull(resultado);
-        assertTrue(nave.getCombustible() > combustibleAntes);
-        assertTrue(nave.getEnergia() > energiaAntes);
-        assertFalse(resultado.isNaveDestruida());
-    }
 }

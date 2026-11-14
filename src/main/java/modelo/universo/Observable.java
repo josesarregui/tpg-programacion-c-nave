@@ -1,4 +1,4 @@
-package modelo.destinoytablero;
+package modelo.universo;
 
 import java.util.ArrayList;
 

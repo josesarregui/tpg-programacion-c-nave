@@ -237,6 +237,30 @@ public class AsistenteComando implements Asistente {
         assert invariante() : "Fallo invariante tras consumir recursos.";
     }
 
+    @Override
+    public void recibirImpacto(int energia) {
+        assert energia >= 0 : "La energía del impacto no puede ser negativa.";
+        int energiaAnterior = nave.getEnergia();
+        nave.recibirImpacto(energia);
+        registrarEvento(TipoEvento.RECURSO, "Impacto: pérdida de " + (energiaAnterior - nave.getEnergia())
+                + " de energía. " + nave);
+        assert nave.getEnergia() == Math.max(energiaAnterior - energia, 0) : "Fallo postcondición al recibir un impacto.";
+        assert invariante() : "Fallo invariante tras recibir un impacto.";
+    }
+
+    @Override
+    public void reabastecer(int combustible, int energia) {
+        assert combustible >= 0 && energia >= 0 : "Las cantidades a reabastecer no pueden ser negativas.";
+        int combustibleAnterior = nave.getCombustible();
+        int energiaAnterior = nave.getEnergia();
+        nave.reabastecer(combustible, energia);
+        registrarEvento(TipoEvento.RECURSO, "Reabastecimiento: +" + (nave.getCombustible() - combustibleAnterior)
+                + " de combustible y +" + (nave.getEnergia() - energiaAnterior) + " de energía. " + nave);
+        assert nave.getCombustible() >= combustibleAnterior && nave.getEnergia() >= energiaAnterior
+                : "Fallo postcondición al reabastecer.";
+        assert invariante() : "Fallo invariante tras reabastecer.";
+    }
+
     /**
      * Ordena un salto normal al Motor Warp y registra el resultado en la Bitácora.
      * Si el motor o los recursos lo rechazan, registra el motivo y propaga la excepción; nada cambia

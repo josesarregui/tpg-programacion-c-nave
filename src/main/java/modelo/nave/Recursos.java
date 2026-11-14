@@ -174,6 +174,46 @@ class Recursos {
     }
 
     /**
+     * Descuenta energía por una consecuencia del recorrido (impacto de un asteroide, Enunciado E2). A diferencia
+     * de {@link #consumir(int, int, int)}, no se rechaza si no alcanza: la energía queda en 0 (nave inoperativa).
+     *
+     * @pre cantidad >= 0.
+     * @post energia == max(energia anterior - cantidad, 0).
+     */
+    void descontarEnergia(int cantidad) {
+        assert cantidad >= 0 : "La energía a descontar no puede ser negativa.";
+        int energiaAnterior = energia;
+        energia = cantidad >= energia ? 0 : energia - cantidad;
+        assert energia == Math.max(energiaAnterior - cantidad, 0) : "Fallo postcondición al descontar energía.";
+        assert invariante() : "Fallo invariante tras descontar energía.";
+    }
+
+    /**
+     * Reabastece combustible y energía (estación de carga, Enunciado E2). A diferencia de las cargas, no se
+     * rechaza si supera la capacidad: cada recurso queda, como máximo, en su capacidad máxima.
+     *
+     * @pre cantidadCombustible >= 0 y cantidadEnergia >= 0.
+     * @post combustible == min(combustible anterior + cantidadCombustible, CAPACIDAD_MAXIMA_COMBUSTIBLE) y
+     *       energia == min(energia anterior + cantidadEnergia, CAPACIDAD_MAXIMA_ENERGIA).
+     */
+    void reabastecer(int cantidadCombustible, int cantidadEnergia) {
+        assert cantidadCombustible >= 0 : "El combustible a reabastecer no puede ser negativo.";
+        assert cantidadEnergia >= 0 : "La energía a reabastecer no puede ser negativa.";
+        int combustibleAnterior = combustible;
+        int energiaAnterior = energia;
+        // Se compara contra el espacio libre, como en las cargas, para que la suma no se desborde.
+        combustible = cantidadCombustible >= CAPACIDAD_MAXIMA_COMBUSTIBLE - combustible
+                ? CAPACIDAD_MAXIMA_COMBUSTIBLE : combustible + cantidadCombustible;
+        energia = cantidadEnergia >= CAPACIDAD_MAXIMA_ENERGIA - energia
+                ? CAPACIDAD_MAXIMA_ENERGIA : energia + cantidadEnergia;
+        assert combustible == (int) Math.min((long) combustibleAnterior + cantidadCombustible, CAPACIDAD_MAXIMA_COMBUSTIBLE)
+                : "Fallo postcondición al reabastecer combustible.";
+        assert energia == (int) Math.min((long) energiaAnterior + cantidadEnergia, CAPACIDAD_MAXIMA_ENERGIA)
+                : "Fallo postcondición al reabastecer energía.";
+        assert invariante() : "Fallo invariante tras reabastecer.";
+    }
+
+    /**
      * Realiza el mantenimiento: lleva el desgaste a 0 (Ficha de Inicio, punto 2).
      * Puede hacerse aunque la nave todavía no lo requiera.
      *

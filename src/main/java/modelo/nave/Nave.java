@@ -197,6 +197,29 @@ public abstract class Nave implements ObservableNave {
         notificarObservadores();
     }
 
+    /**
+     * Aplica la energía que quita un impacto (asteroide, Enunciado E2). No se rechaza: la energía no baja de 0.
+     *
+     * @pre energia >= 0.
+     * @post getEnergia() == max(energía anterior - energia, 0).
+     */
+    public void recibirImpacto(int energia) {
+        recursos.descontarEnergia(energia);
+        notificarObservadores();
+    }
+
+    /**
+     * Reabastece combustible y energía (estación de carga, Enunciado E2). No se rechaza: cada recurso queda,
+     * como máximo, en su capacidad máxima.
+     *
+     * @pre combustible >= 0 y energia >= 0.
+     * @post cada recurso aumentó la cantidad indicada, sin superar su capacidad máxima.
+     */
+    public void reabastecer(int combustible, int energia) {
+        recursos.reabastecer(combustible, energia);
+        notificarObservadores();
+    }
+
     // --- Patron Observer ---
 
     @Override

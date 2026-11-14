@@ -1,63 +1,65 @@
 package modelo.universo;
 
-import modelo.nave.Nave;
+import modelo.asistente.Asistente;
+import modelo.bitacora.TipoEvento;
 
 /**
- * Punto de asistencia espacial que permite reabastecer a la nave,
- * recargando combustible y energia.
+ * Punto de asistencia espacial (Enunciado E2, punto C): recarga un monto fijo de combustible y energía, sin
+ * superar la capacidad máxima de cada recurso (invariante de Recursos).
+ *
+ * Invariante: nombre != null y no vacío.
  */
 public class EstacionDeCarga implements ElementoDelUniverso {
 
     public static final int RECARGA_COMBUSTIBLE = 30;
     public static final int RECARGA_ENERGIA = 30;
+    public static final String SIMBOLO = "E";
 
     private final String nombre;
 
     public EstacionDeCarga() {
-        this("Estacion de carga");
+        this("Estación de carga");
     }
 
+    /**
+     * @pre nombre != null y no vacío.
+     * @post getNombre() == nombre.
+     */
     public EstacionDeCarga(String nombre) {
+        assert nombre != null && !nombre.isBlank() : "El nombre de la estación no puede ser nulo ni vacío.";
         this.nombre = nombre;
     }
 
     @Override
     public String getNombre() {
-        return this.nombre;
+        return nombre;
     }
 
     @Override
     public String getSimbolo() {
-        return "🛰️";
+        return SIMBOLO;
+    }
+
+    /**
+     * Registra el acople en la Bitácora y reabastece la nave del asistente.
+     *
+     * @pre asistente != null.
+     * @post combustible == min(anterior + RECARGA_COMBUSTIBLE, 100) y energía == min(anterior + RECARGA_ENERGIA, 100);
+     *       el desgaste no cambia.
+     */
+    @Override
+    public void interactuarCon(Asistente asistente) {
+        assert asistente != null : "El asistente no puede ser nulo.";
+        int combustibleAnterior = asistente.getCombustible();
+        int energiaAnterior = asistente.getEnergia();
+        asistente.registrarEvento(TipoEvento.RELEVANTE, "Acople con " + nombre + ".");
+        asistente.reabastecer(RECARGA_COMBUSTIBLE, RECARGA_ENERGIA);
+        assert asistente.getCombustible() >= combustibleAnterior && asistente.getEnergia() >= energiaAnterior
+                : "Fallo postcondición: el reabastecimiento no puede disminuir los recursos.";
     }
 
     @Override
-    public ResultadoInteraccion interactuar(Nave nave) {
-        if (nave == null) {
-            return new ResultadoInteraccion("Sin interaccion", false, false, 0, 0, 0);
-        } else {
-            int combustiblePrevio = nave.getCombustible();
-            int energiaPrevia = nave.getEnergia();
-
-            try {
-                nave.cargarCombustible(RECARGA_COMBUSTIBLE);
-            } catch (Exception ex) {
-                // Si supera capacidad maxima, se mantendrá en el maximo admisible
-            }
-
-            try {
-                nave.cargarEnergia(RECARGA_ENERGIA);
-            } catch (Exception ex) {
-                // Si supera capacidad maxima
-            }
-
-            int combustibleGanado = nave.getCombustible() - combustiblePrevio;
-            int energiaGanada = nave.getEnergia() - energiaPrevia;
-
-            String mensaje = "Acople con " + this.nombre + ": + " + combustibleGanado + " Combustible, + "
-                    + energiaGanada + " Energía.";
-
-            return new ResultadoInteraccion(mensaje, false, false, combustibleGanado, energiaGanada, 0);
-        }
+    public String toString() {
+        return nombre;
     }
 }
