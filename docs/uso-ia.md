@@ -225,3 +225,20 @@
 * **Revisión o modificación realizada por el equipo:** *(a completar por el equipo).*
 
 * **Forma en que se verificó el resultado:** `mvn test` pasa con 217 pruebas en verde (28 omitidas por no tener entorno gráfico) y `app.DemostracionEntrega1` muestra el nuevo Escenario C.
+
+### Registro de Asistencia: Paso 1 de la E2 — entorno espacial y `ElementoDelUniverso` (13/11/2026)
+
+* **Herramienta utilizada:** Claude Code (Anthropic).
+
+* **Propósito de la consulta:** completar el Paso 1 del Plan de Trabajo de la E2 en la rama `luca-EntornoEspacial`: integrar en `modelo.universo` el módulo Destino y Tablero de la cátedra, definir las firmas polimórficas de `ElementoDelUniverso` e implementar `Asteroide` y `EstacionDeCarga` según el Enunciado de la Parte 2, los apuntes de Interfaces, Excepciones y Diseño por Contrato, y la Aclaración (R2 y R5).
+
+* **Componente o documento afectado:** paquete `modelo.universo` (clases de la cátedra movidas desde `modelo.destinoytablero`, `ElementoDelUniverso`, `Asteroide`, `EstacionDeCarga`, firma de las naves enemigas; se eliminó `ResultadoInteraccion`); `Recursos` (`descontarEnergia`, `reabastecer`), `Nave` (`recibirImpacto`, `reabastecer`), `Asistente` y `AsistenteComando` (`recibirImpacto`, `reabastecer`); pruebas `AsteroideTest`, `EstacionDeCargaTest`, `RecursosTest` y `TableroYDestinoTest`; `README.md`, `docs/diseño.md` y `docs/diagrama_clases.md`.
+
+* **Resultado aprovechado:**
+  * Luca Zuanetti desarrolló el código del paso, partiendo de la primera versión del universo que Sebastian Barrionuebo había iniciado (commit `f142b6b`). Claude analizó ese código y propuso las firmas (`interactuarCon(Asistente)`, `getSimbolo()`), los métodos de soporte en `Recursos`, `Nave` y el asistente, y las pruebas.
+  * Revisamos en conjunto las propuestas y corregimos lo necesario: que la interacción reciba el `Asistente` (dueño de la Bitácora y único que ordena a la nave), que el impacto y la recarga no se rechacen sino que respeten los topes de `Recursos`, que la Bitácora registre lo realmente cambiado y que no queden excepciones capturadas para ignorarlas.
+  * Implementamos todo de la forma más coherente posible con el diseño de la E1: delegación en `Recursos`, contratos con aserciones, sin `instanceof`, `getClass()` ni condicionales de tipo, y sin consola ni Swing en el modelo.
+
+* **Revisión o modificación realizada por el equipo:** Luca Zuanetti aprobó las firmas antes de implementarlas, revisó el código resultante y la documentación, y decidió mover el módulo de la cátedra a `modelo.universo` en lugar de duplicarlo. La resolución completa de las batallas (Double Dispatch puro y destrucción de la nave) queda para el Paso 2.
+
+* **Forma en que se verificó el resultado:** `mvn test` pasa con 230 pruebas en verde (antes 217: 15 nuevas de Asteroide, Estación de carga y Recursos, y 2 de `TableroYDestinoTest` reemplazadas por ellas).

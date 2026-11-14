@@ -1,28 +1,38 @@
 package modelo.universo;
 
-import modelo.nave.Nave;
+import modelo.asistente.Asistente;
 
 /**
- * Representa cualquier entidad o cuerpo presente en una casilla del tablero
- * del universo con la cual la nave puede interactuar.
+ * Entidad que ocupa una casilla del {@link Tablero} y con la cual la nave interactúa al coincidir en la misma
+ * coordenada (Enunciado E2: otras naves, asteroides y estaciones de carga).
+ *
+ * El {@link Tablero} y el {@link Destino} manipulan los elementos sin conocer su tipo concreto; cada elemento
+ * resuelve su interacción por polimorfismo, sin condicionales de tipo.
+ *
+ * La interacción recibe el {@link Asistente} y no la nave: toda orden a la nave pasa por su asistente, que
+ * además lleva la Bitácora (Aclaración, R2 y R5).
  */
 public interface ElementoDelUniverso {
 
     /**
-     * @return Nombre descriptivo del elemento.
+     * @post El valor retornado no es nulo ni vacío.
+     * @return nombre descriptivo del elemento.
      */
     String getNombre();
 
     /**
-     * @return Simbolo o emoji para visualizar en el tablero.
+     * Identificación simbólica para que la vista renderice la grilla sin condicionales de tipo.
+     *
+     * @post El valor retornado no es nulo ni vacío y es el mismo para todos los elementos de una misma clase.
+     * @return símbolo del elemento.
      */
     String getSimbolo();
 
     /**
-     * Resuelve la interaccion al coincidir la nave con este elemento.
+     * Resuelve la interacción con la nave que opera el asistente.
      *
-     * @param nave Nave principal que colisiona o interactúa.
-     * @return Balance de la interacción.
+     * @pre asistente != null.
+     * @post Las consecuencias del encuentro quedaron aplicadas a la nave del asistente y registradas en su Bitácora.
      */
-    ResultadoInteraccion interactuar(Nave nave);
+    void interactuarCon(Asistente asistente);
 }

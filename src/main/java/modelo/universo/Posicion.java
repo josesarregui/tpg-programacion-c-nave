@@ -1,4 +1,4 @@
-package modelo.destinoytablero;
+package modelo.universo;
 
 /** Coordenadas inmutables. Los límites pertenecen al tablero. */
 public final class Posicion {

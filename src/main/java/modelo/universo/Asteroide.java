@@ -1,15 +1,18 @@
 package modelo.universo;
 
-import modelo.nave.Nave;
+import modelo.asistente.Asistente;
+import modelo.bitacora.TipoEvento;
 
 /**
- * Obstáculo espacial que impacta contra el casco de la nave,
- * descontando energía e incrementando desgaste estructural.
+ * Obstáculo espacial (Enunciado E2, punto B): al colisionar descuenta un monto fijo de energía. Si la energía
+ * llega a 0, la nave queda inoperativa.
+ *
+ * Invariante: nombre != null y no vacío.
  */
 public class Asteroide implements ElementoDelUniverso {
 
-    public static final int ENERGIA_DESCONTADA = 25;
-    public static final int DESGASTE_SUMADO = 10;
+    public static final int DANIO_ENERGIA = 25;
+    public static final String SIMBOLO = "A";
 
     private final String nombre;
 
@@ -17,47 +20,43 @@ public class Asteroide implements ElementoDelUniverso {
         this("Asteroide");
     }
 
+    /**
+     * @pre nombre != null y no vacío.
+     * @post getNombre() == nombre.
+     */
     public Asteroide(String nombre) {
+        assert nombre != null && !nombre.isBlank() : "El nombre del asteroide no puede ser nulo ni vacío.";
         this.nombre = nombre;
     }
 
     @Override
     public String getNombre() {
-        return this.nombre;
+        return nombre;
     }
 
     @Override
     public String getSimbolo() {
-        return "☄️";
+        return SIMBOLO;
+    }
+
+    /**
+     * Registra el impacto en la Bitácora y descuenta DANIO_ENERGIA de energía a la nave del asistente.
+     *
+     * @pre asistente != null.
+     * @post asistente.getEnergia() == max(energía anterior - DANIO_ENERGIA, 0); combustible y desgaste no cambian.
+     */
+    @Override
+    public void interactuarCon(Asistente asistente) {
+        assert asistente != null : "El asistente no puede ser nulo.";
+        int energiaAnterior = asistente.getEnergia();
+        asistente.registrarEvento(TipoEvento.RELEVANTE, "Impacto con " + nombre + ".");
+        asistente.recibirImpacto(DANIO_ENERGIA);
+        assert asistente.getEnergia() == Math.max(energiaAnterior - DANIO_ENERGIA, 0)
+                : "Fallo postcondición: el impacto debe descontar DANIO_ENERGIA de energía.";
     }
 
     @Override
-    public ResultadoInteraccion interactuar(Nave nave) {
-        if (nave == null) {
-            return new ResultadoInteraccion("Sin interaccion", false, false, 0, 0, 0);
-        } else {
-            int nuevaEnergia = nave.getEnergia() - ENERGIA_DESCONTADA;
-            int nuevoDesgaste = nave.getDesgaste() + DESGASTE_SUMADO;
-
-            try {
-                nave.consumirRecursos(0, Math.min(nave.getEnergia(), ENERGIA_DESCONTADA), DESGASTE_SUMADO);
-            } catch (Exception ex) {
-                // Manejado segun el estado resultante
-            }
-
-            boolean naveDestruida = nuevaEnergia <= 0 || nuevoDesgaste >= 100;
-            String mensaje;
-            if (naveDestruida) {
-                mensaje = " ¡La nave ha sufrido daños catastroficos y la tripulacion ha MUERTO!";
-            } else {
-                mensaje = "¡Impacto con Asteroide! Energia perdida " + ENERGIA_DESCONTADA + " y desgaste producido "
-                        + DESGASTE_SUMADO + ".";
-            }
-
-            return new ResultadoInteraccion(mensaje, naveDestruida, naveDestruida, 0, -ENERGIA_DESCONTADA,
-                    DESGASTE_SUMADO);
-            /// mensaje del evento, nuestra nave fue destruida, mision terminada , 0,
-            /// energia perdida, desgaste producido
-        }
+    public String toString() {
+        return nombre;
     }
 }

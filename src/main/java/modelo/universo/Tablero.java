@@ -1,4 +1,4 @@
-package modelo.destinoytablero;
+package modelo.universo;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
-import modelo.universo.ElementoDelUniverso;
 
 /**
  * Administra una grilla rectangular, sus elementos, la nave y el objetivo.

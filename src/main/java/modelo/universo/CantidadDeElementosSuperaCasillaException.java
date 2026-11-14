@@ -1,4 +1,4 @@
-package modelo.destinoytablero;
+package modelo.universo;
 
 /**
  * Indica que la cantidad de elementos supera la capacidad permitida del

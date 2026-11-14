@@ -1,4 +1,4 @@
-# Diagrama de clases — Entrega 1
+# Diagrama de clases — Entrega 1 y Entrega 2 (en desarrollo)
 
 Primero una **vista general** con las clases y sus relaciones principales; después, un diagrama por módulo con
 atributos, métodos y excepciones, tal como están en el código.
@@ -36,6 +36,10 @@ classDiagram
     class Decorator
     <<abstract>> Decorator
     class LiquidadorHaberes
+    class ElementoDelUniverso
+    <<interface>> ElementoDelUniverso
+    class Tablero
+    class Destino
 
     CentroDeControl o-- Asistente : registra (0..*) y nave en uso (0..1)
     Asistente <|.. AsistenteComando
@@ -54,6 +58,9 @@ classDiagram
     Liquidacion <|.. Decorator
     Decorator o-- Liquidacion : decorado (Decorator)
     LiquidadorHaberes ..> Decorator : arma la cadena
+    Tablero o-- ElementoDelUniverso : ocupa casillas (0..*)
+    Destino --> Tablero : mueve elementos
+    ElementoDelUniverso ..> Asistente : interactuarCon
 ```
 
 ## 2. Nave y fábrica (E1-01, E1-07 Factory, E1-09)
@@ -69,6 +76,7 @@ classDiagram
         - Tripulacion tripulacion
         ~ Nave(combustibleInicial: int, energiaInicial: int, desgasteInicial: int)
         + getTipo() TipoNave*
+        + enfrentar(enemiga: NaveEnemiga) ResultadoCombate*
         + getId() int
         + getMotor() MotorWarp
         + getTripulacion() Tripulacion
@@ -81,6 +89,8 @@ classDiagram
         + cargarCombustible(cantidad: int) throws CantidadInvalidaException, CapacidadExcedidaException
         + cargarEnergia(cantidad: int) throws CantidadInvalidaException, CapacidadExcedidaException
         + consumirRecursos(combustible: int, energia: int, desgaste: int) throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException
+        + recibirImpacto(energia: int)
+        + reabastecer(combustible: int, energia: int)
         + realizarMantenimiento()
         - invariante() boolean
     }
@@ -90,6 +100,7 @@ classDiagram
         - int DESGASTE_INICIAL = 0$
         ~ Exploradora()
         + getTipo() TipoNave
+        + enfrentar(enemiga: NaveEnemiga) ResultadoCombate
     }
     class Carguero {
         - int COMBUSTIBLE_INICIAL = 100$
@@ -97,6 +108,7 @@ classDiagram
         - int DESGASTE_INICIAL = 0$
         ~ Carguero()
         + getTipo() TipoNave
+        + enfrentar(enemiga: NaveEnemiga) ResultadoCombate
     }
     class Combate {
         - int COMBUSTIBLE_INICIAL = 80$
@@ -104,6 +116,7 @@ classDiagram
         - int DESGASTE_INICIAL = 0$
         ~ Combate()
         + getTipo() TipoNave
+        + enfrentar(enemiga: NaveEnemiga) ResultadoCombate
     }
     class NaveFactory {
         + crearNave(tipo: TipoNave) Nave
@@ -133,6 +146,9 @@ classDiagram
         ~ cargarCombustible(cantidad: int) throws CantidadInvalidaException, CapacidadExcedidaException
         ~ cargarEnergia(cantidad: int) throws CantidadInvalidaException, CapacidadExcedidaException
         ~ consumir(combustibleConsumido: int, energiaConsumida: int, desgasteProducido: int) throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException
+        ~ sumarDesgaste(cantidad: int)
+        ~ descontarEnergia(cantidad: int)
+        ~ reabastecer(cantidadCombustible: int, cantidadEnergia: int)
         ~ realizarMantenimiento()
         - validarCantidad(recurso: TipoRecurso, cantidad: int) throws CantidadInvalidaException
         - invariante() boolean
@@ -148,6 +164,8 @@ classDiagram
     class CantidadInvalidaException
     class CapacidadExcedidaException
     class RecursoInsuficienteException
+    class NaveEnemiga
+    <<interface>> NaveEnemiga
 
     Nave <|-- Exploradora
     Nave <|-- Carguero
@@ -164,6 +182,7 @@ classDiagram
     Recursos ..> CantidadInvalidaException : lanza
     Recursos ..> CapacidadExcedidaException : lanza
     Recursos ..> RecursoInsuficienteException : lanza
+    Nave ..> NaveEnemiga : enfrentar (Double Dispatch)
 ```
 
 ## 3. Motor Warp (E1-02, patrón State)
@@ -358,6 +377,7 @@ classDiagram
 classDiagram
     class Asistente {
         <<interface>>
+        + getNave() Nave
         + getIdNave() int
         + getTipoNave() TipoNave
         + getCombustible() int
@@ -374,6 +394,8 @@ classDiagram
         + cargarEnergia(cantidad: int) throws CantidadInvalidaException, CapacidadExcedidaException
         + realizarMantenimiento()
         + consumirRecursos(combustible: int, energia: int, desgaste: int) throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException
+        + recibirImpacto(energia: int)
+        + reabastecer(combustible: int, energia: int)
         + saltar() int throws EstadoMotorInvalidoException, RecursoInsuficienteException
         + saltarWarp() int
         + tieneMisionPendiente() boolean
@@ -391,6 +413,7 @@ classDiagram
         - Mision misionPendiente
         - Mision misionEnEjecucion
         + AsistenteComando(nave: Nave)
+        + getNave() Nave
         + getIdNave() int
         + getTipoNave() TipoNave
         + getCombustible() int
@@ -407,6 +430,8 @@ classDiagram
         + cargarEnergia(cantidad: int) throws CantidadInvalidaException, CapacidadExcedidaException
         + realizarMantenimiento()
         + consumirRecursos(combustible: int, energia: int, desgaste: int) throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException
+        + recibirImpacto(energia: int)
+        + reabastecer(combustible: int, energia: int)
         + saltar() int throws EstadoMotorInvalidoException, RecursoInsuficienteException
         + saltarWarp() int
         + tieneMisionPendiente() boolean
@@ -798,3 +823,126 @@ classDiagram
     Exception <|-- TripulanteInexistenteException
     Exception <|-- LiquidacionInvalidaException
 ```
+
+## 9. Entorno espacial — E2 (`modelo.universo`; Enunciado E2 y módulo Destino y Tablero)
+
+Las clases `Tablero`, `Destino`, `Posicion`, `Observable`, `Observador`, `DimensionesDeTableroInconsistentesException` y
+`CantidadDeElementosSuperaCasillaException` son las provistas por la cátedra (Versión 2): se integraron en el paquete sin
+modificar su lógica. Se muestran sólo sus miembros públicos y protegidos.
+
+```mermaid
+classDiagram
+    class ElementoDelUniverso {
+        <<interface>>
+        + getNombre() String
+        + getSimbolo() String
+        + interactuarCon(asistente: Asistente)
+    }
+    class Asteroide {
+        + int DANIO_ENERGIA = 25$
+        + String SIMBOLO = "A"$
+        - String nombre
+        + Asteroide()
+        + Asteroide(nombre: String)
+        + getNombre() String
+        + getSimbolo() String
+        + interactuarCon(asistente: Asistente)
+    }
+    class EstacionDeCarga {
+        + int RECARGA_COMBUSTIBLE = 30$
+        + int RECARGA_ENERGIA = 30$
+        + String SIMBOLO = "E"$
+        - String nombre
+        + EstacionDeCarga()
+        + EstacionDeCarga(nombre: String)
+        + getNombre() String
+        + getSimbolo() String
+        + interactuarCon(asistente: Asistente)
+    }
+    class NaveEnemiga {
+        <<interface>>
+        + enfrentarCon(exploradora: Exploradora) ResultadoCombate
+        + enfrentarCon(carguero: Carguero) ResultadoCombate
+        + enfrentarCon(combate: Combate) ResultadoCombate
+        + getTipoNave() TipoNave
+    }
+    class ExploradoraEnemiga
+    class CargueroEnemigo
+    class CombateEnemigo
+    class ResultadoCombate {
+        <<enumeration>>
+        GANA
+        PIERDE
+        PACTO_DE_PAZ
+        - String descripcion
+        + getDescripcion() String
+    }
+    class Tablero {
+        + Tablero(x: int, y: int, elementos: ArrayList~ElementoDelUniverso~) throws DimensionesDeTableroInconsistentesException, CantidadDeElementosSuperaCasillaException
+        + getX() int
+        + getY() int
+        + getPosicionNave() Posicion
+        + moverNave(posicion: Posicion)
+        + inspeccionarPosicion() ElementoDelUniverso
+        + observarAlrededores() ElementoDelUniverso[][]
+        + getObjetivo() Posicion
+        + obtenerObjetivo() Posicion
+        + verTablero() ElementoDelUniverso[][]
+        # estaDentro(posicion: Posicion) boolean
+        # obtenerElementos() HashMap~Posicion,ElementoDelUniverso~
+        # moverElemento(posActual: Posicion, posNueva: Posicion)
+        # notificarActualizacion(mensaje: String)
+    }
+    class Destino {
+        + Destino(tablero: Tablero)
+        + turnoDestino()
+    }
+    class Posicion {
+        <<final>>
+        - int x
+        - int y
+        + Posicion(x: int, y: int)
+        + getX() int
+        + getY() int
+        + equals(otro: Object) boolean
+        + hashCode() int
+    }
+    class Observable {
+        <<abstract>>
+        + agregarObservador(observador: Observador)
+        + quitarObservador(observador: Observador)
+        + notificarObservadores(mensaje: String)
+    }
+    class Observador {
+        <<interface>>
+        + actualizar(mensaje: String)
+    }
+    class DimensionesDeTableroInconsistentesException
+    class CantidadDeElementosSuperaCasillaException {
+        - int cantidadMaxima
+        + getCantidadMaxima() int
+    }
+    class Asistente
+    <<interface>> Asistente
+
+    ElementoDelUniverso <|.. Asteroide
+    ElementoDelUniverso <|.. EstacionDeCarga
+    ElementoDelUniverso <|-- NaveEnemiga
+    NaveEnemiga <|.. ExploradoraEnemiga
+    NaveEnemiga <|.. CargueroEnemigo
+    NaveEnemiga <|.. CombateEnemigo
+    NaveEnemiga ..> ResultadoCombate
+    ElementoDelUniverso ..> Asistente : interactuarCon
+    Observable <|-- Tablero
+    Observable o-- Observador : avisa (0..*)
+    Tablero o-- ElementoDelUniverso : ocupa casillas (0..*)
+    Tablero --> Posicion : nave y objetivo
+    Destino --> Tablero : mueve la mitad de los elementos por turno
+    Tablero ..> DimensionesDeTableroInconsistentesException : lanza
+    Tablero ..> CantidadDeElementosSuperaCasillaException : lanza
+```
+
+`Asteroide` y `EstacionDeCarga` ordenan a través del asistente (`recibirImpacto` y `reabastecer`), que aplica el cambio en la
+nave y lo registra en la Bitácora; ninguna de las dos usa condicionales de tipo. Las naves enemigas son provisionales: en el
+Paso 2 del plan de la E2 serán las propias `Exploradora`, `Carguero` y `Combate` (la `Nave` implementará `ElementoDelUniverso`).
+Las dos excepciones de la cátedra son comprobadas (extienden `Exception`).

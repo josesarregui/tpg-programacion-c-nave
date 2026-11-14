@@ -1,10 +1,9 @@
-package modelo.destinoytablero;
+package modelo.universo;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Random;
-import modelo.universo.ElementoDelUniverso;
 
 /**
  * Coordina los intentos de movimiento aleatorio de los elementos del tablero.

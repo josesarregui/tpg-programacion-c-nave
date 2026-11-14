@@ -168,4 +168,26 @@ public class RecursosTest {
 
         assertEquals(0, recursos.getDesgaste());
     }
+
+    // --- Consecuencias del recorrido (E2): impacto y reabastecimiento ---
+
+    @Test
+    @DisplayName("E2: descontar energía resta la cantidad y no baja de 0")
+    public void testDescontarEnergia() {
+        recursos.descontarEnergia(30);
+        assertEquals(50, recursos.getEnergia());
+
+        recursos.descontarEnergia(80);
+        verificarSinCambios(60, 0, 0);
+    }
+
+    @Test
+    @DisplayName("E2: reabastecer suma sin superar la capacidad máxima")
+    public void testReabastecer() {
+        recursos.reabastecer(30, 30);
+        verificarSinCambios(90, 100, 0);
+
+        recursos.reabastecer(Integer.MAX_VALUE, 0);
+        verificarSinCambios(100, 100, 0);
+    }
 }
