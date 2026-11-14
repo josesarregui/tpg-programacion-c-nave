@@ -1,8 +1,5 @@
 package modelo.nave;
 
-import modelo.universo.NaveEnemiga;
-import modelo.universo.ResultadoCombate;
-
 /**
  * Nave exploradora (E1-01). Se diferencia de las demás por su configuración
  * inicial de recursos
@@ -26,8 +23,45 @@ public class Exploradora extends Nave {
         return TipoNave.EXPLORADORA;
     }
 
+    /**
+     * Ida del Double Dispatch: le avisa a la enemiga que la enfrenta una Exploradora (vuelta).
+     */
     @Override
-    public ResultadoCombate enfrentar(NaveEnemiga enemiga) {
-        return enemiga.enfrentarCon(this);
+    public ResultadoBatalla enfrentarseCon(Nave enemiga) {
+        assert enemiga != null : "La nave enemiga no puede ser nula.";
+        return enemiga.serEnfrentadaPorExploradora(this);
+    }
+
+    /**
+     * Columna "vs. Exploradora" de la tabla de enfrentamientos: mismo tipo: pacto de paz.
+     *
+     * @post Retorna PACTO_DE_PAZ.
+     */
+    @Override
+    ResultadoBatalla serEnfrentadaPorExploradora(Exploradora propia) {
+        assert propia != null : "La nave propia no puede ser nula.";
+        return ResultadoBatalla.PACTO_DE_PAZ;
+    }
+
+    /**
+     * Columna "vs. Exploradora" de la tabla de enfrentamientos: un Carguero pierde contra una Exploradora.
+     *
+     * @post Retorna PIERDE.
+     */
+    @Override
+    ResultadoBatalla serEnfrentadaPorCarguero(Carguero propia) {
+        assert propia != null : "La nave propia no puede ser nula.";
+        return ResultadoBatalla.PIERDE;
+    }
+
+    /**
+     * Columna "vs. Exploradora" de la tabla de enfrentamientos: una nave de Combate gana a una Exploradora.
+     *
+     * @post Retorna GANA.
+     */
+    @Override
+    ResultadoBatalla serEnfrentadaPorCombate(Combate propia) {
+        assert propia != null : "La nave propia no puede ser nula.";
+        return ResultadoBatalla.GANA;
     }
 }

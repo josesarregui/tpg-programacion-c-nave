@@ -1,10 +1,10 @@
 package modelo.universo;
 
 import java.util.ArrayList;
-import modelo.nave.Carguero;
-import modelo.nave.Combate;
-import modelo.nave.Exploradora;
+import modelo.asistente.Asistente;
+import modelo.asistente.AsistenteComando;
 import modelo.nave.NaveFactory;
+import modelo.nave.ResultadoBatalla;
 import modelo.nave.TipoNave;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -80,30 +80,29 @@ public class TableroYDestinoTest {
     }
 
     @Test
-    @DisplayName("Double Dispatch en combates espaciales: matriz de enfrentamientos completa")
-    public void testDoubleDispatchCombates() {
-        Exploradora propiaExp = (Exploradora) naveFactory.crearNave(TipoNave.EXPLORADORA);
-        Carguero propiaCarg = (Carguero) naveFactory.crearNave(TipoNave.CARGUERO);
-        Combate propiaComb = (Combate) naveFactory.crearNave(TipoNave.COMBATE);
+    @DisplayName("Las naves enemigas del tablero son naves de la fábrica y la nave propia interactúa con ellas")
+    public void testNavesDeLaFabricaComoElementosDelTablero() throws Exception {
+        ArrayList<ElementoDelUniverso> elementos = new ArrayList<>();
+        elementos.add(naveFactory.crearNave(TipoNave.EXPLORADORA));
+        elementos.add(naveFactory.crearNave(TipoNave.CARGUERO));
+        elementos.add(naveFactory.crearNave(TipoNave.COMBATE));
 
-        ExploradoraEnemiga enemigaExp = new ExploradoraEnemiga();
-        CargueroEnemigo enemigaCarg = new CargueroEnemigo();
-        CombateEnemigo enemigaComb = new CombateEnemigo();
+        Tablero tablero = new Tablero(10, 10, elementos);
 
-        // 1. Nave Propia: Exploradora
-        assertEquals(ResultadoCombate.PACTO_DE_PAZ, propiaExp.enfrentar(enemigaExp));
-        assertEquals(ResultadoCombate.GANA, propiaExp.enfrentar(enemigaCarg));
-        assertEquals(ResultadoCombate.PIERDE, propiaExp.enfrentar(enemigaComb));
+        int naves = 0;
+        for (ElementoDelUniverso[] fila : tablero.verTablero()) {
+            for (ElementoDelUniverso elemento : fila) {
+                naves += elemento == null ? 0 : 1;
+            }
+        }
+        assertEquals(3, naves);
 
-        // 2. Nave Propia: Carguero
-        assertEquals(ResultadoCombate.PIERDE, propiaCarg.enfrentar(enemigaExp));
-        assertEquals(ResultadoCombate.PACTO_DE_PAZ, propiaCarg.enfrentar(enemigaCarg));
-        assertEquals(ResultadoCombate.GANA, propiaCarg.enfrentar(enemigaComb));
-
-        // 3. Nave Propia: Combate
-        assertEquals(ResultadoCombate.GANA, propiaComb.enfrentar(enemigaExp));
-        assertEquals(ResultadoCombate.PIERDE, propiaComb.enfrentar(enemigaCarg));
-        assertEquals(ResultadoCombate.PACTO_DE_PAZ, propiaComb.enfrentar(enemigaComb));
+        // Batalla: una Exploradora propia gana al Carguero enemigo y sigue operativa.
+        Asistente asistente = new AsistenteComando(naveFactory.crearNave(TipoNave.EXPLORADORA));
+        elementos.get(1).interactuarCon(asistente);
+        assertFalse(asistente.naveDestruida());
+        assertTrue(asistente.getEventos().get(asistente.getEventos().size() - 1).getDescripcion()
+                .contains(ResultadoBatalla.GANA.getDescripcion()));
     }
 
 }

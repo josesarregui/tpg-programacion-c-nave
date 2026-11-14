@@ -95,13 +95,15 @@ public class AsteroideTest {
     }
 
     @Test
-    @DisplayName("E1-05: si la energía no alcanza, la Bitácora registra la pérdida real")
+    @DisplayName("E1-05: si la energía no alcanza, la Bitácora registra la pérdida real y la destrucción")
     public void testBitacoraRegistraPerdidaReal() throws Exception {
         asistente.consumirRecursos(0, 90, 0);
 
         asteroide.interactuarCon(asistente);
 
         List<Evento> eventos = asistente.getEventos();
-        assertTrue(eventos.get(eventos.size() - 1).getDescripcion().contains("pérdida de 10 de energía"));
+        assertTrue(eventos.get(eventos.size() - 2).getDescripcion().contains("pérdida de 10 de energía"));
+        assertTrue(eventos.get(eventos.size() - 1).getDescripcion().contains("Nave destruida por el impacto"));
+        assertTrue(asistente.naveDestruida());
     }
 }
