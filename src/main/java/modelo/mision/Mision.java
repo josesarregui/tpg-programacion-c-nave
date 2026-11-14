@@ -2,7 +2,6 @@ package modelo.mision;
 
 import excepcion.CantidadInvalidaException;
 import excepcion.CapacidadExcedidaException;
-import excepcion.EstadoMotorInvalidoException;
 import excepcion.NaveNoDisponibleException;
 import excepcion.RecursoInsuficienteException;
 import modelo.asistente.Asistente;
@@ -205,7 +204,11 @@ public abstract class Mision {
     }
 
     /**
-     * Paso 4: si la misión fue exitosa, ordena el salto de la nave (Aclaración, R4); luego genera el informe.
+     * Paso 4: cierra la misión y genera el informe.
+     *
+     * En la E2 la nave se desplaza durante el recorrido (saltos normales y warp, Anexo), por eso el cierre ya no
+     * ordena el salto que pedía la Aclaración (R4) para la E1. La aplicación de las recompensas de cada misión
+     * en el cierre (Enunciado E2, Fase 4) se incorpora junto con el recorrido por el tablero.
      *
      * @pre etapa == EVALUADA (Observaciones: no se cierra sin resultado).
      * @post etapa == CERRADA y getInforme() != null.
@@ -213,20 +216,7 @@ public abstract class Mision {
     private void cerrar() {
         assert etapa == EtapaMision.EVALUADA : "La misión no puede cerrarse sin resultado.";
 
-        if (exitosa) {
-            try {
-                asistente.prepararSalto();
-                asistente.saltar();
-            } catch (EstadoMotorInvalidoException e) {
-                // No puede ocurrir: preparar() verificó que la nave estuviera lista para operar (motor en Disponible)
-                // y ejecutar() y evaluar() no cambian el motor. Si ocurriera, sería un error de programación
-                // (apunte de Excepciones: RuntimeException), igual que en ejecutar().
-                throw new IllegalStateException("Error de programación al ordenar el salto de la misión " + codigo + ".", e);
-            }
-            registrarAccion("Cierre: la nave preparó su salto y saltó.");
-        } else {
-            registrarAccion("Cierre: no se ordena el salto porque la misión no fue exitosa.");
-        }
+        registrarAccion("Cierre: " + (exitosa ? "misión exitosa." : "misión no exitosa."));
 
         String observaciones = "Condición de éxito: " + getCondicionDeExito()
                 + (exitosa ? " (cumplida)." : " (no cumplida).");

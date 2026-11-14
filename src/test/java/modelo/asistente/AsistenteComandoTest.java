@@ -70,40 +70,48 @@ public class AsistenteComandoTest {
     // --- Motor Warp (Escenario C) ---
 
     @Test
-    @DisplayName("Escenario C: la transición inválida se rechaza, no cambia el motor y queda registrada")
-    public void testTransicionInvalidaRegistrada() {
-        EstadoMotorInvalidoException e = assertThrows(EstadoMotorInvalidoException.class, asistente::saltar);
+    @DisplayName("Anexo: el salto normal avanza 1 casillero, consume 2 de combustible y queda registrado")
+    public void testSaltoNormalRegistrado() throws Exception {
+        int casilleros = asistente.saltar();
 
-        assertEquals("Disponible", e.getEstadoActual());
+        assertEquals(1, casilleros);
+        assertEquals(98, asistente.getCombustible());
         assertEquals("Disponible", asistente.getEstadoMotor());
-        assertUltimoEvento(TipoEvento.ERROR, "Disponible");
+        assertUltimoEvento(TipoEvento.MOTOR, "Salto normal");
     }
 
     @Test
-    @DisplayName("Escenario C: preparar el salto dos veces se rechaza y el motor sigue en Preparando salto")
-    public void testPrepararSaltoDosVeces() throws Exception {
-        asistente.prepararSalto();
+    @DisplayName("Escenario C: la transición inválida se rechaza, no cambia el motor ni la nave y queda registrada")
+    public void testTransicionInvalidaRegistrada() {
+        asistente.saltarWarp();
 
-        EstadoMotorInvalidoException e = assertThrows(EstadoMotorInvalidoException.class, asistente::prepararSalto);
+        EstadoMotorInvalidoException e = assertThrows(EstadoMotorInvalidoException.class, asistente::saltar);
 
         assertEquals("Preparando salto", e.getEstadoActual());
         assertEquals("Preparando salto", asistente.getEstadoMotor());
+        assertEquals(100, asistente.getCombustible());
         assertUltimoEvento(TipoEvento.ERROR, "Preparando salto");
     }
 
     @Test
-    @DisplayName("Escenario C: preparar el salto y saltar registra cada cambio del motor en orden y termina en Disponible")
-    public void testSaltoRegistrado() throws Exception {
-        asistente.prepararSalto();
-        asistente.saltar();
+    @DisplayName("Escenario C: el ciclo warp registra cada turno del motor en orden y termina en Disponible")
+    public void testCicloWarpRegistrado() {
+        int avanceTotal = 0;
+        for (int turno = 0; turno < 4; turno++) {
+            avanceTotal += asistente.saltarWarp();
+        }
 
+        assertEquals(2, avanceTotal);
         assertEquals("Disponible", asistente.getEstadoMotor());
+        assertEquals(55, asistente.getEnergia());
+        assertEquals(3, asistente.getDesgaste());
         List<Evento> eventos = asistente.getEventos();
         assertEquals(5, eventos.size());
-        assertTrue(eventos.get(1).getDescripcion().contains("Preparando salto"));
-        assertTrue(eventos.get(2).getDescripcion().contains("En warp"));
-        assertTrue(eventos.get(3).getDescripcion().contains("Enfriamiento"));
-        assertTrue(eventos.get(4).getDescripcion().contains("Disponible"));
+        assertTrue(eventos.get(1).getDescripcion().contains("Disponible -> Preparando salto"));
+        assertTrue(eventos.get(2).getDescripcion().contains("Preparando salto -> En warp"));
+        assertTrue(eventos.get(3).getDescripcion().contains("En warp -> Enfriamiento"));
+        assertTrue(eventos.get(3).getDescripcion().contains("avanza 2 casilleros"));
+        assertTrue(eventos.get(4).getDescripcion().contains("Enfriamiento -> Disponible"));
     }
 
     // --- Recursos (Escenario D, E1-09) ---

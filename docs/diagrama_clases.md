@@ -171,81 +171,69 @@ classDiagram
 ```mermaid
 classDiagram
     class MotorWarp {
+        + COMBUSTIBLE_SALTO_NORMAL = 2$
+        + ENERGIA_SALTO_WARP = 5$
+        + DESGASTE_ENFRIAMIENTO = 3$
+        + TURNOS_PREPARACION = 2$
+        - SuministroMotor suministro
         - State estado
-        + MotorWarp()
-        + getEstado() State
-        ~ setEstado(nuevoEstado: State)
-        + prepararSalto() throws EstadoMotorInvalidoException
-        + iniciarWarp() throws EstadoMotorInvalidoException
-        + desactivarWarp() throws EstadoMotorInvalidoException
-        + enfriar() throws EstadoMotorInvalidoException
+        + MotorWarp(suministro: SuministroMotor)
+        + saltar() int throws EstadoMotorInvalidoException, RecursoInsuficienteException
+        + saltarWarp() int
         + estaDisponible() boolean
-        - invariante() boolean
+        + getEstado() String
+        ~ setEstado(nuevoEstado: State)
+        ~ getSuministro() SuministroMotor
+    }
+    class SuministroMotor {
+        <<interface>>
+        + getCombustible() int
+        + getEnergia() int
+        + consumirCombustible(cantidad: int)
+        + consumirEnergia(cantidad: int)
+        + sumarDesgaste(cantidad: int)
     }
     class State {
         <<interface>>
-        + prepararSalto() throws EstadoMotorInvalidoException
-        + iniciarWarp() throws EstadoMotorInvalidoException
-        + desactivarWarp() throws EstadoMotorInvalidoException
-        + enfriar() throws EstadoMotorInvalidoException
+        + saltar() int throws EstadoMotorInvalidoException, RecursoInsuficienteException
+        + saltarWarp() int
         + estaDisponible() boolean
     }
     class DisponibleState {
-        - String NOMBRE$
-        - MotorWarp motor
         ~ DisponibleState(motor: MotorWarp)
-        + prepararSalto()
-        + iniciarWarp() throws EstadoMotorInvalidoException
-        + desactivarWarp() throws EstadoMotorInvalidoException
-        + enfriar() throws EstadoMotorInvalidoException
-        + estaDisponible() boolean
+        + saltar() int throws RecursoInsuficienteException
+        + saltarWarp() int
     }
     class PreparandoSaltoState {
-        - String NOMBRE$
-        - MotorWarp motor
+        - int turnosCompletados
         ~ PreparandoSaltoState(motor: MotorWarp)
-        + prepararSalto() throws EstadoMotorInvalidoException
-        + iniciarWarp()
-        + desactivarWarp() throws EstadoMotorInvalidoException
-        + enfriar() throws EstadoMotorInvalidoException
-        + estaDisponible() boolean
+        + saltar() int throws EstadoMotorInvalidoException
+        + saltarWarp() int
+        ~ prepararTurno()
     }
     class EnWarpState {
-        - String NOMBRE$
-        - MotorWarp motor
         ~ EnWarpState(motor: MotorWarp)
-        + prepararSalto() throws EstadoMotorInvalidoException
-        + iniciarWarp() throws EstadoMotorInvalidoException
-        + desactivarWarp()
-        + enfriar() throws EstadoMotorInvalidoException
-        + estaDisponible() boolean
+        + saltar() int throws EstadoMotorInvalidoException
+        + saltarWarp() int
     }
     class EnfriamientoState {
-        - String NOMBRE$
-        - MotorWarp motor
         ~ EnfriamientoState(motor: MotorWarp)
-        + prepararSalto() throws EstadoMotorInvalidoException
-        + iniciarWarp() throws EstadoMotorInvalidoException
-        + desactivarWarp() throws EstadoMotorInvalidoException
-        + enfriar()
-        + estaDisponible() boolean
+        + saltar() int throws EstadoMotorInvalidoException
+        + saltarWarp() int
     }
-    class EstadoMotorInvalidoException
-
     State <|.. DisponibleState
     State <|.. PreparandoSaltoState
     State <|.. EnWarpState
     State <|.. EnfriamientoState
     MotorWarp --> State : estado actual
-    DisponibleState --> MotorWarp : motor
-    PreparandoSaltoState --> MotorWarp : motor
-    EnWarpState --> MotorWarp : motor
-    EnfriamientoState --> MotorWarp : motor
-    DisponibleState ..> PreparandoSaltoState : prepararSalto()
-    PreparandoSaltoState ..> EnWarpState : iniciarWarp()
-    EnWarpState ..> EnfriamientoState : desactivarWarp()
-    EnfriamientoState ..> DisponibleState : enfriar()
-    State ..> EstadoMotorInvalidoException : transición inválida
+    MotorWarp --> SuministroMotor : consulta y cobra
+    Nave ..|> SuministroMotor : clase interna SuministroDeNave
+    DisponibleState ..> PreparandoSaltoState : saltarWarp()
+    PreparandoSaltoState ..> EnWarpState : 2 turnos con 5 de energía
+    EnWarpState ..> EnfriamientoState : salta 2 casilleros
+    EnWarpState ..> PreparandoSaltoState : sin energía, aborta
+    EnfriamientoState ..> DisponibleState : +3 de desgaste
+    State ..> EstadoMotorInvalidoException : salto normal inválido
 ```
 
 Cada estado concreto implementa sin `throws` su única transición válida y rechaza las otras tres con
@@ -386,8 +374,8 @@ classDiagram
         + cargarEnergia(cantidad: int) throws CantidadInvalidaException, CapacidadExcedidaException
         + realizarMantenimiento()
         + consumirRecursos(combustible: int, energia: int, desgaste: int) throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException
-        + prepararSalto() throws EstadoMotorInvalidoException
-        + saltar() throws EstadoMotorInvalidoException
+        + saltar() int throws EstadoMotorInvalidoException, RecursoInsuficienteException
+        + saltarWarp() int
         + tieneMisionPendiente() boolean
         + getMisionPendiente() Mision
         + estaEjecutando(mision: Mision) boolean
@@ -419,8 +407,8 @@ classDiagram
         + cargarEnergia(cantidad: int) throws CantidadInvalidaException, CapacidadExcedidaException
         + realizarMantenimiento()
         + consumirRecursos(combustible: int, energia: int, desgaste: int) throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException
-        + prepararSalto() throws EstadoMotorInvalidoException
-        + saltar() throws EstadoMotorInvalidoException
+        + saltar() int throws EstadoMotorInvalidoException, RecursoInsuficienteException
+        + saltarWarp() int
         + tieneMisionPendiente() boolean
         + getMisionPendiente() Mision
         + estaEjecutando(mision: Mision) boolean

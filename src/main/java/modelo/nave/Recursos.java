@@ -154,6 +154,26 @@ class Recursos {
     }
 
     /**
+     * Suma desgaste producido por el recorrido (por ejemplo, el enfriamiento del Motor Warp). A diferencia de
+     * {@link #consumir(int, int, int)}, no se rechaza si supera el máximo: el desgaste queda en DESGASTE_MAXIMO,
+     * porque alcanzarlo es una consecuencia del recorrido (la nave se destruye, Enunciado E2) y no una
+     * operación que pueda evitarse.
+     *
+     * @pre cantidad >= 0.
+     * @post desgaste == min(desgaste anterior + cantidad, DESGASTE_MAXIMO).
+     */
+    void sumarDesgaste(int cantidad) {
+        assert cantidad >= 0 : "El desgaste a sumar no puede ser negativo.";
+        // Se compara contra el espacio libre, como en las cargas, para que la suma no se desborde.
+        boolean alcanzaElMaximo = cantidad >= DESGASTE_MAXIMO - desgaste;
+        int desgasteAnterior = desgaste;
+        desgaste = alcanzaElMaximo ? DESGASTE_MAXIMO : desgaste + cantidad;
+        assert alcanzaElMaximo ? desgaste == DESGASTE_MAXIMO : desgaste == desgasteAnterior + cantidad
+                : "Fallo postcondición al sumar desgaste.";
+        assert invariante() : "Fallo invariante tras sumar desgaste.";
+    }
+
+    /**
      * Realiza el mantenimiento: lleva el desgaste a 0 (Ficha de Inicio, punto 2).
      * Puede hacerse aunque la nave todavía no lo requiera.
      *

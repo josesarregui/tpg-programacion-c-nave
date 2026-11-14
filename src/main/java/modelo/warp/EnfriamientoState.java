@@ -3,10 +3,8 @@ package modelo.warp;
 import excepcion.EstadoMotorInvalidoException;
 
 /**
- * Representa la fase en la cual el motor disipa el calor residual
- * generado durante el viaje a velocidad Warp.
- * La única acción válida es completar el enfriamiento térmico,
- * lo que restablece el motor al estado inicial Disponible.
+ * Después del salto warp, el motor disipa el calor durante un turno (Anexo): esa etapa genera
+ * {@link MotorWarp#DESGASTE_ENFRIAMIENTO} de desgaste en la nave y luego el motor vuelve a Disponible.
  */
 public class EnfriamientoState implements State {
 
@@ -15,8 +13,7 @@ public class EnfriamientoState implements State {
     private final MotorWarp motor;
 
     /**
-     * Constructor de paquete: sólo lo usan el motor y los demás estados al completar una transición válida.
-     * Así ningún cliente puede crear un estado para forzar un cambio que saltee el ciclo (E1-02).
+     * Constructor de paquete: sólo lo usan el motor y los demás estados al completar un paso de la maniobra.
      *
      * @pre motor != null.
      */
@@ -25,45 +22,33 @@ public class EnfriamientoState implements State {
         this.motor = motor;
     }
 
+    /**
+     * Un salto normal no es válido mientras el motor se enfría.
+     *
+     * @throws EstadoMotorInvalidoException siempre; el motor y la nave no cambian.
+     */
     @Override
-    public void prepararSalto() throws EstadoMotorInvalidoException {
+    public int saltar() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
-                "Transición inválida: No se puede preparar un nuevo salto mientras el motor disipa calor en enfriamiento.",
-                NOMBRE
-        );
+                "Transición inválida: no se puede hacer un salto normal mientras el motor se enfría.",
+                NOMBRE);
     }
 
+    /**
+     * Turno de enfriamiento: suma el desgaste y el motor vuelve a Disponible.
+     *
+     * @return 0: en este turno la nave no avanza.
+     */
     @Override
-    public void iniciarWarp() throws EstadoMotorInvalidoException {
-        throw new EstadoMotorInvalidoException(
-                "Transición inválida: Intento crítico de salto. El motor se encuentra sobrecalentado en fase de enfriamiento.",
-                NOMBRE
-        );
-    }
-
-    @Override
-    public void desactivarWarp() throws EstadoMotorInvalidoException {
-        throw new EstadoMotorInvalidoException(
-                "Transición inválida: El salto Warp ya fue desactivado previamente.",
-                NOMBRE
-        );
-    }
-
-    @Override
-    public void enfriar() {
-        // Transición válida: disipación térmica completada con éxito.
-        // El ciclo se cierra y el motor vuelve a estar operativo.
-        this.motor.setEstado(new DisponibleState(this.motor));
+    public int saltarWarp() {
+        motor.getSuministro().sumarDesgaste(MotorWarp.DESGASTE_ENFRIAMIENTO);
+        motor.setEstado(new DisponibleState(motor));
+        return 0;
     }
 
     @Override
     public boolean estaDisponible() {
         return false;
-    }
-
-    @Override
-    public void saltarWarp() {
-        enfriar();
     }
 
     @Override

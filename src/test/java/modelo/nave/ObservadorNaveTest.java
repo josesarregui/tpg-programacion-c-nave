@@ -166,10 +166,10 @@ public class ObservadorNaveTest {
         AtomicInteger notificaciones = new AtomicInteger(0);
         asistente.agregarObservador(n -> notificaciones.incrementAndGet());
 
-        asistente.prepararSalto();
+        asistente.saltar();
         assertEquals(1, notificaciones.get());
 
-        asistente.saltar();
+        asistente.saltarWarp();
         assertEquals(2, notificaciones.get());
     }
 }

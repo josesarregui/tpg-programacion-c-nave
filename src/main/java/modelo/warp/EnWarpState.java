@@ -3,13 +3,11 @@ package modelo.warp;
 import excepcion.EstadoMotorInvalidoException;
 
 /**
- * Representa la fase en la cual la nave se encuentra navegando en hiperespacio
- * (Warp).
- * En este estado, los reactores operan a máxima potencia de distorsión.
- * La única acción válida es desactivar Warp para salir del hiperespacio
- * e iniciar la fase de enfriamiento térmico.
+ * La preparación terminó y el motor está en condiciones de materializar el salto warp (Anexo).
+ * En el turno siguiente, si la nave aún tiene {@link MotorWarp#ENERGIA_SALTO_WARP} de energía, la consume y
+ * avanza {@link MotorWarp#CASILLEROS_SALTO_WARP} casilleros; luego el motor pasa a Enfriamiento.
+ * Si los recursos ya no están disponibles, el salto se aborta y el motor vuelve a preparar el salto.
  */
-
 public class EnWarpState implements State {
 
     private static final String NOMBRE = "En warp";
@@ -17,10 +15,7 @@ public class EnWarpState implements State {
     private final MotorWarp motor;
 
     /**
-     * Constructor de paquete: sólo lo usan el motor y los demás estados al
-     * completar una transición válida.
-     * Así ningún cliente puede crear un estado para forzar un cambio que saltee el
-     * ciclo (E1-02).
+     * Constructor de paquete: sólo lo usan el motor y los demás estados al completar un paso de la maniobra.
      *
      * @pre motor != null.
      */
@@ -29,41 +24,41 @@ public class EnWarpState implements State {
         this.motor = motor;
     }
 
+    /**
+     * Un salto normal no es válido con el salto warp listo para ejecutarse.
+     *
+     * @throws EstadoMotorInvalidoException siempre; el motor y la nave no cambian.
+     */
     @Override
-    public void prepararSalto() throws EstadoMotorInvalidoException {
+    public int saltar() throws EstadoMotorInvalidoException {
         throw new EstadoMotorInvalidoException(
-                "Transición inválida: No se puede preparar un salto mientras la nave ya está navegando en Warp.",
+                "Transición inválida: no se puede hacer un salto normal con el salto warp en curso.",
                 NOMBRE);
     }
 
+    /**
+     * Ejecuta el salto warp si hay energía; si no, lo aborta y vuelve a preparar.
+     *
+     * @return CASILLEROS_SALTO_WARP si saltó; 0 si se abortó.
+     */
     @Override
-    public void iniciarWarp() throws EstadoMotorInvalidoException {
-        throw new EstadoMotorInvalidoException(
-                "Transición inválida: El motor ya se encuentra activo en velocidad Warp.",
-                NOMBRE);
-    }
-
-    @Override
-    public void desactivarWarp() {
-        // Transición válida: salida del hiperespacio hacia enfriamiento térmico
-        this.motor.setEstado(new EnfriamientoState(this.motor));
-    }
-
-    @Override
-    public void enfriar() throws EstadoMotorInvalidoException {
-        throw new EstadoMotorInvalidoException(
-                "Transición inválida: No se puede enfriar el motor mientras el campo Warp continúe activo. Debe desactivarse primero.",
-                NOMBRE);
+    public int saltarWarp() {
+        SuministroMotor suministro = motor.getSuministro();
+        int casilleros;
+        if (suministro.getEnergia() >= MotorWarp.ENERGIA_SALTO_WARP) {
+            suministro.consumirEnergia(MotorWarp.ENERGIA_SALTO_WARP);
+            motor.setEstado(new EnfriamientoState(motor));
+            casilleros = MotorWarp.CASILLEROS_SALTO_WARP;
+        } else {
+            motor.setEstado(new PreparandoSaltoState(motor));
+            casilleros = 0;
+        }
+        return casilleros;
     }
 
     @Override
     public boolean estaDisponible() {
         return false;
-    }
-
-    @Override
-    public void saltarWarp() {
-        desactivarWarp();
     }
 
     @Override

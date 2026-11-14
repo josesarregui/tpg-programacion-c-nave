@@ -124,21 +124,23 @@ public interface Asistente {
             throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException;
 
     /**
-     * Ordena al Motor Warp preparar el salto (Disponible -> Preparando salto).
-     * Es una orden directa al motor (Escenario C): sólo depende del estado del motor. Verificar que la nave
-     * esté lista para operar (tripulación y mantenimiento) es responsabilidad de la misión antes de actuar
-     * (Aclaración, R4); ver docs/diseño.md, sección 4.
+     * Ordena un salto normal al Motor Warp (Anexo): la nave avanza 1 casillero y consume combustible.
+     * Es una orden directa al motor: verificar que la nave esté lista para operar (tripulación y
+     * mantenimiento) es responsabilidad de la misión antes de actuar (Aclaración, R4).
      *
-     * @throws EstadoMotorInvalidoException si la transición no es válida en el estado actual. El motor no cambia.
+     * @return casilleros que debe avanzar la nave.
+     * @throws EstadoMotorInvalidoException si el motor está en medio de una maniobra warp. Nada cambia.
+     * @throws RecursoInsuficienteException si no alcanza el combustible. Nada cambia.
      */
-    void prepararSalto() throws EstadoMotorInvalidoException;
+    int saltar() throws EstadoMotorInvalidoException, RecursoInsuficienteException;
 
     /**
-     * Ordena saltar. Al terminar el salto, la nave vuelve a quedar Disponible (Aclaración, R3).
+     * Ordena al Motor Warp avanzar un turno de la maniobra warp (Anexo): preparar (2 turnos), saltar 2
+     * casilleros o enfriar, según el estado del motor. Siempre es una orden válida.
      *
-     * @throws EstadoMotorInvalidoException si el motor no estaba preparando el salto. El motor no cambia.
+     * @return casilleros que debe avanzar la nave en este turno (0 o 2).
      */
-    void saltar() throws EstadoMotorInvalidoException;
+    int saltarWarp();
 
     // --- Misiones (R4) ---
 

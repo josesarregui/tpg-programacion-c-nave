@@ -1,6 +1,5 @@
 package modelo.nave;
 
-import modelo.warp.DisponibleState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,7 +58,7 @@ public class NaveFactoryTest {
         for (TipoNave tipo : TipoNave.values()) {
             Nave nave = fabrica.crearNave(tipo);
 
-            assertInstanceOf(DisponibleState.class, nave.getMotor().getEstado());
+            assertEquals("Disponible", nave.getMotor().getEstado());
             assertNull(nave.getTripulacion());
             assertFalse(nave.requiereMantenimiento());
         }

@@ -221,23 +221,35 @@ public class DemostracionEntrega1 {
         System.out.println("ESCENARIO C - MOTOR WARP");
         Asistente asistente = centro.seleccionar(idNave);
         int eventosAnteriores = asistente.getEventos().size();
-        System.out.println("Motor inicial: " + asistente.getEstadoMotor());
+        System.out.println("Motor inicial: " + asistente.getEstadoMotor() + " | " + describir(asistente));
         try {
-            asistente.prepararSalto();
-            System.out.println("Preparar salto -> " + asistente.getEstadoMotor());
-            asistente.saltar();
-            System.out.println("Saltar -> " + asistente.getEstadoMotor()
-                    + " (recorrido: En warp -> Enfriamiento -> Disponible, ver Bitácora)");
-        } catch (EstadoMotorInvalidoException e) {
+            int casilleros = asistente.saltar();
+            System.out.println("Salto normal -> avanza " + casilleros + " casillero | " + describir(asistente));
+        } catch (EstadoMotorInvalidoException | RecursoInsuficienteException e) {
             System.out.println("Error inesperado en la demostración: " + e.getMessage());
         }
+        // Ciclo válido de la maniobra warp (Anexo): una orden por turno.
+        for (int turno = 1; turno <= 4; turno++) {
+            int casilleros = asistente.saltarWarp();
+            System.out.println("Turno warp " + turno + " -> " + asistente.getEstadoMotor()
+                    + ", avanza " + casilleros + " | " + describir(asistente));
+        }
+        // Transición inválida: salto normal con la maniobra warp en curso.
+        asistente.saltarWarp();
         try {
             asistente.saltar();
         } catch (EstadoMotorInvalidoException e) {
-            System.out.println("Saltar sin preparar el salto. Rechazado: " + e.getMessage()
+            System.out.println("Salto normal durante la preparación. Rechazado: " + e.getMessage()
                     + " (estado: " + e.getEstadoActual() + ")");
+        } catch (RecursoInsuficienteException e) {
+            System.out.println("Error inesperado en la demostración: " + e.getMessage());
         }
         System.out.println("Después del rechazo: " + asistente.getEstadoMotor() + " (el estado no cambió)");
+        // Faltan el segundo turno de preparación, el salto y el enfriamiento.
+        for (int turno = 1; turno <= 3; turno++) {
+            asistente.saltarWarp();
+        }
+        System.out.println("Se completa la maniobra: " + asistente.getEstadoMotor() + " | " + describir(asistente));
         mostrarEventosDesde(asistente, eventosAnteriores, "BITÁCORA (eventos del Escenario C)");
     }
 
