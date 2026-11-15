@@ -9,6 +9,7 @@ import modelo.asistente.AsistenteComando;
 import modelo.bitacora.Evento;
 import modelo.bitacora.TipoEvento;
 import modelo.mision.InformeMision;
+import modelo.mision.Mision;
 import modelo.mision.MisionIntercepcion;
 import modelo.nave.Nave;
 import modelo.nave.NaveFactory;
@@ -147,7 +148,11 @@ public class CentroDeControlTest {
 
         Asistente enUso = centro.seleccionar(variante.getIdNave());
         enUso.asignarTripulacion(crearTripulacion());
-        enUso.encomendarMision(new MisionIntercepcion());
+        TableroDePrueba tablero = new TableroDePrueba(10, 10);
+        tablero.fijarObjetivo(new Posicion(5, 7));
+        Mision mision = new MisionIntercepcion(tablero, new DestinoSinMovimiento(tablero));
+        mision.configurarPausaPorTurno(0);
+        enUso.encomendarMision(mision);
         InformeMision informe = enUso.ejecutarMision();
 
         assertSame(variante, enUso);

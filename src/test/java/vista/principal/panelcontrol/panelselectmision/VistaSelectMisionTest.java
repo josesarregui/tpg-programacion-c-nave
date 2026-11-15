@@ -10,6 +10,9 @@ import modelo.mision.Mision;
 import modelo.mision.MisionIntercepcion;
 import modelo.mision.MisionRecoleccion;
 import modelo.mision.MisionRetorno;
+import modelo.universo.Destino;
+import modelo.universo.FabricaDeUniverso;
+import modelo.universo.Tablero;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +24,9 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
  * Pruebas unitarias para la interfaz gráfica VistaSelectMision.
  */
 public class VistaSelectMisionTest {
+
+    private final Tablero tablero = new FabricaDeUniverso().crearTablero();
+    private final Destino destino = new Destino(tablero);
 
     @BeforeEach
     public void verificarEntornoGrafico() {
@@ -58,9 +64,9 @@ public class VistaSelectMisionTest {
     public void testMostrarMisionesDisponibles() throws Exception {
         VistaSelectMision vista = new VistaSelectMision();
 
-        Mision m1 = new MisionIntercepcion();
-        Mision m2 = new MisionRecoleccion();
-        Mision m3 = new MisionRetorno();
+        Mision m1 = new MisionIntercepcion(tablero, destino);
+        Mision m2 = new MisionRecoleccion(tablero, destino);
+        Mision m3 = new MisionRetorno(tablero, destino);
 
         vista.mostrarMisionesDisponibles(List.of(m1, m2, m3));
         esperarEDT();
@@ -81,7 +87,7 @@ public class VistaSelectMisionTest {
     @DisplayName("Vista: mostrarDetallesMision habilita o deshabilita el botón según operatividad")
     public void testMostrarDetallesMisionHabilitaBoton() throws Exception {
         VistaSelectMision vista = new VistaSelectMision();
-        Mision m1 = new MisionIntercepcion();
+        Mision m1 = new MisionIntercepcion(tablero, destino);
 
         // Recursos insuficientes
         vista.mostrarDetallesMision(m1, false, 0, 0);

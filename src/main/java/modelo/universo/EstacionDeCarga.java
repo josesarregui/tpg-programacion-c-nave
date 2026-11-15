@@ -41,6 +41,14 @@ public class EstacionDeCarga implements ElementoDelUniverso {
     }
 
     /**
+     * @post Retorna false: la estación reabastece a la nave, por eso la navegación puede atravesarla.
+     */
+    @Override
+    public boolean esAmenaza() {
+        return false;
+    }
+
+    /**
      * Registra el acople en la Bitácora y reabastece la nave del asistente.
      *
      * @pre asistente != null.

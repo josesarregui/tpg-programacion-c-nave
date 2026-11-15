@@ -20,6 +20,9 @@ import modelo.tripulacion.Origen;
 import modelo.tripulacion.Teniente;
 import modelo.tripulacion.Tripulacion;
 import modelo.tripulacion.Tripulante;
+import modelo.universo.DestinoSinMovimiento;
+import modelo.universo.Posicion;
+import modelo.universo.TableroDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,11 +40,15 @@ import static org.junit.jupiter.api.Assertions.*;
 public class AsistenteComandoTest {
 
     private AsistenteComando asistente;
+    private TableroDePrueba tablero;
+    private DestinoSinMovimiento destino;
 
     @BeforeEach
-    public void inicializar() {
+    public void inicializar() throws Exception {
         // Carguero: combustible 100, energía 60, desgaste 0 (Ficha de Inicio, punto 2).
         asistente = new AsistenteComando(new NaveFactory().crearNave(TipoNave.CARGUERO));
+        tablero = new TableroDePrueba(10, 10);
+        destino = new DestinoSinMovimiento(tablero);
     }
 
     @Test
@@ -147,7 +154,9 @@ public class AsistenteComandoTest {
     @DisplayName("R5: la misión realizada se conserva con su informe y la Bitácora resume su resultado")
     public void testMisionRealizadaEInformeEnBitacora() throws Exception {
         asistente.asignarTripulacion(crearTripulacion());
-        Mision mision = new MisionRetorno();
+        Mision mision = new MisionRetorno(tablero, destino);
+        mision.configurarPausaPorTurno(0);
+        tablero.moverNave(new Posicion(5, 4)); // a una casilla de la base (centro)
         asistente.encomendarMision(mision);
         assertSame(mision, asistente.getMisionPendiente());
 
@@ -160,14 +169,17 @@ public class AsistenteComandoTest {
         assertSame(informe, asistente.getMisionesRealizadas().get(0).getInforme());
         assertUltimoEvento(TipoEvento.MISION, "Informe de M-03");
         assertUltimoEvento(TipoEvento.MISION, "exitosa");
-        assertUltimoEvento(TipoEvento.MISION, "Consumo: combustible 4, energía 0, desgaste 4");
-        assertUltimoEvento(TipoEvento.MISION, "Estado final: combustible 96");
+        // Una casilla: despegue 5 + escaneo 1 de energía; salto normal 2 de combustible; 1 de desgaste.
+        assertUltimoEvento(TipoEvento.MISION, "Consumo: combustible 2, energía 6, desgaste 1");
+        assertUltimoEvento(TipoEvento.MISION, "Casillas recorridas: 1");
+        // El estado final es el posterior al cierre: M-03 recarga y repara en la base.
+        assertUltimoEvento(TipoEvento.MISION, "Estado final: combustible 100, energía 100, desgaste 0");
     }
 
     @Test
     @DisplayName("Escenario B: la misión rechazada sigue pendiente y puede cancelarse sin modificar la nave")
     public void testMisionRechazadaYCancelada() {
-        Mision mision = new MisionIntercepcion();
+        Mision mision = new MisionIntercepcion(tablero, destino);
         asistente.encomendarMision(mision); // la nave no tiene tripulación
 
         assertThrows(NaveNoDisponibleException.class, asistente::ejecutarMision);
@@ -187,9 +199,9 @@ public class AsistenteComandoTest {
     @Test
     @DisplayName("Rechazo por contrato: no se encomienda otra misión mientras haya una pendiente")
     public void testNoSeEncomiendaConMisionPendiente() {
-        Mision primera = new MisionIntercepcion();
+        Mision primera = new MisionIntercepcion(tablero, destino);
         asistente.encomendarMision(primera);
-        Mision segunda = new MisionRetorno();
+        Mision segunda = new MisionRetorno(tablero, destino);
 
         assertThrows(AssertionError.class, () -> asistente.encomendarMision(segunda));
         assertSame(primera, asistente.getMisionPendiente());
@@ -206,7 +218,7 @@ public class AsistenteComandoTest {
     @Test
     @DisplayName("Las listas que entrega el asistente son de sólo lectura")
     public void testListasDeSoloLectura() {
-        assertThrows(UnsupportedOperationException.class, () -> asistente.getMisionesRealizadas().add(new MisionRetorno()));
+        assertThrows(UnsupportedOperationException.class, () -> asistente.getMisionesRealizadas().add(new MisionRetorno(tablero, destino)));
         assertThrows(UnsupportedOperationException.class, () -> asistente.getEventos().clear());
     }
 

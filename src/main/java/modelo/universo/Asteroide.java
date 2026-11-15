@@ -5,7 +5,7 @@ import modelo.bitacora.TipoEvento;
 
 /**
  * Obstáculo espacial (Enunciado E2, punto B): al colisionar descuenta un monto fijo de energía. Si la energía
- * llega a 0, la nave queda inoperativa.
+ * llega a 0, la nave queda inoperativa y se destruye (Enunciado E2, Fase 2).
  *
  * Invariante: nombre != null y no vacío.
  */
@@ -37,6 +37,14 @@ public class Asteroide implements ElementoDelUniverso {
     @Override
     public String getSimbolo() {
         return SIMBOLO;
+    }
+
+    /**
+     * @post Retorna true: el impacto quita energía, por eso la navegación evita la casilla.
+     */
+    @Override
+    public boolean esAmenaza() {
+        return true;
     }
 
     /**

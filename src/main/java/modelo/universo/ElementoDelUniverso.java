@@ -29,6 +29,17 @@ public interface ElementoDelUniverso {
     String getSimbolo();
 
     /**
+     * Indica si el elemento es una amenaza para la navegación (Plan de la E2, Paso 3: la misión prioriza las
+     * casillas libres o con estaciones de carga sobre las amenazas). Lo usa el sistema de navegación para
+     * planificar la ruta sin condicionales de tipo; no cambia lo que ocurre si la nave coincide con el elemento.
+     *
+     * @post El valor retornado es el mismo para todos los elementos de una misma clase y no modifica el elemento.
+     * @return true si conviene evitar la casilla del elemento (asteroides y naves); false si puede atravesarse
+     *         sin riesgo (estaciones de carga).
+     */
+    boolean esAmenaza();
+
+    /**
      * Resuelve la interacción con la nave que opera el asistente.
      *
      * @pre asistente != null.

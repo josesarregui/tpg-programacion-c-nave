@@ -39,14 +39,17 @@ escenarios de la Ficha de Inicio:
 java -ea -cp target/classes app.DemostracionEntrega1
 ```
 Qué muestra, en orden: la liquidación de haberes de una tripulación; el alta de una nave de cada tipo en el centro de control;
-el **Escenario A** (M-01, M-02 y M-03 con recursos antes y después, informe y Bitácora de cada misión); las operaciones sobre
+el **Escenario A** (M-01, M-02 y M-03 sobre un tablero de 20 x 20 aleatorio, con recursos antes y después, informe con su
+balance y Bitácora de cada misión; como el universo es aleatorio, una misión puede fallar o rechazarse); las operaciones sobre
 recursos y mantenimiento con el **Escenario D**; el **Escenario B** y el **Escenario C**.
 
 ## Verificación
 ```
 mvn test
 ```
-Ejecuta las 230 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Ejecuta las 293 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Las pruebas de misiones son deterministas: usan un tablero de prueba con los elementos ubicados por la prueba, un Destino que
+no mueve elementos (o que los mueve como indica la prueba), un `Random` con semilla y pausa 0 entre turnos.
 Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/nave.mv.db`. Las pruebas de las vistas Swing
 (`VistasAccesoTest`) se omiten si no hay entorno gráfico.
 
@@ -63,9 +66,30 @@ Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/n
 | Caso | Qué se verifica (resultado esperado) | Prueba automática |
 |---|---|---|
 | Tablero y Destino (módulo de la cátedra en `modelo.universo`) | El tablero ubica la nave en el centro, elige objetivo y notifica a sus observadores; Destino mueve elementos y avisa al cerrar el turno. | `TableroYDestinoTest` |
-| Asteroide (E2, punto B) | Descuenta 25 de energía sin tocar combustible ni desgaste; si la energía no alcanza queda en 0. El impacto y la pérdida real quedan en la Bitácora. | `AsteroideTest`, `RecursosTest` |
+| Asteroide (E2, punto B) | Descuenta 25 de energía sin tocar combustible ni desgaste; si la energía no alcanza queda en 0 y la nave se destruye. El impacto, la pérdida real y la destrucción quedan en la Bitácora. | `AsteroideTest`, `RecursosTest`, `DestruccionNaveTest` |
 | Estación de carga (E2, punto C) | Recarga 30 de combustible y 30 de energía sin superar 100. El acople y lo realmente cargado quedan en la Bitácora. | `EstacionDeCargaTest`, `RecursosTest` |
-| Polimorfismo en `ElementoDelUniverso` | La interacción y el símbolo para la vista se obtienen sin condicionales de tipo. | `AsteroideTest`, `EstacionDeCargaTest` |
+| Polimorfismo en `ElementoDelUniverso` | La interacción y el símbolo para la vista se obtienen sin condicionales de tipo. Las naves de la fábrica son elementos del tablero, con nombre y símbolo de su tipo (`EX`, `CA`, `CO`). | `AsteroideTest`, `EstacionDeCargaTest`, `BatallaTest`, `TableroYDestinoTest` |
+| Batallas por Double Dispatch (E2, punto A) | Los 9 cruces de la tabla (nave propia vs. enemiga): mismo tipo, pacto de paz; Exploradora gana a Carguero, Carguero a Combate y Combate a Exploradora (y la inversa pierde). Resolver la batalla no modifica las naves. Sin `instanceof`, `getClass()` ni condicionales de tipo. | `BatallaTest` |
+| Derrota en batalla | La nave propia queda destruida, su tripulación muere, deja de estar lista para operar y la Bitácora registra la batalla y la destrucción. Victoria y pacto de paz no la modifican. La enemiga no cambia. | `BatallaTest` |
+| Causas de destrucción (E2, Fase 2) | Combustible 0, energía 0 o desgaste 100 por consumo, impacto, salto normal, salto warp, enfriamiento o entrega de suministros destruyen la nave; la causa queda registrada una sola vez. La destrucción es definitiva: recargar o hacer mantenimiento no la repara. | `DestruccionNaveTest`, `AsteroideTest` |
+| Gemas (M-02) y suministros (M-01) | La nave acumula las gemas acreditadas; entregar suministros descuenta combustible y energía en un solo paso y acumula lo entregado. Una entrega insuficiente o negativa se rechaza sin cambios y queda en la Bitácora. Una nave destruida no recibe gemas ni entrega suministros. | `GemasYSuministrosTest`, `DestruccionNaveTest` |
+
+### Matriz de verificación — Entrega 2: ciclo de vida de las misiones (Template Method sobre el tablero)
+| Caso | Qué se verifica (resultado esperado) | Prueba automática |
+|---|---|---|
+| Fase 1: preparar | Verifica disponibilidad y recursos mínimos; si se rechaza, ni la nave ni el tablero cambian y la misión sigue pendiente (Escenario B). Fija el objetivo (`obtenerObjetivo()` en M-01/M-02, centro en M-03) y calcula la ruta con el radar de largo alcance, evitando amenazas. | `MisionTest`, `TravesiaTest` |
+| Fase 2: travesía por turnos | Despegue (5 de energía) y, por turno: inspección e interacción, escaneo corto (1 de energía), salto por el asistente (Anexo) con 1 de desgaste por casilla, turno de Destino y pausa. Con 3 casillas libres, M-02 cuesta 6 de combustible, 13 de energía y 3 de desgaste (Tabla de Recursos, IV.6). | `MisionTest` |
+| Interacciones en el recorrido | Asteroide: energía perdida en el balance. Estación: combustible y energía ganados (tope 100). Batalla perdida: nave y tripulación destruidas, misión fallida; batalla ganada: sigue. | `TravesiaTest` |
+| Destrucción durante el recorrido | Un impacto que deja la energía en 0 corta la travesía en ese turno; la misión se aborta, resulta fallida y el cierre no aplica nada. | `TravesiaTest` |
+| Radar de corto alcance y recálculo | Si Destino cruza un asteroide en el próximo paso, la misión recalcula (2 de energía) y lo esquiva. | `TravesiaTest` |
+| Transición entre casillas | Cada movimiento queda dentro del tablero y es vecino del anterior, también desde un borde; el salto warp avanza 2 casillas en el mismo turno (sin combustible para un salto normal) y termina con el motor Disponible. Sin recursos para avanzar, la misión se aborta sin destruir la nave. | `TravesiaTest` |
+| Verificación en destino (M-01) | Si la nave consumió en el viaje los suministros a entregar, la misión falla y no se descuenta nada. | `TravesiaTest` |
+| Fase 3: informe | Objetivo, ruta recorrida, resultado, acciones, balance como datos (consumidos, perdidos, ganados, gemas y suministros), estado al evaluar y observaciones; listas de sólo lectura. | `MisionTest` |
+| Fase 4: cierre | M-01 entrega los suministros, M-02 acredita las gemas y M-03 repara el desgaste y recarga al máximo en la base. La Bitácora registra el estado posterior al cierre. | `MisionTest`, `AsistenteComandoTest` |
+| Gemas y suministros aleatorios | Con la misma semilla son reproducibles y siempre están dentro de los rangos constantes. | `MisionTest` |
+| Pausa y concurrencia | La pausa por turno es configurable (0 en las pruebas). Si el hilo se interrumpe, se restaura la interrupción, termina la travesía y la misión falla. | `MisionTest`, `TravesiaTest` |
+| Universo de 20 x 20 | Con `FabricaDeUniverso` y el Destino de la cátedra la misión termina con un informe válido y un recorrido válido. | `TravesiaTest` |
+| Nave ya destruida | La misión se rechaza con `NaveNoDisponibleException` (`isNaveDestruida()`). | `MisionTest` |
 
 ### Matriz de verificación — Entrega 1
 | Caso | Qué se verifica (resultado esperado) | Prueba automática | En `DemostracionEntrega1` |
@@ -76,11 +100,11 @@ Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/n
 | E1-03 | El asistente delega en la nave y en el motor, registra cada resultado y cada rechazo, y propaga la excepción. | `AsistenteComandoTest` | Todas las secciones |
 | E1-04 | Tripulante con id, cargo, origen y antigüedad ≥ 0; tripulación con un/a capitán/a + 4. Los rechazos no modifican la tripulación. | `TripulacionTest` | "LIQUIDACIÓN DE HABERES" |
 | E1-05 | Eventos en orden temporal e inmutables; se rechazan los nulos, vacíos o fuera de orden. | `BitacoraTest`, `MisionTest` | "BITÁCORA" |
-| E1-06, Escenario A (Template Method) | M-01, M-02 y M-03 hacen preparar → ejecutar → evaluar → cerrar. Cada una consume 4 de combustible y 4 de desgaste, más 5/5/0 de energía (en la E2 el cierre ya no ordena el salto warp). Exploradora: 60/80/0 → 56/75/4 → 52/70/8 → 48/70/12. | `MisionTest` | "ESCENARIO A" |
+| E1-06, Escenario A (Template Method) | M-01, M-02 y M-03 hacen preparar → ejecutar → evaluar → cerrar. En la E2 el costo fijo de la E1 (4 de combustible y 4 de desgaste) se reemplazó por los costos de la travesía (ver la matriz del ciclo de vida de las misiones); la acción final sigue costando 5/5/0 de energía. | `MisionTest` | "ESCENARIO A" |
 | E1-08 (Decorator) | Haber de los 4 cargos con los 3 orígenes, dos decoradores en cualquier orden, consejos del período y detalle por concepto. Ej.: capitán terrícola con 3 años = 1000 + 600 + 20 = 1620 PG. Se rechazan conceptos nulos o repetidos. | `LiquidacionTest` | "LIQUIDACIÓN DE HABERES" |
 | E1-09, Escenario D | Carga hasta la capacidad (100); con desgaste ≥ 80 requiere mantenimiento y no opera; el mantenimiento lo lleva a 0. Una carga que excede la capacidad se rechaza y la nave conserva su estado. | `RecursosTest`, `NaveTest`, `AsistenteComandoTest` | "OPERACIONES SOBRE RECURSOS", "ESCENARIO D" |
-| Escenario B | Con combustible 3 (< 4), la misión se rechaza con `RecursoInsuficienteException`: la nave no cambia, el motivo queda en la Bitácora y la misión sigue pendiente. | `MisionTest`, `AsistenteComandoTest`, `RecursosTest` | "ESCENARIO B" |
-| E1-10 | El informe trae misión, resultado, acciones, recursos consumidos, estado final de la nave y observaciones. | `MisionTest` | "INFORME M-0x" |
+| Escenario B | Sin los recursos mínimos (por ejemplo, 1 de combustible, o 10 de energía para M-02, que necesita 11), la misión se rechaza con `RecursoInsuficienteException`: la nave no cambia, el motivo queda en la Bitácora y la misión sigue pendiente. | `MisionTest`, `AsistenteComandoTest`, `RecursosTest` | "ESCENARIO B" |
+| E1-10 | El informe trae misión, objetivo, resultado, acciones, ruta, balance de recursos, estado de la nave y observaciones. | `MisionTest` | "INFORME M-0x" |
 | Contratos | Una precondición o invariante incumplida se detecta con `assert` (`AssertionError`): misión realizada dos veces o sin pasar por su asistente, tripulación nula, importe negativo, estado nulo del motor. | Pruebas "Rechazo por contrato" y "Aserción" | — |
 | Aclaración R1, R2 y Pedidos del diseño | El centro registra y devuelve naves, rechaza una repetida o inexistente sin cambiar, usa una nave a la vez y admite otra variante de asistente sin modificarse. | `CentroDeControlTest` | "CASOS DE RECHAZO DEL CENTRO DE CONTROL" |
 
@@ -88,7 +112,7 @@ Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/n
 La Entrega 1 se identifica con la etiqueta Git `entrega-e1`.
 
 ## Documentación
-* [docs/diseño.md](docs/diseño.md): responsabilidades de cada paquete, patrones (Factory, State, Template Method y Decorator), contratos, manejo de errores y decisiones de interpretación adoptadas ante ambigüedades de la consigna (sección 4).
+* [docs/diseño.md](docs/diseño.md): responsabilidades de cada paquete, patrones (Factory, State, Template Method y Decorator), Double Dispatch, contratos, manejo de errores y decisiones de interpretación adoptadas ante ambigüedades de la consigna (sección 4).
 * [docs/diagrama_clases.md](docs/diagrama_clases.md): diagrama de clases.
 * [docs/uso-ia.md](docs/uso-ia.md): registro del uso de inteligencia artificial.
 
