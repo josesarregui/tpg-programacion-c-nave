@@ -1,5 +1,6 @@
 package modelo.mision;
 
+import java.util.Random;
 /**
  * M-01 — Intercepción y asistencia, versión simplificada de la Entrega 1 (Ficha de Inicio, puntos 4 y 5).
  * Acción: llegar al objetivo simulado y realizar la asistencia.
@@ -11,8 +12,12 @@ package modelo.mision;
 public class MisionIntercepcion extends Mision {
 
     private static final int ENERGIA_ADICIONAL = 5;
+    private final int MAXIMO_TRANSFERIR = 50;
+    private final int MINIMO_TRANSFERIR = 0;
 
     private boolean asistenciaRealizada;
+    private int combustibleATransferir;
+    private int energiaATransferir;
 
     /**
      * @post La misión queda creada, sin asistencia realizada.
@@ -35,8 +40,23 @@ public class MisionIntercepcion extends Mision {
      */
     @Override
     protected void realizarAccion() {
-        asistenciaRealizada = true;
-        registrarAccion("Ejecución: llegó al objetivo simulado y realizó la asistencia.");
+    	Random random = new Random();
+    	this.combustibleATransferir = random.nextInt((this.MAXIMO_TRANSFERIR - this.MINIMO_TRANSFERIR) + 1) + this.MINIMO_TRANSFERIR;
+    	this.energiaATransferir = random.nextInt((this.MAXIMO_TRANSFERIR - this.MINIMO_TRANSFERIR) + 1) + this.MINIMO_TRANSFERIR;
+    	if(!this.getAsistente().getPosicionNave().equals(destino)) {
+    		this.combustibleATransferir = this.energiaATransferir = 0;
+    		asistenciaRealizada = false;
+    		registrarAccion("Ejecución: No llegó al objetivo.");
+    	}
+    	else if (this.getAsistente().getCombustible() >= this.combustibleATransferir && this.getAsistente().getEnergia() >= this.energiaATransferir) {
+    		asistenciaRealizada = true;
+    		registrarAccion("Ejecución: llegó al objetivo simulado y realizó la asistencia.");
+    	}
+    	else {
+    		this.combustibleATransferir = this.energiaATransferir = 0;
+    		asistenciaRealizada = false;
+    		registrarAccion("Ejecución: No tuvo recursos suficientes para la asistencia.");
+    	}
     }
 
     @Override
@@ -45,6 +65,16 @@ public class MisionIntercepcion extends Mision {
     }
 
     @Override
+    public int HookCombustibleTransferido() {
+		return combustibleATransferir;
+	}
+
+    @Override
+	public int HookEnergiaTransferida() {
+		return energiaATransferir;
+	}
+
+	@Override
     protected String getCondicionDeExito() {
         return "la asistencia se completa con recursos suficientes";
     }

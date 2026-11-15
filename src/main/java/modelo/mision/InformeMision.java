@@ -32,6 +32,7 @@ public class InformeMision {
     private final String estadoMotorFinal;
     private final boolean naveOperativa;
     private final String observaciones;
+    private int cantidadGemas = -1; // ATRIBUTO POSIBLEMENTE INNECESARIO-1 indica que dependiendo del tipo de mision si es de tipo 02, podra tomar valores mayores a 0
 
     /**
      * @pre Los datos los calcula la propia misión al cerrarse, por eso un dato inválido sólo puede
@@ -104,8 +105,18 @@ public class InformeMision {
     public String getEstadoMotorFinal() {
         return estadoMotorFinal;
     }
+    
+    public int getCantidadGemas() {
+		return cantidadGemas;
+	}
 
-    /**
+    public void setCantidadGemas(int cantidad) {
+    	if(this.cantidadGemas == -1) {
+    		this.cantidadGemas = 0;
+    	}
+    	this.cantidadGemas += cantidad;
+    }
+	/**
      * @return true si, al cerrar la misión, la nave quedó lista para operar.
      */
     public boolean isNaveOperativa() {

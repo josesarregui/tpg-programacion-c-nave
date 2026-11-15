@@ -8,6 +8,15 @@ import modelo.asistente.Asistente;
 import modelo.bitacora.TipoEvento;
 import modelo.nave.TipoRecurso;
 
+import modelo.universo.Destino;
+import modelo.universo.Tablero;
+import modelo.universo.ElementoDelUniverso;
+import modelo.universo.Posicion;
+import java.util.Queue;
+import java.util.LinkedList;
+import java.util.HashMap;
+import java.lang.Thread;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,12 +46,14 @@ public abstract class Mision {
     public static final int DESGASTE_PRODUCIDO = 4;
 
     private final String codigo;
-    private final String nombre;
+    private final String nombre; //PREGUNTAR SI LES PARECE CAMBIAR EL TIPO DE MISION POR UNO CONSTANTE
     private final List<String> acciones = new ArrayList<>();
     private Asistente asistente;
     private EtapaMision etapa;
     private boolean exitosa;
     private InformeMision informe;
+    protected Destino destino;
+    protected Tablero tablero;
 
     /**
      * @pre codigo y nombre no nulos ni vacíos (los fija cada subclase con valores constantes).
@@ -97,6 +108,11 @@ public abstract class Mision {
         assert asistente.getMisionPendiente() == this
                 : "La misión " + codigo + " debe encomendarse a través del asistente (encomendarMision).";
         this.asistente = asistente;
+        
+        //LA MISION NECESITA EL TABLERO PARA SABER DONDE ESTA EL DESTINO
+        this.tablero = this.asistente.getTablero();
+        this.destino = new Destino(this.tablero);
+        
         assert this.asistente == asistente : "Fallo postcondición al asignar el asistente.";
         assert invariante() : "Fallo invariante tras asignar el asistente.";
     }
@@ -157,12 +173,100 @@ public abstract class Mision {
         if (asistente.getEnergia() < getEnergiaAdicional()) {
             throw new RecursoInsuficienteException(TipoRecurso.ENERGIA, asistente.getEnergia(), getEnergiaAdicional());
         }
-
+        //ACA SE VERIA LA INVOCACION A calcularRuta(), para que se vea reflejada en la vista
+        
         etapa = EtapaMision.PREPARADA;
         registrarAccion("Preparación: la nave está disponible y tiene los recursos necesarios (combustible "
                 + COMBUSTIBLE_CONSUMIDO + ", energía " + getEnergiaAdicional() + ").");
         assert invariante() : "Fallo invariante tras preparar la misión.";
     }
+    /**
+     * ESTA PARTE PLANIFICA LA RUTA HACIA EL DESTINO, SI NO ES CORRECTA ELIMINARLA
+     */
+    /**
+     * Planifica la ruta desde la posición actual de la nave hasta el destino de la misión.
+     * @return Lista de posiciones que componen el camino paso a paso.
+     */
+    public List<Posicion> planificacionRuta() {
+        // 1. Obtenemos la posición actual de la nave a través del asistente
+        Posicion origen = this.asistente.getPosicionNave(); // Ajustá el nombre del método según tu Asistente/Nave
+        
+        // 2. Obtenemos la posición del objetivo de la misión
+        Posicion llegada = this.tablero.obtenerObjetivo(); // Ajustá según los métodos de tu clase Destino
+        
+        // 3. Obtenemos la matriz del tablero para analizar el espacio
+        ElementoDelUniverso[][] matrizTablero = this.tablero.verTablero();
+        
+        // 4. Calculamos y devolvemos la secuencia de pasos
+        return calcularCaminoBFS(matrizTablero, origen, llegada);
+    }
+
+    /**
+     * Algoritmo de búsqueda de caminos (BFS) adaptado para trabajar con Posicion y la matriz del tablero.
+     */
+    private List<Posicion> calcularCaminoBFS(ElementoDelUniverso[][] matriz, Posicion inicio, Posicion destino) {
+        int filas = matriz.length;
+        int columnas = matriz[0].length;
+
+        // Validaciones iniciales de límites
+        if (inicio == null || destino == null) {
+            return new ArrayList<>();
+        }
+
+        Queue<Posicion> cola = new LinkedList<>();
+        HashMap<Posicion, Posicion> predecesores = new HashMap<>();
+        boolean[][] visitado = new boolean[filas][columnas];
+
+        cola.add(inicio);
+        visitado[inicio.getX()][inicio.getY()] = true; // Asumiendo getX() e getY() en Posicion
+        predecesores.put(inicio, null);
+
+        // Direcciones de movimiento (Arriba, Abajo, Izquierda, Derecha)
+        int[][] direcciones = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+        while (!cola.isEmpty()) {
+            Posicion actual = cola.poll();
+
+            // Si llegamos al destino, reconstruimos el camino
+            if (actual.equals(destino)) {
+                return reconstruirCamino(predecesores, destino);
+            }
+
+            for (int[] dir : direcciones) {
+                int nuevoX = actual.getX() + dir[0];
+                int nuevoY = actual.getY() + dir[1];
+
+                if (esPosicionValida(nuevoX, nuevoY, filas, columnas) && !visitado[nuevoX][nuevoY]) {
+                    // Si el tablero tiene restricciones de tránsito (ej: casillero transitable), 
+                    // podés validarlo acá consultando matriz[nuevoX][nuevoY]
+                    
+                    Posicion vecino = new Posicion(nuevoX, nuevoY); // Ajustar constructor de Posicion si es necesario
+                    visitado[nuevoX][nuevoY] = true;
+                    predecesores.put(vecino, actual);
+                    cola.add(vecino);
+                }
+            }
+        }
+
+        return new ArrayList<>(); // Si no hay camino posible
+    }
+
+    private boolean esPosicionValida(int x, int y, int filas, int columnas) {
+        return x >= 0 && x < filas && y >= 0 && y < columnas;
+    }
+
+    private List<Posicion> reconstruirCamino(HashMap<Posicion, Posicion> predecesores, Posicion destino) {
+        LinkedList<Posicion> ruta = new LinkedList<>();
+        Posicion paso = destino;
+        while (paso != null) {
+            ruta.addFirst(paso); // Ordena desde el inicio hasta el destino
+            paso = predecesores.get(paso);
+        }
+        return ruta;
+    }
+    /**
+     * ACA FINALIZA LA PARTE DE LA CREACION DE LA RUTA
+     */
 
     /**
      * Paso 2: aplica el costo de la misión en un solo paso y realiza la acción propia de la misión.
@@ -184,9 +288,32 @@ public abstract class Mision {
         realizarAccion();
 
         etapa = EtapaMision.EJECUTADA;
+        do {
+        	this.tablero.observarAlrededores(); //ME DEVUELVE UNA CASILLA DE 3x3 DE LOS ELEMENTOS A LOS ALREDEDORE
+        	//NO SE COMO MOVER A LA NAVE
+        	try {
+        		//SI ELIJE SALTO WARP Y ESTA DISPONIBLE ESE SALTO
+        		//  EJECUTA -> this.asistente.saltarWarp();, SI NO 
+        		if(this.tablero.inspeccionarPosicion() != null)
+        			//SE REALIZO UN IMPACTO,CHOQUE O RECARGA
+        		this.asistente.consumirRecursos(2, 0, 0);
+        		this.destino.turnoDestino(); //ALTERA LA POSICION DEL TABLERO
+        		Thread.sleep(4000); //ESPERA 4 SEGUNDOS, SOLO PARA ESTE EJEMPLO
+        	}
+        	catch(CapacidadExcedidaException e) {		
+        	}
+        	catch(CantidadInvalidaException e) {
+        	}
+        	catch(InterruptedException e) {
+        	}
+        	//NO SE ME OCURRE COMO HACER QUE EL RADAR DE CORTO ALCANCE PERMITA EL MOVIMIENTO
+        }while(this.asistente.getNave().estaListaParaOperar() && !this.asistente.getPosicionNave().equals(destino));
+        
+        if(this.asistente.getNave().estaListaParaOperar() && this.asistente.getPosicionNave().equals(destino)) {
+        	
+        }
         assert invariante() : "Fallo invariante tras ejecutar la misión.";
     }
-
     /**
      * Paso 3: evalúa el resultado según la condición de éxito de la misión concreta.
      *
@@ -217,9 +344,16 @@ public abstract class Mision {
         assert etapa == EtapaMision.EVALUADA : "La misión no puede cerrarse sin resultado.";
 
         registrarAccion("Cierre: " + (exitosa ? "misión exitosa." : "misión no exitosa."));
-
+        int gemas = this.HookCantidadGemas();
+        int combustibleTransferido = this.HookCombustibleTransferido();
+        int energiaTransferida = this.HookEnergiaTransferida();
+        	
         String observaciones = "Condición de éxito: " + getCondicionDeExito()
-                + (exitosa ? " (cumplida)." : " (no cumplida).");
+                + (exitosa ? " (cumplida)." : " (no cumplida)."
+                +(gemas != -1 ? " Gemas recolectadas:" + gemas: "")
+                +(combustibleTransferido != -1 ? " Combustible transferido: " + combustibleTransferido:" ")
+                + (energiaTransferida != -1 ? " Energia transferida: " +energiaTransferida: ""));
+        
         informe = new InformeMision(codigo + " — " + nombre, exitosa, acciones,
                 COMBUSTIBLE_CONSUMIDO, getEnergiaAdicional(), DESGASTE_PRODUCIDO,
                 asistente.getCombustible(), asistente.getEnergia(), asistente.getDesgaste(),
@@ -260,6 +394,20 @@ public abstract class Mision {
     public EtapaMision getEtapa() {
         return etapa;
     }
+    
+    //HOOK DISEÑADO EXCLUSIVAMENTE PARA LA MISION DE RECOLLECCION
+    public int HookCantidadGemas(){
+    	return -1;
+    }
+    
+    //HOOKS DISEÑADO PARA LA MISION DE ASISTENCIA 
+    public int HookCombustibleTransferido() {
+		return -1;
+	}
+
+	public int HookEnergiaTransferida() {
+		return -1;
+	}
 
     /**
      * @return el asistente al que fue encomendada, o null si todavía no se encomendó.

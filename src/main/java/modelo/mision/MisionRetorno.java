@@ -1,5 +1,7 @@
 package modelo.mision;
 
+import excepcion.CantidadInvalidaException;
+import excepcion.CapacidadExcedidaException;
 /**
  * M-03 — Retorno seguro, versión simplificada de la Entrega 1 (Ficha de Inicio, puntos 4 y 5).
  * Acción: completar el regreso simulado.
@@ -15,6 +17,8 @@ package modelo.mision;
 public class MisionRetorno extends Mision {
 
     private static final int ENERGIA_ADICIONAL = 0;
+    
+    private boolean seLlego;
 
     /**
      * @post La misión queda creada.
@@ -30,15 +34,33 @@ public class MisionRetorno extends Mision {
 
     @Override
     protected void realizarAccion() {
-        registrarAccion("Ejecución: completó el regreso simulado a la zona designada.");
+    	if (this.getAsistente().getPosicionNave().equals(this.tablero.getObjetivo())) {
+    		this.seLlego = true;
+    		registrarAccion("Ejecución: completó el regreso simulado a la zona designada.");
+    	}
+    	else {
+    		this.seLlego = false;
+    		registrarAccion("Ejecución: No se completó el regreso a la zona designada.");
+    	}
     }
 
     /**
-     * @return true si, después del regreso, la nave sigue lista para operar.
+     * @return Se cumple si llego a la estacion.
      */
     @Override
     protected boolean objetivoCumplido() {
-        return getAsistente().naveListaParaOperar();
+    	this.getAsistente().realizarMantenimiento();
+    	try {
+    		this.getAsistente().cargarCombustible(100 - this.getAsistente().getCombustible());
+    		this.getAsistente().cargarEnergia(100-this.getAsistente().getEnergia());
+    	}
+    	catch(CapacidadExcedidaException e) {
+    		
+    	}
+    	catch(CantidadInvalidaException e) {
+    		
+    	}
+    	return this.seLlego;
     }
 
     @Override

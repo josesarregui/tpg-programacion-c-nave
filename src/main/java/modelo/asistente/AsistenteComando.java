@@ -16,6 +16,9 @@ import modelo.nave.ObservadorNave;
 import modelo.nave.TipoNave;
 import modelo.tripulacion.Tripulacion;
 
+import modelo.universo.Tablero;
+import modelo.universo.Posicion;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -48,6 +51,8 @@ public class AsistenteComando implements Asistente {
     private final List<Mision> misionesRealizadas;
     private Mision misionPendiente;
     private Mision misionEnEjecucion;
+    private Posicion posicionActual;
+    private Tablero tablero;//EL ASISTENTE NECESITA CONOCER EL TABLERO PARA REALIZAR LOS SALTOS QUE DEMANDE RUTA DE LA MISION DE SER NECESARIO
 
     /**
      * @pre nave != null (la crea la fábrica de naves).
@@ -70,6 +75,26 @@ public class AsistenteComando implements Asistente {
         assert invariante() : "Fallo invariante tras crear el asistente.";
     }
     
+    /**
+     * Metodo para devolver el tablero
+     */
+    public Tablero getTablero() {
+    	return this.tablero;
+    }
+    
+  //LA RESPONSABILIDAD DE LA CREACION DEL TABLERO SE LA PASO AL CONTROLADOR DEL MOTOR DE LA SIMULACION
+    public void setTablero(Tablero tablero) {
+    	this.tablero = tablero;
+    	this.posicionActual = this.tablero.getPosicionNave();
+    }
+    
+    public Posicion getPosicionActual() {
+    	return this.posicionActual;
+    }
+    
+   public Posicion getPosicionNave() {
+	   return this.tablero.getPosicionNave();
+   }
     
     // --- Consultas sobre la Tripulacion ---
     
@@ -403,6 +428,7 @@ public class AsistenteComando implements Asistente {
      * estado final de la nave y observaciones (Aclaración, R5: la Bitácora sirve como informe de cada misión).
      */
     private void registrarInforme(InformeMision informe) {
+    	//LA IDEA QUE EL TIPO DE MISION SEA ENUM, ES PARA DISTINGUIR EN EL MENSAJE TAMBIEN
         registrarEvento(TipoEvento.MISION, "Informe de " + informe.getMision() + ": "
                 + (informe.isExitosa() ? "exitosa" : "no exitosa")
                 + ". Consumo: combustible " + informe.getCombustibleConsumido()

@@ -12,6 +12,9 @@ import modelo.mision.Mision;
 import modelo.nave.TipoNave;
 import modelo.tripulacion.Tripulacion;
 
+import modelo.universo.Tablero;
+import modelo.universo.Posicion;
+
 import java.util.List;
 import modelo.nave.Nave;
 import modelo.tripulacion.Tripulante;
@@ -231,4 +234,16 @@ public interface Asistente {
      * @param observador el observador a eliminar.
      */
     void eliminarObservador(modelo.nave.ObservadorNave observador);
+    
+    /**
+     * EL ASISTENTE CONOCE AL TABLERO, PERO NO NECESARIAMENTE EL OBJETIVO DE LA MISION 
+     * SE AGREGO ESTE METODO PARA QUE LA NAVE PUEDA CONOCER EL TABLERO Y NO LO FABRIQUE LA MISION
+     * @return
+     */
+    Tablero getTablero();
+    
+    void setTablero(Tablero tablero);
+    
+    Posicion getPosicionNave();
+    
 }
