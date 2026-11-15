@@ -303,6 +303,41 @@ public class MisionTest {
 
     // --- Auxiliares ---
 
+    // --- Enunciado E2: destrucción de la nave ---
+
+    @Test
+    @DisplayName("Enunciado E2: si el consumo destruye la nave, la misión se aborta y resulta fallida")
+    public void testMisionAbortadaPorDestruccion() throws Exception {
+        asistente.asignarTripulacion(tripulacion);
+        asistente.consumirRecursos(60 - Mision.COMBUSTIBLE_CONSUMIDO, 0, 0);
+
+        InformeMision informe = realizar(new MisionRecoleccion());
+
+        assertTrue(asistente.naveDestruida());
+        assertEquals(0, asistente.getCombustible());
+        assertFalse(informe.isExitosa());
+        assertFalse(informe.isNaveOperativa());
+        assertTrue(informe.getAcciones().stream().anyMatch(a -> a.startsWith("Ejecución abortada")));
+        assertTrue(informe.getAcciones().stream().noneMatch(a -> a.contains("obtuvo la muestra")),
+                "La acción de la misión no se realiza con la nave destruida");
+        assertTrue(asistente.getEventos().stream()
+                .anyMatch(e -> e.getDescripcion().startsWith("Nave destruida por el consumo de recursos")));
+    }
+
+    @Test
+    @DisplayName("Enunciado E2: una nave destruida no está disponible y la misión se rechaza")
+    public void testMisionRechazadaConNaveDestruida() throws Exception {
+        asistente.asignarTripulacion(tripulacion);
+        asistente.enfrentarseCon(new NaveFactory().crearNave(TipoNave.COMBATE)); // Exploradora pierde.
+        asistente.encomendarMision(new MisionIntercepcion());
+
+        NaveNoDisponibleException e = assertThrows(NaveNoDisponibleException.class, asistente::ejecutarMision);
+
+        assertTrue(e.isNaveDestruida());
+        assertTrue(e.getMessage().contains("destruida: sí"));
+        assertTrue(asistente.tieneMisionPendiente());
+    }
+
     private InformeMision realizar(Mision mision) throws Exception {
         asistente.encomendarMision(mision);
         return asistente.ejecutarMision();

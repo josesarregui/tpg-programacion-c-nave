@@ -148,7 +148,7 @@ public abstract class Mision {
         assert getEnergiaAdicional() >= 0 : "La energía adicional de la misión no puede ser negativa.";
 
         if (!asistente.naveListaParaOperar()) {
-            throw new NaveNoDisponibleException(codigo, asistente.tieneTripulacion(),
+            throw new NaveNoDisponibleException(codigo, asistente.naveDestruida(), asistente.tieneTripulacion(),
                     asistente.requiereMantenimiento(), asistente.getEstadoMotor());
         }
         if (asistente.getCombustible() < COMBUSTIBLE_CONSUMIDO) {
@@ -166,9 +166,12 @@ public abstract class Mision {
 
     /**
      * Paso 2: aplica el costo de la misión en un solo paso y realiza la acción propia de la misión.
+     * Si el consumo destruye la nave (combustible o energía en 0), la misión se aborta de inmediato: no realiza
+     * su acción y la evaluación la da por fallida (Enunciado E2, Fase 2).
      *
      * @pre etapa == PREPARADA (Observaciones: no se ejecuta sin preparación previa).
      * @post etapa == EJECUTADA; la nave consumió el combustible y la energía de la misión y sumó su desgaste.
+     *       Si la nave quedó destruida, la acción no se realizó y el aborto quedó registrado.
      */
     private void ejecutar() throws RecursoInsuficienteException {
         assert etapa == EtapaMision.PREPARADA : "La misión no puede ejecutarse sin preparación previa.";
@@ -181,22 +184,27 @@ public abstract class Mision {
             // Si ocurriera, sería un error de programación (apunte de Excepciones: RuntimeException).
             throw new IllegalStateException("Error de programación al consumir los recursos de la misión " + codigo + ".", e);
         }
-        realizarAccion();
+        if (asistente.naveDestruida()) {
+            registrarAccion("Ejecución abortada: la nave fue destruida y su tripulación murió.");
+        } else {
+            realizarAccion();
+        }
 
         etapa = EtapaMision.EJECUTADA;
         assert invariante() : "Fallo invariante tras ejecutar la misión.";
     }
 
     /**
-     * Paso 3: evalúa el resultado según la condición de éxito de la misión concreta.
+     * Paso 3: evalúa el resultado según la condición de éxito de la misión concreta. Con la nave destruida, la
+     * misión es fallida (Enunciado E2).
      *
      * @pre etapa == EJECUTADA.
-     * @post etapa == EVALUADA y el resultado quedó determinado.
+     * @post etapa == EVALUADA y el resultado quedó determinado; si la nave está destruida, no es exitosa.
      */
     private void evaluar() {
         assert etapa == EtapaMision.EJECUTADA : "La misión no puede evaluarse sin haberse ejecutado.";
 
-        exitosa = objetivoCumplido();
+        exitosa = !asistente.naveDestruida() && objetivoCumplido();
 
         etapa = EtapaMision.EVALUADA;
         registrarAccion("Evaluación: " + (exitosa ? "objetivo cumplido." : "objetivo no cumplido."));

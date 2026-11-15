@@ -61,6 +61,7 @@ classDiagram
     Tablero o-- ElementoDelUniverso : ocupa casillas (0..*)
     Destino --> Tablero : mueve elementos
     ElementoDelUniverso ..> Asistente : interactuarCon
+    ElementoDelUniverso <|.. Nave : naves del tablero (Double Dispatch)
 ```
 
 ## 2. Nave y fábrica (E1-01, E1-07 Factory, E1-09)
@@ -74,9 +75,20 @@ classDiagram
         - Recursos recursos
         - MotorWarp motor
         - Tripulacion tripulacion
+        - boolean destruida
+        - int gemas
+        - int combustibleEntregado
+        - int energiaEntregada
         ~ Nave(combustibleInicial: int, energiaInicial: int, desgasteInicial: int)
         + getTipo() TipoNave*
-        + enfrentar(enemiga: NaveEnemiga) ResultadoCombate*
+        + enfrentarseCon(enemiga: Nave) ResultadoBatalla*
+        ~ serEnfrentadaPorExploradora(propia: Exploradora) ResultadoBatalla*
+        ~ serEnfrentadaPorCarguero(propia: Carguero) ResultadoBatalla*
+        ~ serEnfrentadaPorCombate(propia: Combate) ResultadoBatalla*
+        + aplicarResultado(resultado: ResultadoBatalla)
+        + getNombre() String
+        + getSimbolo() String
+        + interactuarCon(asistente: Asistente)
         + getId() int
         + getMotor() MotorWarp
         + getTripulacion() Tripulacion
@@ -86,12 +98,20 @@ classDiagram
         + getDesgaste() int
         + requiereMantenimiento() boolean
         + estaListaParaOperar() boolean
+        + estaDestruida() boolean
+        + tripulacionConVida() boolean
         + cargarCombustible(cantidad: int) throws CantidadInvalidaException, CapacidadExcedidaException
         + cargarEnergia(cantidad: int) throws CantidadInvalidaException, CapacidadExcedidaException
         + consumirRecursos(combustible: int, energia: int, desgaste: int) throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException
         + recibirImpacto(energia: int)
         + reabastecer(combustible: int, energia: int)
         + realizarMantenimiento()
+        + getGemas() int
+        + acreditarGemas(cantidad: int)
+        + getCombustibleEntregado() int
+        + getEnergiaEntregada() int
+        + entregarSuministros(combustible: int, energia: int) throws CantidadInvalidaException, RecursoInsuficienteException
+        - actualizarDestruccion()
         - invariante() boolean
     }
     class Exploradora {
@@ -100,7 +120,10 @@ classDiagram
         - int DESGASTE_INICIAL = 0$
         ~ Exploradora()
         + getTipo() TipoNave
-        + enfrentar(enemiga: NaveEnemiga) ResultadoCombate
+        + enfrentarseCon(enemiga: Nave) ResultadoBatalla
+        ~ serEnfrentadaPorExploradora(propia: Exploradora) ResultadoBatalla
+        ~ serEnfrentadaPorCarguero(propia: Carguero) ResultadoBatalla
+        ~ serEnfrentadaPorCombate(propia: Combate) ResultadoBatalla
     }
     class Carguero {
         - int COMBUSTIBLE_INICIAL = 100$
@@ -108,7 +131,10 @@ classDiagram
         - int DESGASTE_INICIAL = 0$
         ~ Carguero()
         + getTipo() TipoNave
-        + enfrentar(enemiga: NaveEnemiga) ResultadoCombate
+        + enfrentarseCon(enemiga: Nave) ResultadoBatalla
+        ~ serEnfrentadaPorExploradora(propia: Exploradora) ResultadoBatalla
+        ~ serEnfrentadaPorCarguero(propia: Carguero) ResultadoBatalla
+        ~ serEnfrentadaPorCombate(propia: Combate) ResultadoBatalla
     }
     class Combate {
         - int COMBUSTIBLE_INICIAL = 80$
@@ -116,7 +142,10 @@ classDiagram
         - int DESGASTE_INICIAL = 0$
         ~ Combate()
         + getTipo() TipoNave
-        + enfrentar(enemiga: NaveEnemiga) ResultadoCombate
+        + enfrentarseCon(enemiga: Nave) ResultadoBatalla
+        ~ serEnfrentadaPorExploradora(propia: Exploradora) ResultadoBatalla
+        ~ serEnfrentadaPorCarguero(propia: Carguero) ResultadoBatalla
+        ~ serEnfrentadaPorCombate(propia: Combate) ResultadoBatalla
     }
     class NaveFactory {
         + crearNave(tipo: TipoNave) Nave
@@ -127,7 +156,19 @@ classDiagram
         CARGUERO
         COMBATE
         - String descripcion
+        - String simbolo
         + getDescripcion() String
+        + getSimbolo() String
+    }
+    class ResultadoBatalla {
+        <<enumeration>>
+        GANA
+        PIERDE
+        PACTO_DE_PAZ
+        - String descripcion
+        - boolean destruyeNavePropia
+        + getDescripcion() String
+        + destruyeNavePropia() boolean
     }
     class Recursos {
         <<paquete>>
@@ -143,6 +184,7 @@ classDiagram
         ~ getEnergia() int
         ~ getDesgaste() int
         ~ requiereMantenimiento() boolean
+        ~ agotados() boolean
         ~ cargarCombustible(cantidad: int) throws CantidadInvalidaException, CapacidadExcedidaException
         ~ cargarEnergia(cantidad: int) throws CantidadInvalidaException, CapacidadExcedidaException
         ~ consumir(combustibleConsumido: int, energiaConsumida: int, desgasteProducido: int) throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException
@@ -164,9 +206,12 @@ classDiagram
     class CantidadInvalidaException
     class CapacidadExcedidaException
     class RecursoInsuficienteException
-    class NaveEnemiga
-    <<interface>> NaveEnemiga
+    class ElementoDelUniverso
+    <<interface>> ElementoDelUniverso
+    class Asistente
+    <<interface>> Asistente
 
+    ElementoDelUniverso <|.. Nave
     Nave <|-- Exploradora
     Nave <|-- Carguero
     Nave <|-- Combate
@@ -182,8 +227,16 @@ classDiagram
     Recursos ..> CantidadInvalidaException : lanza
     Recursos ..> CapacidadExcedidaException : lanza
     Recursos ..> RecursoInsuficienteException : lanza
-    Nave ..> NaveEnemiga : enfrentar (Double Dispatch)
+    Nave ..> ResultadoBatalla : enfrentarseCon (Double Dispatch)
+    Nave ..> Asistente : interactuarCon (ida)
 ```
+
+**Double Dispatch (Enunciado E2, punto A).** La nave enemiga del tablero recibe `interactuarCon(asistente)` y le pide
+al asistente `enfrentarseCon(this)`; el asistente invoca `enfrentarseCon(enemiga)` sobre la nave propia (ida), y cada
+subclase responde con `enemiga.serEnfrentadaPor<SuTipo>(this)` (vuelta). Cada subclase implementa los tres métodos de
+vuelta con su **columna** de la tabla (resultado para la nave propia): `Exploradora` paz / pierde / gana, `Carguero`
+gana / paz / pierde, `Combate` pierde / gana / paz (propia Exploradora / Carguero / Combate). Sin `instanceof`,
+`getClass()` ni condicionales de tipo.
 
 ## 3. Motor Warp (E1-02, patrón State)
 
@@ -386,6 +439,8 @@ classDiagram
         + requiereMantenimiento() boolean
         + tieneTripulacion() boolean
         + naveListaParaOperar() boolean
+        + naveDestruida() boolean
+        + getGemas() int
         + getEstadoMotor() String
         + getEventos() List~Evento~
         + registrarEvento(tipo: TipoEvento, descripcion: String)
@@ -396,6 +451,9 @@ classDiagram
         + consumirRecursos(combustible: int, energia: int, desgaste: int) throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException
         + recibirImpacto(energia: int)
         + reabastecer(combustible: int, energia: int)
+        + enfrentarseCon(enemiga: Nave) ResultadoBatalla
+        + acreditarGemas(cantidad: int)
+        + entregarSuministros(combustible: int, energia: int) throws CantidadInvalidaException, RecursoInsuficienteException
         + saltar() int throws EstadoMotorInvalidoException, RecursoInsuficienteException
         + saltarWarp() int
         + tieneMisionPendiente() boolean
@@ -422,6 +480,8 @@ classDiagram
         + requiereMantenimiento() boolean
         + tieneTripulacion() boolean
         + naveListaParaOperar() boolean
+        + naveDestruida() boolean
+        + getGemas() int
         + getEstadoMotor() String
         + getEventos() List~Evento~
         + registrarEvento(tipo: TipoEvento, descripcion: String)
@@ -432,6 +492,9 @@ classDiagram
         + consumirRecursos(combustible: int, energia: int, desgaste: int) throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException
         + recibirImpacto(energia: int)
         + reabastecer(combustible: int, energia: int)
+        + enfrentarseCon(enemiga: Nave) ResultadoBatalla
+        + acreditarGemas(cantidad: int)
+        + entregarSuministros(combustible: int, energia: int) throws CantidadInvalidaException, RecursoInsuficienteException
         + saltar() int throws EstadoMotorInvalidoException, RecursoInsuficienteException
         + saltarWarp() int
         + tieneMisionPendiente() boolean
@@ -442,6 +505,7 @@ classDiagram
         + cancelarMision()
         + ejecutarMision() InformeMision throws NaveNoDisponibleException, RecursoInsuficienteException
         - registrarInforme(informe: InformeMision)
+        - registrarSiFueDestruida(destruidaAntes: boolean, causa: String)
         - registrarRechazoDelMotor(e: EstadoMotorInvalidoException)
         - invariante() boolean
     }
@@ -767,11 +831,13 @@ classDiagram
     }
     class NaveNoDisponibleException {
         - String codigoMision
+        - boolean naveDestruida
         - boolean tieneTripulacion
         - boolean requiereMantenimiento
         - String estadoMotor
-        + NaveNoDisponibleException(codigoMision: String, tieneTripulacion: boolean, requiereMantenimiento: boolean, estadoMotor: String)
+        + NaveNoDisponibleException(codigoMision: String, naveDestruida: boolean, tieneTripulacion: boolean, requiereMantenimiento: boolean, estadoMotor: String)
         + getCodigoMision() String
+        + isNaveDestruida() boolean
         + tieneTripulacion() boolean
         + requiereMantenimiento() boolean
         + getEstadoMotor() String
@@ -859,23 +925,18 @@ classDiagram
         + getSimbolo() String
         + interactuarCon(asistente: Asistente)
     }
-    class NaveEnemiga {
-        <<interface>>
-        + enfrentarCon(exploradora: Exploradora) ResultadoCombate
-        + enfrentarCon(carguero: Carguero) ResultadoCombate
-        + enfrentarCon(combate: Combate) ResultadoCombate
-        + getTipoNave() TipoNave
+    class Nave {
+        <<abstract>>
+        + getNombre() String
+        + getSimbolo() String
+        + interactuarCon(asistente: Asistente)
+        + enfrentarseCon(enemiga: Nave) ResultadoBatalla*
     }
-    class ExploradoraEnemiga
-    class CargueroEnemigo
-    class CombateEnemigo
-    class ResultadoCombate {
+    class Exploradora
+    class Carguero
+    class Combate
+    class ResultadoBatalla {
         <<enumeration>>
-        GANA
-        PIERDE
-        PACTO_DE_PAZ
-        - String descripcion
-        + getDescripcion() String
     }
     class Tablero {
         + Tablero(x: int, y: int, elementos: ArrayList~ElementoDelUniverso~) throws DimensionesDeTableroInconsistentesException, CantidadDeElementosSuperaCasillaException
@@ -927,11 +988,11 @@ classDiagram
 
     ElementoDelUniverso <|.. Asteroide
     ElementoDelUniverso <|.. EstacionDeCarga
-    ElementoDelUniverso <|-- NaveEnemiga
-    NaveEnemiga <|.. ExploradoraEnemiga
-    NaveEnemiga <|.. CargueroEnemigo
-    NaveEnemiga <|.. CombateEnemigo
-    NaveEnemiga ..> ResultadoCombate
+    ElementoDelUniverso <|.. Nave
+    Nave <|-- Exploradora
+    Nave <|-- Carguero
+    Nave <|-- Combate
+    Nave ..> ResultadoBatalla : Double Dispatch
     ElementoDelUniverso ..> Asistente : interactuarCon
     Observable <|-- Tablero
     Observable o-- Observador : avisa (0..*)
@@ -943,6 +1004,9 @@ classDiagram
 ```
 
 `Asteroide` y `EstacionDeCarga` ordenan a través del asistente (`recibirImpacto` y `reabastecer`), que aplica el cambio en la
-nave y lo registra en la Bitácora; ninguna de las dos usa condicionales de tipo. Las naves enemigas son provisionales: en el
-Paso 2 del plan de la E2 serán las propias `Exploradora`, `Carguero` y `Combate` (la `Nave` implementará `ElementoDelUniverso`).
+nave y lo registra en la Bitácora; ninguna de las dos usa condicionales de tipo. Las naves enemigas son las propias
+`Exploradora`, `Carguero` y `Combate` creadas por `NaveFactory`: `Nave` implementa `ElementoDelUniverso` y, al cruzarse con la
+nave propia, le pide al asistente `enfrentarseCon(this)`, que resuelve la batalla por Double Dispatch (sección 2), aplica el
+resultado y lo registra en la Bitácora; si la nave propia pierde, queda destruida y su tripulación muere. El detalle de `Nave` y
+`ResultadoBatalla` está en la sección 2.
 Las dos excepciones de la cátedra son comprobadas (extienden `Exception`).

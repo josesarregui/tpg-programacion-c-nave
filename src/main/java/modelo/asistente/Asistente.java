@@ -9,6 +9,7 @@ import modelo.bitacora.Evento;
 import modelo.bitacora.TipoEvento;
 import modelo.mision.InformeMision;
 import modelo.mision.Mision;
+import modelo.nave.ResultadoBatalla;
 import modelo.nave.TipoNave;
 import modelo.tripulacion.Tripulacion;
 
@@ -72,6 +73,17 @@ public interface Asistente {
      * @return true si la nave tiene tripulación, no requiere mantenimiento y su motor está en Disponible.
      */
     boolean naveListaParaOperar();
+
+    /**
+     * @return true si la nave fue destruida (perdió una batalla o agotó sus recursos, Enunciado E2). Con la nave
+     *         destruida, su tripulación murió.
+     */
+    boolean naveDestruida();
+
+    /**
+     * @return gemas recolectadas por la nave (M-02).
+     */
+    int getGemas();
 
     /**
      * @return nombre del estado actual del Motor Warp.
@@ -141,6 +153,37 @@ public interface Asistente {
      *       en la Bitácora.
      */
     void reabastecer(int combustible, int energia);
+
+    /**
+     * La nave que opera el asistente se enfrenta en batalla con una nave enemiga que coincide en su misma
+     * coordenada (Enunciado E2, punto A). El resultado se resuelve por Double Dispatch y depende sólo del tipo
+     * de cada nave; si la nave pierde, queda destruida junto con su tripulación.
+     *
+     * @pre enemiga != null, enemiga != getNave() y !naveDestruida().
+     * @post El resultado quedó aplicado a la nave y registrado en la Bitácora; si destruye a la nave propia,
+     *       naveDestruida() y la destrucción también quedó registrada.
+     * @return resultado de la batalla para la nave que opera el asistente.
+     */
+    ResultadoBatalla enfrentarseCon(Nave enemiga);
+
+    /**
+     * Acredita a la nave las gemas recolectadas (M-02).
+     *
+     * @pre cantidad > 0 y !naveDestruida().
+     * @post getGemas() == gemas anteriores + cantidad y quedó registrado en la Bitácora.
+     */
+    void acreditarGemas(int cantidad);
+
+    /**
+     * Entrega suministros de la nave a una nave aliada (M-01). Si se rechaza, registra el motivo y propaga la
+     * excepción; la nave no cambia.
+     *
+     * @pre !naveDestruida().
+     * @post Combustible y energía disminuyeron en las cantidades indicadas y quedó registrado en la Bitácora.
+     * @throws CantidadInvalidaException si alguna cantidad es negativa.
+     * @throws RecursoInsuficienteException si no hay combustible o energía suficientes.
+     */
+    void entregarSuministros(int combustible, int energia) throws CantidadInvalidaException, RecursoInsuficienteException;
 
     /**
      * Ordena un salto normal al Motor Warp (Anexo): la nave avanza 1 casillero y consume combustible.

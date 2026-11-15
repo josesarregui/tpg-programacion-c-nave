@@ -13,6 +13,7 @@ import modelo.mision.InformeMision;
 import modelo.mision.Mision;
 import modelo.nave.Nave;
 import modelo.nave.ObservadorNave;
+import modelo.nave.ResultadoBatalla;
 import modelo.nave.TipoNave;
 import modelo.tripulacion.Tripulacion;
 
@@ -28,6 +29,9 @@ import modelo.tripulacion.Tripulante;
  * pasa por él. No implementa el comportamiento de los subsistemas: delega en la nave (recursos) y en el
  * Motor Warp (transiciones), coordina las órdenes y registra en su Bitácora lo que ocurre, incluidos los
  * errores, que luego propaga al invocante (el programa principal o, en la E2, un controlador).
+ *
+ * Toda orden que puede destruir la nave (consumos, impactos, saltos, entregas y batallas, Enunciado E2) deja
+ * constancia en la Bitácora si la nave quedó destruida y su tripulación murió.
  *
  * Admite una misión pendiente a la vez: para encomendar otra, la anterior debe realizarse o cancelarse.
  * Las misiones realizadas se conservan con su informe, y al cerrar cada una su informe queda resumido
@@ -136,6 +140,16 @@ public class AsistenteComando implements Asistente {
     }
 
     @Override
+    public boolean naveDestruida() {
+        return nave.estaDestruida();
+    }
+
+    @Override
+    public int getGemas() {
+        return nave.getGemas();
+    }
+
+    @Override
     public String getEstadoMotor() {
         return nave.getMotor().getEstado();
     }
@@ -223,6 +237,7 @@ public class AsistenteComando implements Asistente {
         int combustibleAnterior = nave.getCombustible();
         int energiaAnterior = nave.getEnergia();
         int desgasteAnterior = nave.getDesgaste();
+        boolean destruidaAntes = nave.estaDestruida();
         try {
             nave.consumirRecursos(combustible, energia, desgaste);
         } catch (CantidadInvalidaException | RecursoInsuficienteException | CapacidadExcedidaException e) {
@@ -231,6 +246,7 @@ public class AsistenteComando implements Asistente {
         }
         registrarEvento(TipoEvento.RECURSO, "Consumo de " + combustible + " de combustible y " + energia
                 + " de energía, con " + desgaste + " de desgaste. " + nave);
+        registrarSiFueDestruida(destruidaAntes, "el consumo de recursos");
         assert nave.getCombustible() == combustibleAnterior - combustible
                 && nave.getEnergia() == energiaAnterior - energia
                 && nave.getDesgaste() == desgasteAnterior + desgaste : "Fallo postcondición al consumir recursos.";
@@ -241,9 +257,11 @@ public class AsistenteComando implements Asistente {
     public void recibirImpacto(int energia) {
         assert energia >= 0 : "La energía del impacto no puede ser negativa.";
         int energiaAnterior = nave.getEnergia();
+        boolean destruidaAntes = nave.estaDestruida();
         nave.recibirImpacto(energia);
         registrarEvento(TipoEvento.RECURSO, "Impacto: pérdida de " + (energiaAnterior - nave.getEnergia())
                 + " de energía. " + nave);
+        registrarSiFueDestruida(destruidaAntes, "el impacto");
         assert nave.getEnergia() == Math.max(energiaAnterior - energia, 0) : "Fallo postcondición al recibir un impacto.";
         assert invariante() : "Fallo invariante tras recibir un impacto.";
     }
@@ -262,6 +280,61 @@ public class AsistenteComando implements Asistente {
     }
 
     /**
+     * Resuelve la batalla con una nave enemiga: la nave propia recibe la ida del Double Dispatch
+     * (Nave.enfrentarseCon), el resultado se aplica a la nave y queda registrado en la Bitácora.
+     */
+    @Override
+    public ResultadoBatalla enfrentarseCon(Nave enemiga) {
+        assert enemiga != null : "La nave enemiga no puede ser nula.";
+        assert enemiga != nave : "La nave no puede enfrentarse consigo misma.";
+        assert !nave.estaDestruida() : "Una nave destruida no puede librar batallas.";
+        ResultadoBatalla resultado = nave.enfrentarseCon(enemiga);
+        registrarEvento(TipoEvento.RELEVANTE, "Batalla contra " + enemiga.getNombre() + ": "
+                + resultado.getDescripcion() + ".");
+        nave.aplicarResultado(resultado);
+        registrarSiFueDestruida(false, "la derrota contra " + enemiga.getNombre());
+        assert nave.estaDestruida() == resultado.destruyeNavePropia()
+                : "Fallo postcondición: sólo la derrota destruye la nave.";
+        assert invariante() : "Fallo invariante tras la batalla.";
+        return resultado;
+    }
+
+    @Override
+    public void acreditarGemas(int cantidad) {
+        assert cantidad > 0 : "La cantidad de gemas a acreditar debe ser positiva.";
+        assert !nave.estaDestruida() : "Una nave destruida no puede recibir gemas.";
+        int gemasAnteriores = nave.getGemas();
+        nave.acreditarGemas(cantidad);
+        registrarEvento(TipoEvento.RECURSO, "Gemas recolectadas: " + cantidad + " (total " + nave.getGemas() + ").");
+        assert nave.getGemas() == gemasAnteriores + cantidad : "Fallo postcondición al acreditar gemas.";
+        assert invariante() : "Fallo invariante tras acreditar gemas.";
+    }
+
+    /**
+     * Entrega suministros a una nave aliada y registra el resultado. Si la entrega se rechaza, registra el
+     * motivo y propaga la excepción; la nave no cambia.
+     */
+    @Override
+    public void entregarSuministros(int combustible, int energia)
+            throws CantidadInvalidaException, RecursoInsuficienteException {
+        assert !nave.estaDestruida() : "Una nave destruida no puede entregar suministros.";
+        int combustibleAnterior = nave.getCombustible();
+        int energiaAnterior = nave.getEnergia();
+        try {
+            nave.entregarSuministros(combustible, energia);
+        } catch (CantidadInvalidaException | RecursoInsuficienteException e) {
+            registrarEvento(TipoEvento.ERROR, "Entrega de suministros rechazada: " + e.getMessage());
+            throw e;
+        }
+        registrarEvento(TipoEvento.RECURSO, "Entrega de suministros: " + combustible + " de combustible y "
+                + energia + " de energía. " + nave);
+        registrarSiFueDestruida(false, "la entrega de suministros");
+        assert nave.getCombustible() == combustibleAnterior - combustible
+                && nave.getEnergia() == energiaAnterior - energia : "Fallo postcondición al entregar suministros.";
+        assert invariante() : "Fallo invariante tras entregar suministros.";
+    }
+
+    /**
      * Ordena un salto normal al Motor Warp y registra el resultado en la Bitácora.
      * Si el motor o los recursos lo rechazan, registra el motivo y propaga la excepción; nada cambia
      * (Escenario C: las transiciones inválidas quedan registradas).
@@ -269,6 +342,7 @@ public class AsistenteComando implements Asistente {
     @Override
     public int saltar() throws EstadoMotorInvalidoException, RecursoInsuficienteException {
         int casilleros;
+        boolean destruidaAntes = nave.estaDestruida();
         try {
             casilleros = nave.getMotor().saltar();
         } catch (EstadoMotorInvalidoException e) {
@@ -279,6 +353,7 @@ public class AsistenteComando implements Asistente {
             throw e;
         }
         registrarEvento(TipoEvento.MOTOR, "Salto normal: la nave avanza " + casilleros + " casillero. " + nave);
+        registrarSiFueDestruida(destruidaAntes, "el salto normal");
         nave.notificarObservadores();
         assert invariante() : "Fallo invariante tras el salto normal.";
         return casilleros;
@@ -291,12 +366,14 @@ public class AsistenteComando implements Asistente {
     @Override
     public int saltarWarp() {
         String estadoAnterior = getEstadoMotor();
+        boolean destruidaAntes = nave.estaDestruida();
         int casilleros = nave.getMotor().saltarWarp();
         String descripcion = "Maniobra warp: " + estadoAnterior + " -> " + getEstadoMotor() + ".";
         if (casilleros > 0) {
             descripcion += " La nave avanza " + casilleros + " casilleros.";
         }
         registrarEvento(TipoEvento.MOTOR, descripcion + " " + nave);
+        registrarSiFueDestruida(destruidaAntes, "la maniobra warp");
         nave.notificarObservadores();
         assert invariante() : "Fallo invariante tras el turno de la maniobra warp.";
         return casilleros;
@@ -414,6 +491,18 @@ public class AsistenteComando implements Asistente {
                 + ", motor " + informe.getEstadoMotorFinal()
                 + ", operativa: " + (informe.isNaveOperativa() ? "sí" : "no")
                 + ". " + informe.getObservaciones());
+    }
+
+    /**
+     * Si la última orden destruyó la nave, lo deja en la Bitácora (Enunciado E2: la tripulación muere y la
+     * misión falla de inmediato).
+     *
+     * @post Si la nave no estaba destruida y ahora lo está, la destrucción quedó registrada.
+     */
+    private void registrarSiFueDestruida(boolean destruidaAntes, String causa) {
+        if (!destruidaAntes && nave.estaDestruida()) {
+            registrarEvento(TipoEvento.RELEVANTE, "Nave destruida por " + causa + ". La tripulación murió. " + nave);
+        }
     }
 
     private void registrarRechazoDelMotor(EstadoMotorInvalidoException e) {

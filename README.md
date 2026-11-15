@@ -46,7 +46,7 @@ recursos y mantenimiento con el **Escenario D**; el **Escenario B** y el **Escen
 ```
 mvn test
 ```
-Ejecuta las 230 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Ejecuta las 276 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
 Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/nave.mv.db`. Las pruebas de las vistas Swing
 (`VistasAccesoTest`) se omiten si no hay entorno gráfico.
 
@@ -63,9 +63,14 @@ Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/n
 | Caso | Qué se verifica (resultado esperado) | Prueba automática |
 |---|---|---|
 | Tablero y Destino (módulo de la cátedra en `modelo.universo`) | El tablero ubica la nave en el centro, elige objetivo y notifica a sus observadores; Destino mueve elementos y avisa al cerrar el turno. | `TableroYDestinoTest` |
-| Asteroide (E2, punto B) | Descuenta 25 de energía sin tocar combustible ni desgaste; si la energía no alcanza queda en 0. El impacto y la pérdida real quedan en la Bitácora. | `AsteroideTest`, `RecursosTest` |
+| Asteroide (E2, punto B) | Descuenta 25 de energía sin tocar combustible ni desgaste; si la energía no alcanza queda en 0 y la nave se destruye. El impacto, la pérdida real y la destrucción quedan en la Bitácora. | `AsteroideTest`, `RecursosTest`, `DestruccionNaveTest` |
 | Estación de carga (E2, punto C) | Recarga 30 de combustible y 30 de energía sin superar 100. El acople y lo realmente cargado quedan en la Bitácora. | `EstacionDeCargaTest`, `RecursosTest` |
-| Polimorfismo en `ElementoDelUniverso` | La interacción y el símbolo para la vista se obtienen sin condicionales de tipo. | `AsteroideTest`, `EstacionDeCargaTest` |
+| Polimorfismo en `ElementoDelUniverso` | La interacción y el símbolo para la vista se obtienen sin condicionales de tipo. Las naves de la fábrica son elementos del tablero, con nombre y símbolo de su tipo (`EX`, `CA`, `CO`). | `AsteroideTest`, `EstacionDeCargaTest`, `BatallaTest`, `TableroYDestinoTest` |
+| Batallas por Double Dispatch (E2, punto A) | Los 9 cruces de la tabla (nave propia vs. enemiga): mismo tipo, pacto de paz; Exploradora gana a Carguero, Carguero a Combate y Combate a Exploradora (y la inversa pierde). Resolver la batalla no modifica las naves. Sin `instanceof`, `getClass()` ni condicionales de tipo. | `BatallaTest` |
+| Derrota en batalla | La nave propia queda destruida, su tripulación muere, deja de estar lista para operar y la Bitácora registra la batalla y la destrucción. Victoria y pacto de paz no la modifican. La enemiga no cambia. | `BatallaTest` |
+| Causas de destrucción (E2, Fase 2) | Combustible 0, energía 0 o desgaste 100 por consumo, impacto, salto normal, salto warp, enfriamiento o entrega de suministros destruyen la nave; la causa queda registrada una sola vez. La destrucción es definitiva: recargar o hacer mantenimiento no la repara. | `DestruccionNaveTest`, `AsteroideTest` |
+| Misión con la nave destruida | Si el consumo de la misión destruye la nave, la misión se aborta (no realiza su acción) y resulta fallida, con su informe. Con la nave ya destruida, la misión se rechaza con `NaveNoDisponibleException` (`isNaveDestruida()`). | `MisionTest` |
+| Gemas (M-02) y suministros (M-01) | La nave acumula las gemas acreditadas; entregar suministros descuenta combustible y energía en un solo paso y acumula lo entregado. Una entrega insuficiente o negativa se rechaza sin cambios y queda en la Bitácora. Una nave destruida no recibe gemas ni entrega suministros. | `GemasYSuministrosTest`, `DestruccionNaveTest` |
 
 ### Matriz de verificación — Entrega 1
 | Caso | Qué se verifica (resultado esperado) | Prueba automática | En `DemostracionEntrega1` |
@@ -88,7 +93,7 @@ Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/n
 La Entrega 1 se identifica con la etiqueta Git `entrega-e1`.
 
 ## Documentación
-* [docs/diseño.md](docs/diseño.md): responsabilidades de cada paquete, patrones (Factory, State, Template Method y Decorator), contratos, manejo de errores y decisiones de interpretación adoptadas ante ambigüedades de la consigna (sección 4).
+* [docs/diseño.md](docs/diseño.md): responsabilidades de cada paquete, patrones (Factory, State, Template Method y Decorator), Double Dispatch, contratos, manejo de errores y decisiones de interpretación adoptadas ante ambigüedades de la consigna (sección 4).
 * [docs/diagrama_clases.md](docs/diagrama_clases.md): diagrama de clases.
 * [docs/uso-ia.md](docs/uso-ia.md): registro del uso de inteligencia artificial.
 
