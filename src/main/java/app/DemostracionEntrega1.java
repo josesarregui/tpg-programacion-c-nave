@@ -33,6 +33,9 @@ import modelo.tripulacion.Teniente;
 import modelo.tripulacion.Tripulacion;
 import modelo.tripulacion.Tripulante;
 import modelo.universo.CentroDeControl;
+import modelo.universo.Destino;
+import modelo.universo.FabricaDeUniverso;
+import modelo.universo.Tablero;
 
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -49,9 +52,10 @@ import java.util.List;
  * Demuestra:
  *  - E1-04 y E1-08: tripulación mínima y liquidación mensual con el detalle de cada concepto, y rechazos.
  *  - E1-01, E1-07 y R1: creación de los tres tipos de nave mediante la fábrica y su registro en el centro de control.
- *  - Escenario A (E1-03, E1-05, E1-06, E1-10): M-01, M-02 y M-03 con informe, recursos finales y Bitácora.
+ *  - Escenario A (E1-03, E1-05, E1-06, E1-10): M-01, M-02 y M-03 con informe, recursos finales y Bitácora; en la
+ *    E2 cada misión recorre el tablero de 20 x 20 por turnos (Enunciado E2, Fases 1 a 4).
  *  - E1-09 y Escenario D: recursos antes y después de cargas, consumo y mantenimiento; carga que excede la capacidad.
- *  - Escenario B: misión rechazada por combustible insuficiente, sin cambios parciales.
+ *  - Escenario B: misión rechazada por energía insuficiente, sin cambios parciales.
  *  - Escenario C (E1-02): ciclo válido del Motor Warp y rechazo de una transición inválida, registrado en la Bitácora.
  */
 public class DemostracionEntrega1 {
@@ -130,18 +134,28 @@ public class DemostracionEntrega1 {
             mostrarBitacora(asistente);
 
             // Ficha de Inicio, Escenario A, paso 5: para cada misión se muestran el informe, los recursos y su Bitácora.
-            Mision[] misiones = {new MisionIntercepcion(), new MisionRecoleccion(), new MisionRetorno()};
+            // En la E2 las misiones recorren el tablero de 20 x 20 (Destino asociado a ese tablero).
+            Tablero tablero = new FabricaDeUniverso().crearTablero();
+            Destino destino = new Destino(tablero);
+            Mision[] misiones = {new MisionIntercepcion(tablero, destino), new MisionRecoleccion(tablero, destino),
+                    new MisionRetorno(tablero, destino)};
             for (Mision mision : misiones) {
                 int eventosAnteriores = asistente.getEventos().size();
                 System.out.println();
                 System.out.println("Recursos antes de " + mision.getCodigo() + ": " + describir(asistente));
+                mision.configurarPausaPorTurno(0); // por consola no hace falta ver el avance paso a paso
                 asistente.encomendarMision(mision);
-                mostrarInforme(asistente.ejecutarMision());
+                try {
+                    mostrarInforme(asistente.ejecutarMision());
+                } catch (NaveNoDisponibleException | RecursoInsuficienteException e) {
+                    // El universo es aleatorio: una misión anterior pudo destruir la nave o agotar sus recursos.
+                    System.out.println("Misión rechazada: " + e.getMessage());
+                    asistente.cancelarMision();
+                }
                 System.out.println("Recursos después de " + mision.getCodigo() + ": " + describir(asistente));
                 mostrarEventosDesde(asistente, eventosAnteriores, "BITÁCORA DE " + mision.getCodigo());
             }
-        } catch (TripulanteInvalidoException | TripulacionInvalidaException
-                 | NaveNoDisponibleException | RecursoInsuficienteException e) {
+        } catch (TripulanteInvalidoException | TripulacionInvalidaException e) {
             System.out.println("Error inesperado en la demostración: " + e.getMessage());
         }
         System.out.println();
@@ -194,13 +208,15 @@ public class DemostracionEntrega1 {
         System.out.println("Nave en uso: " + describir(centro.getAsistenteEnUso()));
         try {
             asistente.asignarTripulacion(crearTripulacion("Sisko", "Dax", "Kira", "Nog", "Ezri"));
-            asistente.consumirRecursos(77, 0, 0);
+            // M-02 necesita al menos 11 de energía (despegue, un escaneo corto y la acción final).
+            asistente.consumirRecursos(0, 90, 0);
         } catch (TripulanteInvalidoException | TripulacionInvalidaException | CantidadInvalidaException
                  | RecursoInsuficienteException | CapacidadExcedidaException e) {
             System.out.println("Error inesperado en la demostración: " + e.getMessage());
         }
-        System.out.println("Antes (después de consumir 77 de combustible): " + describir(asistente));
-        asistente.encomendarMision(new MisionRecoleccion());
+        System.out.println("Antes (después de consumir 90 de energía): " + describir(asistente));
+        Tablero tablero = new FabricaDeUniverso().crearTablero();
+        asistente.encomendarMision(new MisionRecoleccion(tablero, new Destino(tablero)));
         try {
             asistente.ejecutarMision();
         } catch (RecursoInsuficienteException e) {
@@ -213,6 +229,11 @@ public class DemostracionEntrega1 {
         System.out.println("Misión pendiente: " + asistente.getMisionPendiente() + " (puede reintentarse o cancelarse)");
         asistente.cancelarMision();
         mostrarBitacora(asistente);
+        try {
+            asistente.cargarEnergia(90); // se repone la energía para la maniobra warp del Escenario C
+        } catch (CantidadInvalidaException | CapacidadExcedidaException e) {
+            System.out.println("Error inesperado en la demostración: " + e.getMessage());
+        }
     }
 
     // --- Escenario C ---
@@ -331,9 +352,10 @@ public class DemostracionEntrega1 {
         for (String accion : informe.getAcciones()) {
             System.out.println("   " + accion);
         }
-        System.out.println("   Recursos consumidos: combustible " + informe.getCombustibleConsumido()
-                + ", energía " + informe.getEnergiaConsumida() + ", desgaste " + informe.getDesgasteProducido());
-        System.out.println("   Estado final: combustible " + informe.getCombustibleFinal() + ", energía "
+        System.out.println("   Objetivo: (" + informe.getObjetivo().getX() + ", " + informe.getObjetivo().getY()
+                + "); casillas recorridas: " + (informe.getRuta().size() - 1));
+        System.out.println("   Balance: " + informe.getBalance());
+        System.out.println("   Estado al evaluar: combustible " + informe.getCombustibleFinal() + ", energía "
                 + informe.getEnergiaFinal() + ", desgaste " + informe.getDesgasteFinal() + ", motor "
                 + informe.getEstadoMotorFinal() + ", operativa: " + siNo(informe.isNaveOperativa()));
         System.out.println("   Observaciones: " + informe.getObservaciones());

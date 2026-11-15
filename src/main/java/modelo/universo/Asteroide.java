@@ -40,6 +40,14 @@ public class Asteroide implements ElementoDelUniverso {
     }
 
     /**
+     * @post Retorna true: el impacto quita energía, por eso la navegación evita la casilla.
+     */
+    @Override
+    public boolean esAmenaza() {
+        return true;
+    }
+
+    /**
      * Registra el impacto en la Bitácora y descuenta DANIO_ENERGIA de energía a la nave del asistente.
      *
      * @pre asistente != null.

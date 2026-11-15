@@ -73,8 +73,7 @@ public class AsistenteComando implements Asistente {
                 + nave.getTipo().getDescripcion() + " #" + nave.getId() + "."));
         assert invariante() : "Fallo invariante tras crear el asistente.";
     }
-    
-    
+
     // --- Consultas sobre la Tripulacion ---
     
     public List<Tripulante> getTripulantes() {
@@ -152,6 +151,11 @@ public class AsistenteComando implements Asistente {
     @Override
     public String getEstadoMotor() {
         return nave.getMotor().getEstado();
+    }
+
+    @Override
+    public boolean motorDisponible() {
+        return nave.getMotor().estaDisponible();
     }
 
     // --- Bitácora ---
@@ -476,8 +480,9 @@ public class AsistenteComando implements Asistente {
     // --- Auxiliares ---
 
     /**
-     * Deja en la Bitácora el resumen del informe de una misión cerrada: resultado, recursos consumidos,
-     * estado final de la nave y observaciones (Aclaración, R5: la Bitácora sirve como informe de cada misión).
+     * Deja en la Bitácora el resumen del informe de una misión cerrada: resultado, recursos consumidos, casillas
+     * recorridas, estado final de la nave (después del cierre, que pudo aplicar gemas, suministros o la reparación
+     * en la base) y observaciones (Aclaración, R5: la Bitácora sirve como informe de cada misión).
      */
     private void registrarInforme(InformeMision informe) {
         registrarEvento(TipoEvento.MISION, "Informe de " + informe.getMision() + ": "
@@ -485,11 +490,12 @@ public class AsistenteComando implements Asistente {
                 + ". Consumo: combustible " + informe.getCombustibleConsumido()
                 + ", energía " + informe.getEnergiaConsumida()
                 + ", desgaste " + informe.getDesgasteProducido()
-                + ". Estado final: combustible " + informe.getCombustibleFinal()
-                + ", energía " + informe.getEnergiaFinal()
-                + ", desgaste " + informe.getDesgasteFinal()
-                + ", motor " + informe.getEstadoMotorFinal()
-                + ", operativa: " + (informe.isNaveOperativa() ? "sí" : "no")
+                + ". Casillas recorridas: " + (informe.getRuta().size() - 1)
+                + ". Estado final: combustible " + nave.getCombustible()
+                + ", energía " + nave.getEnergia()
+                + ", desgaste " + nave.getDesgaste()
+                + ", motor " + getEstadoMotor()
+                + ", operativa: " + (nave.estaListaParaOperar() ? "sí" : "no")
                 + ". " + informe.getObservaciones());
     }
 

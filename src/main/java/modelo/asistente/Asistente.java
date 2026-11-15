@@ -90,6 +90,14 @@ public interface Asistente {
      */
     String getEstadoMotor();
 
+    /**
+     * Permite que la misión sepa si puede elegir un salto nuevo o si debe continuar la maniobra warp en curso
+     * (Anexo: durante la maniobra sólo se admite saltarWarp()), sin comparar el nombre del estado.
+     *
+     * @return true si el Motor Warp está en Disponible.
+     */
+    boolean motorDisponible();
+
     // --- Bitácora (R5) ---
 
     /**

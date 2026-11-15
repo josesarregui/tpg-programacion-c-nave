@@ -15,8 +15,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Evidencia de las operaciones mínimas de la nave para M-01 (entrega de suministros a una nave aliada) y M-02
- * (recolección de gemas), Enunciado E2, con sus contratos y su registro en la Bitácora. La lógica de las
- * misiones sobre el tablero se incorpora en el Paso 3.
+ * (recolección de gemas), Enunciado E2, con sus contratos y su registro en la Bitácora. Su uso desde los cierres
+ * de las misiones se prueba en {@code MisionTest}.
  */
 public class GemasYSuministrosTest {
 

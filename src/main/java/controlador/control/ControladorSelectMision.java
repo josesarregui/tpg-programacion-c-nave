@@ -8,6 +8,8 @@ import modelo.mision.Mision;
 import modelo.mision.MisionIntercepcion;
 import modelo.mision.MisionRecoleccion;
 import modelo.mision.MisionRetorno;
+import modelo.universo.Destino;
+import modelo.universo.Tablero;
 import vista.principal.panelcontrol.panelselectmision.IVistaSelectMision;
 
 /**
@@ -16,21 +18,32 @@ import vista.principal.panelcontrol.panelselectmision.IVistaSelectMision;
  * Administra la carga de eventos en la bitacora, la inspeccion de misiones
  * disponibles
  * y el paso a la fase de ejecucion de la mision encomendada.
+ * Las misiones se crean sobre el tablero y el Destino que recibe.
  */
 public class ControladorSelectMision implements ActionListener {
     private final IVistaSelectMision vista;
     private final Asistente asistente;
     private final ControladorControl controladorControl;
+    private final Tablero tablero;
+    private final Destino destino;
 
     private Mision misionSeleccionada;
 
+    /**
+     * @pre tablero != null y destino != null, creado sobre ese tablero.
+     */
     public ControladorSelectMision(
             IVistaSelectMision vista,
             Asistente asistente,
-            ControladorControl controladorControl) {
+            ControladorControl controladorControl,
+            Tablero tablero,
+            Destino destino) {
+        assert tablero != null && destino != null : "Las misiones necesitan el tablero y el Destino.";
         this.vista = vista;
         this.asistente = asistente;
         this.controladorControl = controladorControl;
+        this.tablero = tablero;
+        this.destino = destino;
 
         inicializarVista();
     }
@@ -42,9 +55,9 @@ public class ControladorSelectMision implements ActionListener {
 
         // Catálogo de misiones disponibles según las especificaciones del sistema
         List<Mision> misiones = List.of(
-                new MisionIntercepcion(),
-                new MisionRecoleccion(),
-                new MisionRetorno());
+                new MisionIntercepcion(this.tablero, this.destino),
+                new MisionRecoleccion(this.tablero, this.destino),
+                new MisionRetorno(this.tablero, this.destino));
         this.vista.mostrarMisionesDisponibles(misiones);
         this.vista.setControlador(this);
 
@@ -114,11 +127,11 @@ public class ControladorSelectMision implements ActionListener {
         }
         switch (codigo.trim().toUpperCase()) {
             case "M-01":
-                return new MisionIntercepcion();
+                return new MisionIntercepcion(this.tablero, this.destino);
             case "M-02":
-                return new MisionRecoleccion();
+                return new MisionRecoleccion(this.tablero, this.destino);
             case "M-03":
-                return new MisionRetorno();
+                return new MisionRetorno(this.tablero, this.destino);
             default:
                 return null;
         }

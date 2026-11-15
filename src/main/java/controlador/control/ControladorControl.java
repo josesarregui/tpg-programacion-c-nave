@@ -3,6 +3,9 @@ package controlador.control;
 import controlador.principal.ControladorPrincipal;
 import modelo.asistente.Asistente;
 import modelo.mision.Mision;
+import modelo.universo.Destino;
+import modelo.universo.FabricaDeUniverso;
+import modelo.universo.Tablero;
 import vista.principal.panelcontrol.IVistaControl;
 import vista.principal.panelcontrol.panelselectmision.IVistaSelectMision;
 
@@ -10,11 +13,16 @@ import vista.principal.panelcontrol.panelselectmision.IVistaSelectMision;
  * Controlador coordinador del panel de Control de Nave y ciclo de Misiones.
  * Administra las transiciones entre la seleccion de misiones (SelectMision),
  * la mision en curso y la presentacion de resultados.
+ *
+ * Crea el universo sobre el que navegan las misiones: el tablero de 20 x 20 ({@link FabricaDeUniverso}) y el
+ * {@link Destino} asociado a ese mismo tablero, que entrega a las misiones al crearlas.
  */
 public class ControladorControl {
     private final IVistaControl vistaControl;
     private final Asistente asistente;
     private final ControladorPrincipal controladorPrincipal;
+    private final Tablero tablero;
+    private final Destino destino;
 
     private ControladorSelectMision controladorSelectMision;
     private ControladorCursoMision controladorCursoMision;
@@ -29,6 +37,8 @@ public class ControladorControl {
         this.vistaControl = vistaControl;
         this.asistente = asistente;
         this.controladorPrincipal = controladorPrincipal;
+        this.tablero = new FabricaDeUniverso().crearTablero();
+        this.destino = new Destino(this.tablero);
 
         inicializarControladores();
     }
@@ -40,7 +50,8 @@ public class ControladorControl {
 
         IVistaSelectMision vistaSelect = this.vistaControl.getVistaSelectMision();
         if (vistaSelect != null && this.asistente != null) {
-            this.controladorSelectMision = new ControladorSelectMision(vistaSelect, this.asistente, this);
+            this.controladorSelectMision = new ControladorSelectMision(vistaSelect, this.asistente, this,
+                    this.tablero, this.destino);
         }
     }
 
@@ -86,5 +97,12 @@ public class ControladorControl {
 
     public Asistente getAsistente() {
         return this.asistente;
+    }
+
+    /**
+     * @return el tablero sobre el que navegan las misiones (para que la vista lo observe).
+     */
+    public Tablero getTablero() {
+        return this.tablero;
     }
 }

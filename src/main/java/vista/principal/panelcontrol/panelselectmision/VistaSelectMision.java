@@ -264,7 +264,7 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
         this.txtDescripcionMision.setOpaque(false);
         this.txtDescripcionMision.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         this.txtDescripcionMision.setForeground(new Color(203, 213, 225));
-        this.txtDescripcionMision.setText("Llegar al objetivo simulado y realizar la asistencia requerida.");
+        this.txtDescripcionMision.setText("Seleccione una misión para ver su objetivo en el tablero.");
         this.txtDescripcionMision.setAlignmentX(Component.LEFT_ALIGNMENT);
         panelDetalleMision.add(this.txtDescripcionMision);
         panelDetalleMision.add(Box.createVerticalStrut(10));
@@ -274,15 +274,15 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
         panelCostos.setOpaque(false);
         panelCostos.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        this.lblCostoCombustible = new JLabel("⛽ Combustible requerido: 4 unidades");
+        this.lblCostoCombustible = new JLabel("⛽ Combustible mínimo: -");
         this.lblCostoCombustible.setFont(new Font("Segoe UI", Font.BOLD, 12));
         this.lblCostoCombustible.setForeground(new Color(241, 245, 249));
 
-        this.lblCostoEnergia = new JLabel("⚡ Energía requerida: 5 unidades");
+        this.lblCostoEnergia = new JLabel("⚡ Energía mínima: -");
         this.lblCostoEnergia.setFont(new Font("Segoe UI", Font.BOLD, 12));
         this.lblCostoEnergia.setForeground(new Color(52, 211, 153));
 
-        this.lblCostoDesgaste = new JLabel("🔧 Desgaste estimado: +4 puntos estructurales");
+        this.lblCostoDesgaste = new JLabel("🔧 Desgaste: +" + Mision.DESGASTE_POR_CELDA + " por casilla recorrida");
         this.lblCostoDesgaste.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         this.lblCostoDesgaste.setForeground(new Color(251, 191, 36));
 
@@ -395,26 +395,24 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
         this.lblCodigoMision.setText(mision.getCodigo());
         this.lblNombreMision.setText(mision.getNombre());
 
-        int energiaReq = 0;
+        int combustibleReq = mision.getCombustibleMinimo();
+        int energiaReq = mision.getEnergiaMinima();
         String desc = "";
         String condicion = "";
 
         String codigo = mision.getCodigo() != null ? mision.getCodigo().trim().toUpperCase() : "";
         switch (codigo) {
             case "M-01":
-                desc = "Llegar al objetivo simulado y realizar la asistencia técnica o rescate.";
-                energiaReq = 5;
-                condicion = "Condición de éxito: asistencia completada con recursos suficientes.";
+                desc = "Alcanzar a la nave aliada en el tablero y entregarle combustible y energía.";
+                condicion = "Condición de éxito: llegar a la nave aliada y conservar los suministros a entregar.";
                 break;
             case "M-02":
-                desc = "Llegar al punto de exploración simulado y obtener una muestra o paquete de datos estelar.";
-                energiaReq = 5;
-                condicion = "Condición de éxito: elemento de muestra registrado como obtenido.";
+                desc = "Llegar al punto de interés del tablero y recolectar gemas.";
+                condicion = "Condición de éxito: llegar al punto de interés y recolectar las gemas.";
                 break;
             case "M-03":
-                desc = "Completar la maniobra de regreso simulado de la nave a la base central.";
-                energiaReq = 0;
-                condicion = "Condición de éxito: la nave finaliza en estado operativo válido (desgaste < 80).";
+                desc = "Regresar a la base de origen (centro del tablero) para recargar y reparar la nave.";
+                condicion = "Condición de éxito: regresar a la base de origen con la nave en servicio.";
                 break;
             default:
                 desc = mision.getNombre();
@@ -425,19 +423,19 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
         this.txtDescripcionMision.setText(desc);
         this.lblCondicionExito.setText(condicion);
 
-        boolean alcanzaCombustible = combustibleActual >= Mision.COMBUSTIBLE_CONSUMIDO;
+        boolean alcanzaCombustible = combustibleActual >= combustibleReq;
         boolean alcanzaEnergia = energiaActual >= energiaReq;
 
-        this.lblCostoCombustible.setText("⛽ Combustible requerido: " + Mision.COMBUSTIBLE_CONSUMIDO
+        this.lblCostoCombustible.setText("⛽ Combustible mínimo: " + combustibleReq
                 + " (Disponible: " + combustibleActual + ")");
         this.lblCostoCombustible
                 .setForeground(alcanzaCombustible ? new Color(241, 245, 249) : new Color(248, 113, 113));
 
-        this.lblCostoEnergia.setText("⚡ Energía requerida: " + energiaReq
+        this.lblCostoEnergia.setText("⚡ Energía mínima: " + energiaReq
                 + " (Disponible: " + energiaActual + ")");
         this.lblCostoEnergia.setForeground(alcanzaEnergia ? new Color(52, 211, 153) : new Color(248, 113, 113));
 
-        this.lblCostoDesgaste.setText("🔧 Desgaste producido: +" + Mision.DESGASTE_PRODUCIDO + " puntos estructurales");
+        this.lblCostoDesgaste.setText("🔧 Desgaste: +" + Mision.DESGASTE_POR_CELDA + " por casilla recorrida");
 
         if (naveListaParaOperar && alcanzaCombustible && alcanzaEnergia) {
             this.lblEstadoNave.setText("🛡️ Estado: Nave lista y con recursos suficientes");

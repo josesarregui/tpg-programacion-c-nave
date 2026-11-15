@@ -48,6 +48,8 @@ classDiagram
     AsistenteComando o-- Mision : pendiente y realizadas
     Mision --> Asistente : encomendada a
     Mision *-- InformeMision
+    Mision --> Tablero : radares y movimiento de la nave
+    Mision --> Destino : turno del tablero
     NaveFactory ..> Nave : crea (Factory)
     Nave *-- Recursos
     Nave *-- MotorWarp
@@ -88,6 +90,7 @@ classDiagram
         + aplicarResultado(resultado: ResultadoBatalla)
         + getNombre() String
         + getSimbolo() String
+        + esAmenaza() boolean
         + interactuarCon(asistente: Asistente)
         + getId() int
         + getMotor() MotorWarp
@@ -312,65 +315,124 @@ Cada estado concreto implementa sin `throws` su única transición válida y rec
 `EstadoMotorInvalidoException`. Los constructores de los estados y `setEstado()` son de paquete: sólo el motor y los
 estados pueden cambiar el estado.
 
-## 4. Misión (E1-06 Template Method, E1-10)
+## 4. Misión (E1-06 y Enunciado E2: Template Method; E1-10 y Fase 3: informe)
 
 ```mermaid
 classDiagram
     class Mision {
         <<abstract>>
-        + int COMBUSTIBLE_CONSUMIDO = 4$
-        + int DESGASTE_PRODUCIDO = 4$
+        + int ENERGIA_ESCANEO_LARGO = 5$
+        + int ENERGIA_ESCANEO_CORTO = 1$
+        + int ENERGIA_RECALCULO = 2$
+        + int DESGASTE_POR_CELDA = 1$
+        + int PAUSA_POR_TURNO_MS = 400$
         - String codigo
         - String nombre
+        - Tablero tablero
+        - Destino destino
+        - Navegador navegador
         - List~String~ acciones
+        - List~Posicion~ recorrido
+        - LinkedList~Posicion~ rutaPlanificada
         - Asistente asistente
         - EtapaMision etapa
+        - int pausaPorTurno
+        - Posicion objetivo
+        - boolean llegoAlObjetivo
+        - boolean verificadaEnDestino
+        - boolean travesiaInterrumpida
         - boolean exitosa
         - InformeMision informe
-        # Mision(codigo: String, nombre: String)
+        - int combustibleConsumido, energiaConsumida, desgasteProducido
+        - int combustiblePerdido, energiaPerdida, combustibleGanado, energiaGanada
+        # Mision(codigo: String, nombre: String, tablero: Tablero, destino: Destino)
+        # fijarObjetivo(tablero: Tablero) Posicion*
         # getEnergiaAdicional() int*
         # realizarAccion()*
-        # objetivoCumplido() boolean*
         # getCondicionDeExito() String*
+        # getCombustibleAEntregar() int
+        # getEnergiaAEntregar() int
+        # getGemasObtenidas() int
+        # aplicarCierre()
         + asignarAsistente(asistente: Asistente)
+        + configurarPausaPorTurno(milisegundos: int)
         + realizar() InformeMision throws NaveNoDisponibleException, RecursoInsuficienteException
         - preparar() throws NaveNoDisponibleException, RecursoInsuficienteException
-        - ejecutar() throws RecursoInsuficienteException
+        - ejecutar()
+        - turnoDeLaNave(turno: int) boolean
+        - interactuarCon(elemento: ElementoDelUniverso, turno: int)
+        - escanearCortoAlcance() ElementoDelUniverso[][]
+        - planificarYSaltar(alrededores: ElementoDelUniverso[][], turno: int) boolean
+        - cobrarSalto(warp: boolean) int
+        - avanzar(casilleros: int, alrededores: ElementoDelUniverso[][], turno: int)
+        - proximoPaso(alrededores: ElementoDelUniverso[][], turno: int) Posicion
+        - recalcularRuta(turno: int, motivo: String)
+        - moverA(siguiente: Posicion, turno: int, tipoDeSalto: String)
+        - completarManiobraWarp()
+        - verificarEnDestino()
+        - pausar()
+        - consumir(combustible: int, energia: int, desgaste: int)
         - evaluar()
         - cerrar()
         # registrarAccion(descripcion: String)
         + getCodigo() String
         + getNombre() String
         + getEtapa() EtapaMision
+        + getCombustibleMinimo() int
+        + getEnergiaMinima() int
+        + getPausaPorTurno() int
+        + getObjetivo() Posicion
+        + getRuta() List~Posicion~
         + getAsistente() Asistente
         + getInforme() InformeMision
         - invariante() boolean
     }
-    note for Mision "realizar() y registrarAccion() son final. realizar() es el método plantilla: llama siempre a preparar, ejecutar, evaluar y cerrar, en ese orden."
+    note for Mision "realizar() y registrarAccion() son final. realizar() es el método plantilla: preparar, ejecutar, evaluar y cerrar, en ese orden. Los métodos # sin * son ganchos con implementación por defecto."
+    class Navegador {
+        <<final>>
+        ~ calcularRuta(mapa: ElementoDelUniverso[][], origen: Posicion, objetivo: Posicion) List~Posicion~
+        ~ estaDentro(posicion: Posicion, filas: int, columnas: int) boolean$
+        ~ sonVecinas(una: Posicion, otra: Posicion) boolean$
+    }
     class MisionIntercepcion {
-        - int ENERGIA_ADICIONAL = 5$
-        - boolean asistenciaRealizada
-        + MisionIntercepcion()
+        + int ENERGIA_ADICIONAL = 5$
+        + int SUMINISTRO_MINIMO = 5$
+        + int SUMINISTRO_MAXIMO = 20$
+        - int combustibleAEntregar
+        - int energiaAEntregar
+        + MisionIntercepcion(tablero: Tablero, destino: Destino)
+        + MisionIntercepcion(tablero: Tablero, destino: Destino, azar: Random)
+        # fijarObjetivo(tablero: Tablero) Posicion
         # getEnergiaAdicional() int
+        + getCombustibleAEntregar() int
+        + getEnergiaAEntregar() int
         # realizarAccion()
-        # objetivoCumplido() boolean
+        # aplicarCierre()
         # getCondicionDeExito() String
     }
     class MisionRecoleccion {
-        - int ENERGIA_ADICIONAL = 5$
-        - boolean elementoObtenido
-        + MisionRecoleccion()
+        + int ENERGIA_ADICIONAL = 5$
+        + int GEMAS_MINIMAS = 60$
+        + int GEMAS_MAXIMAS = 100$
+        - Random azar
+        - int gemasObtenidas
+        + MisionRecoleccion(tablero: Tablero, destino: Destino)
+        + MisionRecoleccion(tablero: Tablero, destino: Destino, azar: Random)
+        # fijarObjetivo(tablero: Tablero) Posicion
         # getEnergiaAdicional() int
         # realizarAccion()
-        # objetivoCumplido() boolean
+        + getGemasObtenidas() int
+        # aplicarCierre()
         # getCondicionDeExito() String
     }
     class MisionRetorno {
         - int ENERGIA_ADICIONAL = 0$
-        + MisionRetorno()
+        + int RECARGA_EN_BASE = 100$
+        + MisionRetorno(tablero: Tablero, destino: Destino)
+        # fijarObjetivo(tablero: Tablero) Posicion
         # getEnergiaAdicional() int
         # realizarAccion()
-        # objetivoCumplido() boolean
+        # aplicarCierre()
         # getCondicionDeExito() String
     }
     class EtapaMision {
@@ -385,19 +447,22 @@ classDiagram
         - String mision
         - boolean exitosa
         - List~String~ acciones
-        - int combustibleConsumido
-        - int energiaConsumida
-        - int desgasteProducido
+        - Posicion objetivo
+        - List~Posicion~ ruta
+        - BalanceRecursos balance
         - int combustibleFinal
         - int energiaFinal
         - int desgasteFinal
         - String estadoMotorFinal
         - boolean naveOperativa
         - String observaciones
-        ~ InformeMision(mision, exitosa, acciones, combustibleConsumido, energiaConsumida, desgasteProducido, combustibleFinal, energiaFinal, desgasteFinal, estadoMotorFinal, naveOperativa, observaciones)
+        ~ InformeMision(mision, exitosa, acciones, objetivo, ruta, balance, combustibleFinal, energiaFinal, desgasteFinal, estadoMotorFinal, naveOperativa, observaciones)
         + getMision() String
         + isExitosa() boolean
         + getAcciones() List~String~
+        + getObjetivo() Posicion
+        + getRuta() List~Posicion~
+        + getBalance() BalanceRecursos
         + getCombustibleConsumido() int
         + getEnergiaConsumida() int
         + getDesgasteProducido() int
@@ -409,8 +474,31 @@ classDiagram
         + getObservaciones() String
         - invariante() boolean
     }
+    class BalanceRecursos {
+        <<final>>
+        - int combustibleConsumido, energiaConsumida, desgasteProducido
+        - int combustiblePerdido, energiaPerdida
+        - int combustibleGanado, energiaGanada
+        - int gemasObtenidas, combustibleEntregado, energiaEntregada
+        ~ BalanceRecursos(...10 valores...)
+        + getCombustibleConsumido() int
+        + getEnergiaConsumida() int
+        + getDesgasteProducido() int
+        + getCombustiblePerdido() int
+        + getEnergiaPerdida() int
+        + getCombustibleGanado() int
+        + getEnergiaGanada() int
+        + getGemasObtenidas() int
+        + getCombustibleEntregado() int
+        + getEnergiaEntregada() int
+        - invariante() boolean
+    }
     class Asistente
     <<interface>> Asistente
+    class Tablero
+    class Destino
+    class ElementoDelUniverso
+    <<interface>> ElementoDelUniverso
     class NaveNoDisponibleException
     class RecursoInsuficienteException
 
@@ -419,10 +507,30 @@ classDiagram
     Mision <|-- MisionRetorno
     Mision --> EtapaMision
     Mision --> Asistente : encomendada a (0..1)
-    Mision *-- InformeMision : genera al cerrar
+    Mision --> Tablero : radares (verTablero, observarAlrededores) y moverNave
+    Mision --> Destino : turnoDestino() en cada turno
+    Mision *-- Navegador : planifica la ruta
+    Mision *-- InformeMision : confecciona al evaluar
+    InformeMision *-- BalanceRecursos
+    Navegador ..> ElementoDelUniverso : esAmenaza()
+    Mision ..> ElementoDelUniverso : inspeccionarPosicion() e interactuarCon
     Mision ..> NaveNoDisponibleException : lanza
     Mision ..> RecursoInsuficienteException : lanza
 ```
+
+**Ciclo de travesía (Enunciado E2, Fase 2).** `ejecutar()` cobra el despegue (escaneo de largo alcance) y repite, mientras
+la nave no esté destruida, no haya llegado y pueda avanzar (con un tope de x·y turnos):
+
+1. **Turno de la nave:** `tablero.inspeccionarPosicion()` y, si hay elemento, `elemento.interactuarCon(asistente)`;
+   `tablero.observarAlrededores()` (radar de corto alcance, 1 de energía); el `Navegador` da el próximo paso de la ruta y, si
+   el radar ve una amenaza en él, se recalcula con `tablero.verTablero()` (2 de energía); el asistente ordena `saltar()` o un
+   turno de `saltarWarp()` (Anexo) y la misión mueve la nave con `tablero.moverNave(...)` a una casilla vecina dentro del
+   tablero (dos casillas en el turno del salto warp), con 1 de desgaste por casilla.
+2. **Turno del tablero:** `destino.turnoDestino()`.
+3. **Pausa:** `Thread.sleep(pausaPorTurno)`; si se interrumpe, se restaura la interrupción y termina la travesía.
+
+Al llegar, completa el enfriamiento si llegó con warp, verifica en destino los recursos de la acción final y la entrega, y
+realiza la acción. `evaluar()` confecciona el informe con el balance; `cerrar()` aplica `aplicarCierre()` si fue exitosa.
 
 ## 5. Asistente, centro de control y Bitácora (E1-03, E1-05; Aclaración R1, R2, R4 y R5)
 
@@ -442,6 +550,7 @@ classDiagram
         + naveDestruida() boolean
         + getGemas() int
         + getEstadoMotor() String
+        + motorDisponible() boolean
         + getEventos() List~Evento~
         + registrarEvento(tipo: TipoEvento, descripcion: String)
         + asignarTripulacion(tripulacion: Tripulacion)
@@ -483,6 +592,7 @@ classDiagram
         + naveDestruida() boolean
         + getGemas() int
         + getEstadoMotor() String
+        + motorDisponible() boolean
         + getEventos() List~Evento~
         + registrarEvento(tipo: TipoEvento, descripcion: String)
         + asignarTripulacion(tripulacion: Tripulacion)
@@ -567,6 +677,7 @@ classDiagram
     Evento --> TipoEvento
 ```
 
+El asistente no conoce el tablero: la posición de la nave es estado del `Tablero`, que maneja la misión (sección 4).
 `Bitacora` y `Evento` rechazan los eventos nulos, vacíos o fuera de orden con `IllegalArgumentException`
 (excepción no comprobada, por eso no figura en `throws`).
 
@@ -902,6 +1013,7 @@ classDiagram
         <<interface>>
         + getNombre() String
         + getSimbolo() String
+        + esAmenaza() boolean
         + interactuarCon(asistente: Asistente)
     }
     class Asteroide {
@@ -912,6 +1024,7 @@ classDiagram
         + Asteroide(nombre: String)
         + getNombre() String
         + getSimbolo() String
+        + esAmenaza() boolean
         + interactuarCon(asistente: Asistente)
     }
     class EstacionDeCarga {
@@ -923,12 +1036,14 @@ classDiagram
         + EstacionDeCarga(nombre: String)
         + getNombre() String
         + getSimbolo() String
+        + esAmenaza() boolean
         + interactuarCon(asistente: Asistente)
     }
     class Nave {
         <<abstract>>
         + getNombre() String
         + getSimbolo() String
+        + esAmenaza() boolean
         + interactuarCon(asistente: Asistente)
         + enfrentarseCon(enemiga: Nave) ResultadoBatalla*
     }
@@ -983,8 +1098,20 @@ classDiagram
         - int cantidadMaxima
         + getCantidadMaxima() int
     }
+    class FabricaDeUniverso {
+        + int FILAS = 20$
+        + int COLUMNAS = 20$
+        + int ASTEROIDES = 30$
+        + int ESTACIONES_DE_CARGA = 10$
+        + int NAVES_POR_TIPO = 3$
+        - NaveFactory naveFactory
+        + crearTablero() Tablero
+    }
     class Asistente
     <<interface>> Asistente
+    FabricaDeUniverso ..> Tablero : crea (20 x 20)
+    FabricaDeUniverso ..> Asteroide : crea
+    FabricaDeUniverso ..> EstacionDeCarga : crea
 
     ElementoDelUniverso <|.. Asteroide
     ElementoDelUniverso <|.. EstacionDeCarga
@@ -1009,4 +1136,7 @@ nave y lo registra en la Bitácora; ninguna de las dos usa condicionales de tipo
 nave propia, le pide al asistente `enfrentarseCon(this)`, que resuelve la batalla por Double Dispatch (sección 2), aplica el
 resultado y lo registra en la Bitácora; si la nave propia pierde, queda destruida y su tripulación muere. El detalle de `Nave` y
 `ResultadoBatalla` está en la sección 2.
+`esAmenaza()` (true en `Asteroide` y `Nave`, false en `EstacionDeCarga`) permite que el `Navegador` de la misión priorice
+las casillas libres y las estaciones sin condicionales de tipo. `FabricaDeUniverso` arma el tablero de 20 x 20 con naves de
+`NaveFactory`; quien lo usa crea el `Destino` sobre ese mismo tablero y entrega ambos a las misiones.
 Las dos excepciones de la cátedra son comprobadas (extienden `Exception`).

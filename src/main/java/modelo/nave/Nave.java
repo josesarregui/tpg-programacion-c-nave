@@ -175,6 +175,17 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
     }
 
     /**
+     * Una nave del tablero es una amenaza para la navegación: el encuentro puede terminar en la destrucción de
+     * la nave propia (Enunciado E2, punto A). El resultado real se resuelve recién al coincidir, por Double Dispatch.
+     *
+     * @post Retorna true.
+     */
+    @Override
+    public boolean esAmenaza() {
+        return true;
+    }
+
+    /**
      * Esta nave, como elemento del tablero, se cruza con la nave propia que opera el asistente: le pide al
      * asistente que la nave propia se enfrente con ella (ida del Double Dispatch). Toda orden a la nave
      * propia pasa por su asistente, que aplica el resultado y lo registra en la Bitácora (Aclaración, R2 y R5).
