@@ -21,16 +21,21 @@ import javax.swing.JProgressBar;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
-import modelo.nave.Nave;
-import modelo.nave.ObservadorNave;
+import modelo.asistente.Asistente;
+import modelo.universo.Observador;
 
 /**
  * Vista de detalles y telemetría de la nave.
- * Implementa {@link ObservadorNave} (patrón Observer) para reflejar en tiempo real
- * los cambios en los recursos y el estado de la nave operada.
+ * Implementa {@link Observador} (patrón Observer, Versión 2 de la cátedra) para reflejar en tiempo real
+ * los cambios en los recursos y el estado de la nave que opera el asistente observado: se suscribe ella misma
+ * ({@link #observar(Asistente)}) y, ante cada {@link #actualizar(String)}, consulta el estado con los getters
+ * del asistente (modelo pull). Los componentes se modifican siempre en el hilo de eventos de Swing.
  * Todo el diseño y las tareas visuales se resuelven en la misma clase sin subclases internas.
  */
 public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
+    /** Asistente observado, o null si la vista todavía no observa ninguno. */
+    private Asistente asistente;
+
     private final JPanel panelVitrina;
     private JLabel lblImagenVitrina;
     private Color colorAcentoVitrina = new Color(56, 189, 248);
@@ -642,33 +647,55 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
     // PATRÓN OBSERVER
     // ===================
 
+    /**
+     * La vista se vincula ella misma con el asistente observado (apunte de Observer).
+     * Las suscripciones del asistente son synchronized: si llega una notificación desde el hilo de la misión,
+     * el cambio de asistente espera a que termine.
+     */
     @Override
-    public void notificarCambio(Nave nave) {
-        if (nave != null) {
-            final int combustible = nave.getCombustible();
-            final int energia = nave.getEnergia();
-            final int desgaste = nave.getDesgaste();
-            final boolean requiereMantenimiento = nave.requiereMantenimiento();
-            final String estadoMotor = nave.getMotor().getEstado();
-            final boolean tieneTripulacion = nave.getTripulacion() != null;
-            final boolean listaParaOperar = nave.estaListaParaOperar();
+    public void observar(Asistente asistente) {
+        assert asistente != null : "La vista debe observar un asistente.";
+        dejarDeObservar();
+        this.asistente = asistente;
+        this.asistente.agregarObservador(this);
+    }
 
-            Runnable actualizacion = () -> actualizarComponentes(
-                    combustible,
-                    energia,
-                    desgaste,
-                    requiereMantenimiento,
-                    estadoMotor,
-                    tieneTripulacion,
-                    listaParaOperar
-            );
-
-            if (SwingUtilities.isEventDispatchThread()) {
-                actualizacion.run();
-            } else {
-                SwingUtilities.invokeLater(actualizacion);
-            }
+    @Override
+    public void dejarDeObservar() {
+        if (this.asistente != null) {
+            this.asistente.quitarObservador(this);
+            this.asistente = null;
         }
+    }
+
+    /**
+     * Recibe la notificación del asistente (push) y consulta su estado con los getters (pull). La consulta se
+     * hace en el hilo que notifica, para que los valores correspondan al evento notificado; los componentes se
+     * modifican después en el hilo de eventos de Swing con invokeLater.
+     *
+     * @pre La vista observa un asistente (sólo ese asistente la notifica).
+     */
+    @Override
+    public void actualizar(String mensaje) {
+        Asistente observado = this.asistente;
+        assert observado != null : "La vista recibió una notificación sin observar un asistente.";
+        final int combustible = observado.getCombustible();
+        final int energia = observado.getEnergia();
+        final int desgaste = observado.getDesgaste();
+        final boolean requiereMantenimiento = observado.requiereMantenimiento();
+        final String estadoMotor = observado.getEstadoMotor();
+        final boolean tieneTripulacion = observado.tieneTripulacion();
+        final boolean listaParaOperar = observado.naveListaParaOperar();
+
+        SwingUtilities.invokeLater(() -> actualizarComponentes(
+                combustible,
+                energia,
+                desgaste,
+                requiereMantenimiento,
+                estadoMotor,
+                tieneTripulacion,
+                listaParaOperar
+        ));
     }
 
     private void actualizarComponentes(

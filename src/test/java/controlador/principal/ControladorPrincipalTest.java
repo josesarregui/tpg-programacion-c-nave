@@ -5,7 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
-import modelo.nave.Nave;
+import modelo.asistente.Asistente;
 import modelo.nave.TipoNave;
 import modelo.tripulacion.Alferez;
 import modelo.tripulacion.Capitan;
@@ -95,6 +95,9 @@ public class ControladorPrincipalTest {
         ctrlCrear.actionPerformed(
                 new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaCrearNave.SELECCIONAR_CARGUERA));
         ctrlCrear.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaCrearNave.ACEPTAR));
+
+        // La vista de detalles observa al asistente creado (se suscribió ella misma)
+        assertSame(ctrlReal.getAsistente(), vistaConServicio.vistaNave.vistaDetalles.observado);
 
         // Verificamos que el observador recibe notificaciones antes de cerrar sesión
         ctrlReal.getAsistente().cargarEnergia(10);
@@ -225,8 +228,26 @@ public class ControladorPrincipalTest {
         public void mostrarEstadoOperativo(boolean listaParaOperar) {
         }
 
+        Asistente observado;
+
+        /** Como la vista real, se vincula ella misma con el asistente observado. */
         @Override
-        public void notificarCambio(Nave nave) {
+        public void observar(Asistente asistente) {
+            dejarDeObservar();
+            this.observado = asistente;
+            asistente.agregarObservador(this);
+        }
+
+        @Override
+        public void dejarDeObservar() {
+            if (this.observado != null) {
+                this.observado.quitarObservador(this);
+                this.observado = null;
+            }
+        }
+
+        @Override
+        public void actualizar(String mensaje) {
             notificacionesObserver++;
         }
     }

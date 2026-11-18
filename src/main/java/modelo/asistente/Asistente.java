@@ -12,6 +12,7 @@ import modelo.mision.Mision;
 import modelo.nave.ResultadoBatalla;
 import modelo.nave.TipoNave;
 import modelo.tripulacion.Tripulacion;
+import modelo.universo.Observador;
 
 import java.util.List;
 import modelo.nave.Nave;
@@ -30,6 +31,9 @@ import modelo.tripulacion.Tripulante;
  * en el centro de control y realizar misiones sin modificar esas clases (Aclaración, Pedidos del diseño).
  * Las consultas devuelven datos y no texto formateado (Enunciado E1, punto 7), para que puedan
  * mostrarse por consola o en una pantalla sin cambiar el modelo.
+ *
+ * Es un sujeto observable (patrón Observer, Paso 4 de la E2): los clientes se suscriben con
+ * {@link #agregarObservador(Observador)} a través de esta interfaz, sin depender de la clase concreta.
  */
 public interface Asistente {
     
@@ -106,9 +110,12 @@ public interface Asistente {
     List<Evento> getEventos();
 
     /**
-     * Registra un acontecimiento en la Bitácora (lo usan también las misiones y el centro de control).
+     * Registra un acontecimiento en la Bitácora (lo usan también las misiones y el centro de control) y se lo
+     * notifica a los observadores. Es el único punto de notificación del asistente: toda orden deja su entrada
+     * en la Bitácora, así que cada cambio de la nave se notifica una sola vez.
      *
-     * @throws IllegalArgumentException si el tipo es nulo o la descripción es nula o vacía.
+     * @post El evento quedó al final de getEventos() y cada observador recibió actualizar(descripcion) una vez.
+     * @throws IllegalArgumentException si el tipo es nulo o la descripción es nula o vacía. No se notifica nada.
      */
     void registrarEvento(TipoEvento tipo, String descripcion);
 
@@ -267,19 +274,23 @@ public interface Asistente {
      */
     InformeMision ejecutarMision() throws NaveNoDisponibleException, RecursoInsuficienteException;
 
-    // --- Patrón Observer (E2 / E3) ---
+    // --- Patrón Observer (E2, Paso 4) ---
 
     /**
-     * Registra un observador en la nave que opera este asistente.
+     * Suscribe un observador a los cambios de la nave que opera este asistente y de su Bitácora. Por cada
+     * entrada de la Bitácora el observador recibe {@code actualizar(mensaje)} con la descripción de lo ocurrido
+     * (modelo push) y consulta el estado que le interesa con los getters de esta interfaz (modelo pull).
+     * Lo invoca el propio observador, que es quien se vincula con el observado (apunte de Observer).
      *
-     * @param observador el observador a agregar (no nulo).
+     * @pre observador != null.
+     * @post observador queda registrado una sola vez, aunque se lo suscriba de nuevo.
      */
-    void agregarObservador(modelo.nave.ObservadorNave observador);
+    void agregarObservador(Observador observador);
 
     /**
-     * Elimina un observador previamente registrado en la nave.
+     * Quita un observador registrado. Si no estaba registrado, no hace nada.
      *
-     * @param observador el observador a eliminar.
+     * @post observador no recibe más notificaciones de este asistente.
      */
-    void eliminarObservador(modelo.nave.ObservadorNave observador);
+    void quitarObservador(Observador observador);
 }

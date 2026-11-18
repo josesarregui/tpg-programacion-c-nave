@@ -9,10 +9,6 @@ import modelo.universo.ElementoDelUniverso;
 import modelo.warp.MotorWarp;
 import modelo.warp.SuministroMotor;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 /**
  * Abstracción común de las naves (E1-01): reúne identidad, tipo, recursos,
  * tripulación y Motor Warp.
@@ -28,10 +24,10 @@ import java.util.List;
  * Los recursos no se exponen: sólo pueden consultarse o modificarse a través de
  * la nave.
  *
- * Implementa {@link ObservableNave} (patrón Observer) para notificar a las
- * vistas y componentes
- * observadores en tiempo real cuando sus recursos o su estado sufren
- * modificaciones.
+ * La nave no es un sujeto observable (Paso 4 de la E2): toda orden a la nave pasa por su asistente
+ * (Aclaración, R2), que es quien notifica a los observadores cada cambio. Si la nave también notificara,
+ * cada cambio llegaría dos veces, y los consumos que hace el Motor Warp a través de la nave quedarían
+ * notificados a medias.
  *
  * Implementa {@link ElementoDelUniverso} (Enunciado E2, punto A): las otras naves del tablero son
  * Exploradoras, Cargueros o de Combate creados por la fábrica. Las batallas se resuelven por Double Dispatch
@@ -45,20 +41,19 @@ import java.util.List;
  *
  * Invariante:
  * - id > 0;
- * - recursos != null y motor != null y observadores != null;
+ * - recursos != null y motor != null;
  * - gemas >= 0, combustibleEntregado >= 0 y energiaEntregada >= 0;
  * - si los recursos están agotados (combustible 0, energía 0 o desgaste 100), la nave está destruida.
  * La tripulación puede no estar asignada todavía (Escenario A: se asigna
  * después de crear la nave).
  */
-public abstract class Nave implements ObservableNave, ElementoDelUniverso {
+public abstract class Nave implements ElementoDelUniverso {
 
     private static int ultimoIdAsignado = 0;
 
     private final int id;
     private final Recursos recursos;
     private final MotorWarp motor;
-    private final List<ObservadorNave> observadores;
     private Tripulacion tripulacion;
     private boolean destruida;
     private int gemas;
@@ -67,8 +62,8 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
 
     /**
      * Crea una nave con su configuración inicial de recursos, el motor en estado
-     * Disponible,
-     * sin tripulación asignada y lista de observadores vacía.
+     * Disponible y
+     * sin tripulación asignada.
      *
      * @pre Los valores iniciales están dentro de los rangos de {@link Recursos} y
      *      ninguno deja los recursos agotados.
@@ -81,7 +76,6 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
         this.id = ultimoIdAsignado;
         this.recursos = new Recursos(combustibleInicial, energiaInicial, desgasteInicial);
         this.motor = new MotorWarp(new SuministroDeNave());
-        this.observadores = new ArrayList<>();
         this.tripulacion = null;
         this.destruida = false;
         this.gemas = 0;
@@ -152,7 +146,6 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
         assert destruida == (destruidaAntes || resultado.destruyeNavePropia())
                 : "Fallo postcondición al aplicar el resultado de la batalla.";
         assert invariante() : "Fallo invariante tras aplicar el resultado de la batalla.";
-        notificarObservadores();
     }
 
     // --- ElementoDelUniverso ---
@@ -229,7 +222,6 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
         this.tripulacion = nuevaTripulacion;
         assert this.tripulacion == nuevaTripulacion : "Fallo postcondición al asignar la tripulación.";
         assert invariante() : "Fallo invariante tras asignar la tripulación.";
-        notificarObservadores();
     }
 
     // --- Estado de destrucción (Enunciado E2) ---
@@ -297,7 +289,6 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
      */
     public void cargarCombustible(int cantidad) throws CantidadInvalidaException, CapacidadExcedidaException {
         recursos.cargarCombustible(cantidad);
-        notificarObservadores();
     }
 
     /**
@@ -307,7 +298,6 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
      */
     public void cargarEnergia(int cantidad) throws CantidadInvalidaException, CapacidadExcedidaException {
         recursos.cargarEnergia(cantidad);
-        notificarObservadores();
     }
 
     /**
@@ -325,7 +315,6 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
             throws CantidadInvalidaException, RecursoInsuficienteException, CapacidadExcedidaException {
         recursos.consumir(combustible, energia, desgaste);
         actualizarDestruccion();
-        notificarObservadores();
     }
 
     /**
@@ -334,7 +323,6 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
      */
     public void realizarMantenimiento() {
         recursos.realizarMantenimiento();
-        notificarObservadores();
     }
 
     /**
@@ -347,7 +335,6 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
     public void recibirImpacto(int energia) {
         recursos.descontarEnergia(energia);
         actualizarDestruccion();
-        notificarObservadores();
     }
 
     /**
@@ -359,7 +346,6 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
      */
     public void reabastecer(int combustible, int energia) {
         recursos.reabastecer(combustible, energia);
-        notificarObservadores();
     }
 
     // --- Gemas (M-02) y suministros (M-01), Enunciado E2 ---
@@ -387,7 +373,6 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
         gemas = gemas + cantidad;
         assert gemas == gemasAnteriores + cantidad : "Fallo postcondición al acreditar gemas.";
         assert invariante() : "Fallo invariante tras acreditar gemas.";
-        notificarObservadores();
     }
 
     /**
@@ -442,36 +427,6 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
                 && energiaEntregada == energiaEntregadaAnterior + energia
                 : "Fallo postcondición: la entrega debe acumular los suministros entregados.";
         assert invariante() : "Fallo invariante tras entregar suministros.";
-        notificarObservadores();
-    }
-
-    // --- Patron Observer ---
-
-    @Override
-    public void agregarObservador(ObservadorNave observador) {
-        assert observador != null : "El observador a agregar no puede ser nulo.";
-        if (!observadores.contains(observador)) {
-            observadores.add(observador);
-        }
-    }
-
-    @Override
-    public void eliminarObservador(ObservadorNave observador) {
-        observadores.remove(observador);
-    }
-
-    @Override
-    public void notificarObservadores() {
-        for (ObservadorNave observador : observadores) {
-            observador.notificarCambio(this);
-        }
-    }
-
-    /**
-     * @return lista de sólo lectura con los observadores actualmente registrados.
-     */
-    public List<ObservadorNave> getObservadores() {
-        return Collections.unmodifiableList(observadores);
     }
 
     /**
@@ -486,7 +441,7 @@ public abstract class Nave implements ObservableNave, ElementoDelUniverso {
     }
 
     private boolean invariante() {
-        return id > 0 && recursos != null && motor != null && observadores != null
+        return id > 0 && recursos != null && motor != null
                 && gemas >= 0 && combustibleEntregado >= 0 && energiaEntregada >= 0
                 && (!recursos.agotados() || destruida);
     }

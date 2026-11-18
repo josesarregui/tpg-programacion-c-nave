@@ -10,6 +10,7 @@ import vista.concurrencia.IVistaConcurrencia;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -19,8 +20,10 @@ public class ControladorConcurrenciaTest {
 
     private static class VistaConcurrenciaMock implements IVistaConcurrencia {
         ActionListener controlador;
-        final List<String> eventos = new ArrayList<>();
-        int ultimasBaterias = -1;
+        // Los eventos pueden llegar desde los hilos de la plataforma.
+        final List<String> eventos = Collections.synchronizedList(new ArrayList<>());
+        PlataformaDeCarga observada;
+        volatile int ultimasBaterias = -1;
         int ultimasGeneradoras = -1;
         int ultimasNaves = -1;
         boolean consolaLimpiada = false;
@@ -42,10 +45,27 @@ public class ControladorConcurrenciaTest {
             this.eventos.clear();
         }
 
+        /** Como la vista real, se vincula ella misma con la plataforma observada. */
         @Override
-        public void notificarEvento(String mensaje, int bateriasActuales) {
+        public void observar(PlataformaDeCarga plataforma) {
+            dejarDeObservar();
+            this.observada = plataforma;
+            plataforma.agregarObservador(this);
+        }
+
+        @Override
+        public void dejarDeObservar() {
+            if (this.observada != null) {
+                this.observada.quitarObservador(this);
+                this.observada = null;
+            }
+        }
+
+        /** Push: el mensaje; pull: el stock se consulta a la plataforma. */
+        @Override
+        public void actualizar(String mensaje) {
             this.eventos.add(mensaje);
-            this.ultimasBaterias = bateriasActuales;
+            this.ultimasBaterias = this.observada.getBaterias();
         }
 
         @Override
@@ -143,6 +163,38 @@ public class ControladorConcurrenciaTest {
         ctrl.detenerTodo();
         assertFalse(gen.isActivo());
         assertFalse(nave.isActivo());
+    }
+
+    @Test
+    @DisplayName("Observer: la vista se suscribe a la plataforma al crear el controlador y deja de observarla al detener todo")
+    public void testSuscripcionYDesuscripcionDeLaVista() throws Exception {
+        VistaConcurrenciaMock vistaMock = new VistaConcurrenciaMock();
+        PlataformaDeCarga plataforma = new PlataformaDeCarga(3);
+        ControladorConcurrencia ctrl = new ControladorConcurrencia(vistaMock, plataforma);
+
+        assertSame(plataforma, vistaMock.observada);
+        plataforma.depositar("G-1");
+        assertEquals("Batería producida por [G-1].", vistaMock.eventos.get(vistaMock.eventos.size() - 1));
+        assertEquals(1, vistaMock.ultimasBaterias);
+
+        ctrl.detenerTodo();
+        assertNull(vistaMock.observada);
+        int cantidad = vistaMock.eventos.size();
+        plataforma.depositar("G-2");
+        assertEquals(cantidad, vistaMock.eventos.size(), "Tras dejar de observar, la vista no recibe más eventos.");
+    }
+
+    @Test
+    @DisplayName("Observer: el alta de una generadora publica el mensaje de ingreso del Enunciado")
+    public void testAltaDeEntidadPublicaIngreso() {
+        VistaConcurrenciaMock vistaMock = new VistaConcurrenciaMock();
+        ControladorConcurrencia ctrl = new ControladorConcurrencia(vistaMock, new PlataformaDeCarga(3));
+
+        GeneradoraDeEnergia generadora = ctrl.crearGeneradora();
+
+        assertTrue(vistaMock.eventos.contains(
+                "¡Ingresó una nueva Generadora de Energía [" + generadora.getIdGeneradora() + "] al universo paralelo!"));
+        ctrl.detenerTodo();
     }
 
     @Test

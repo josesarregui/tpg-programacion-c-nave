@@ -1,10 +1,10 @@
 package vista.principal.panelnave.paneldetallesnave;
 
+import modelo.asistente.Asistente;
 import modelo.asistente.AsistenteComando;
-import modelo.nave.Nave;
 import modelo.nave.NaveFactory;
-import modelo.nave.ObservadorNave;
 import modelo.nave.TipoNave;
+import modelo.universo.Observador;
 import controlador.nave.ControladorDetallesNave;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,9 +16,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
- * Pruebas unitarias para VistaDetallesNave como observador en el patrón Observer.
- * Verifica que implemente ObservadorNave y que sus componentes gráficos reflejen
- * en tiempo real las modificaciones sobre los recursos y estado de la nave.
+ * Pruebas unitarias para VistaDetallesNave como observador del asistente (patrón Observer, Versión 2 de la
+ * cátedra). Verifica que la vista se suscriba sola, que ante cada notificación consulte el estado del
+ * asistente (pull) y que sus componentes gráficos reflejen los cambios en el hilo de eventos de Swing.
  */
 public class VistaDetallesNaveTest {
 
@@ -27,56 +27,91 @@ public class VistaDetallesNaveTest {
         assumeFalse(GraphicsEnvironment.isHeadless(), "Las pruebas de componentes Swing requieren entorno gráfico.");
     }
 
+    /** Espera a que el hilo de eventos de Swing procese las actualizaciones encoladas con invokeLater. */
     private void esperarEDT() throws Exception {
-        if (!javax.swing.SwingUtilities.isEventDispatchThread()) {
-            javax.swing.SwingUtilities.invokeAndWait(() -> {});
-        }
+        javax.swing.SwingUtilities.invokeAndWait(() -> { });
+    }
+
+    private Asistente crearAsistente() {
+        return new AsistenteComando(new NaveFactory().crearNave(TipoNave.EXPLORADORA));
     }
 
     @Test
-    @DisplayName("Observer: VistaDetallesNave implementa la interfaz ObservadorNave")
-    public void testImplementaObservadorNave() {
+    @DisplayName("Observer: VistaDetallesNave es un Observador de la cátedra")
+    public void testImplementaObservador() {
         VistaDetallesNave vista = new VistaDetallesNave();
-        assertTrue(vista instanceof ObservadorNave, "VistaDetallesNave debe implementar ObservadorNave.");
+        // La asignación lo verifica en compilación, sin consultar el tipo en ejecución.
+        Observador observador = vista;
+        assertSame(vista, observador);
     }
 
     @Test
-    @DisplayName("Observer: notificarCambio actualiza los textos de los recursos en la vista")
-    public void testNotificarCambioActualizaRecursos() throws Exception {
-        Nave nave = new NaveFactory().crearNave(TipoNave.EXPLORADORA);
+    @DisplayName("Observer: la vista observa al asistente y consulta su estado ante cada notificación")
+    public void testObservarActualizaRecursos() throws Exception {
+        Asistente asistente = crearAsistente();
         VistaDetallesNave vista = new VistaDetallesNave();
+        vista.observar(asistente);
 
-        // Notificación inicial
-        vista.notificarCambio(nave);
+        asistente.cargarCombustible(10);
         esperarEDT();
-
-        assertEquals("Combustible: 60", vista.getTextoCombustible());
+        assertEquals("Combustible: 70", vista.getTextoCombustible());
         assertEquals("Energía: 80", vista.getTextoEnergia());
         assertEquals("Desgaste: 0", vista.getTextoDesgaste());
         assertEquals("Mantenimiento: No requerido", vista.getTextoMantenimiento());
         assertEquals("Motor Warp: Disponible", vista.getTextoEstadoMotor());
 
-        // Modificamos recursos
-        nave.cargarCombustible(10);
-        nave.consumirRecursos(5, 10, 15);
-
-        // Notificamos a la vista
-        vista.notificarCambio(nave);
+        asistente.consumirRecursos(5, 10, 15);
         esperarEDT();
-
         assertEquals("Combustible: 65", vista.getTextoCombustible());
         assertEquals("Energía: 70", vista.getTextoEnergia());
         assertEquals("Desgaste: 15", vista.getTextoDesgaste());
     }
 
     @Test
-    @DisplayName("Observer: suscripción automática mediante ControladorDetallesNave actualiza en tiempo real")
-    public void testActualizacionEnTiempoRealConControlador() throws Exception {
-        Nave nave = new NaveFactory().crearNave(TipoNave.EXPLORADORA);
-        AsistenteComando asistente = new AsistenteComando(nave);
+    @DisplayName("Observer: una notificación desde otro hilo (la misión) actualiza la vista en el EDT")
+    public void testNotificacionDesdeOtroHilo() throws Exception {
+        Asistente asistente = crearAsistente();
+        VistaDetallesNave vista = new VistaDetallesNave();
+        vista.observar(asistente);
+
+        Thread mision = new Thread(() -> asistente.saltarWarp());
+        mision.start();
+        mision.join(1000);
+        esperarEDT();
+
+        assertEquals("Motor Warp: " + asistente.getEstadoMotor(), vista.getTextoEstadoMotor());
+    }
+
+    @Test
+    @DisplayName("Observer: tras dejar de observar, la vista no se actualiza; al observar otro asistente, sólo sigue a ése")
+    public void testDejarDeObservarYCambiarDeAsistente() throws Exception {
+        Asistente primero = crearAsistente();
+        Asistente segundo = crearAsistente();
         VistaDetallesNave vista = new VistaDetallesNave();
 
-        // Al instanciar el controlador, suscribe la vista a la nave
+        vista.observar(primero);
+        vista.observar(segundo);
+        primero.cargarCombustible(30);
+        esperarEDT();
+        assertNotEquals("Combustible: 90", vista.getTextoCombustible(), "La vista no debe seguir al asistente anterior.");
+
+        segundo.cargarEnergia(5);
+        esperarEDT();
+        assertEquals("Energía: 85", vista.getTextoEnergia());
+
+        vista.dejarDeObservar();
+        segundo.cargarEnergia(5);
+        esperarEDT();
+        assertEquals("Energía: 85", vista.getTextoEnergia(), "Tras dejar de observar no debe actualizarse.");
+    }
+
+    @Test
+    @DisplayName("Observer: ControladorDetallesNave entrega el asistente y la vista se actualiza en tiempo real")
+    public void testActualizacionEnTiempoRealConControlador() throws Exception {
+        Asistente asistente = crearAsistente();
+        VistaDetallesNave vista = new VistaDetallesNave();
+
+        // Al instanciar el controlador, la vista pasa a observar al asistente
         ControladorDetallesNave controlador = new ControladorDetallesNave(vista, asistente);
 
         controlador.actualizarVista();
@@ -88,7 +123,7 @@ public class VistaDetallesNaveTest {
         asistente.cargarCombustible(20);
         esperarEDT();
 
-        // La vista debe haberse actualizado inmediatamente sin llamar a actualizarVista() manualmente
+        // La vista debe haberse actualizado sin llamar a actualizarVista() manualmente
         assertEquals("Combustible: 80", vista.getTextoCombustible());
 
         asistente.cargarEnergia(10);
@@ -105,5 +140,12 @@ public class VistaDetallesNaveTest {
         esperarEDT();
         assertEquals("Desgaste: 0", vista.getTextoDesgaste());
         assertEquals("Mantenimiento: No requerido", vista.getTextoMantenimiento());
+
+        // Al desuscribir, la vista deja de seguir al asistente
+        String energiaAntes = vista.getTextoEnergia();
+        controlador.desuscribir();
+        asistente.cargarEnergia(5);
+        esperarEDT();
+        assertEquals(energiaAntes, vista.getTextoEnergia(), "Tras desuscribir no debe actualizarse.");
     }
 }

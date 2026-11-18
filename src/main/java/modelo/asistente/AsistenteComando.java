@@ -12,10 +12,11 @@ import modelo.mision.EtapaMision;
 import modelo.mision.InformeMision;
 import modelo.mision.Mision;
 import modelo.nave.Nave;
-import modelo.nave.ObservadorNave;
 import modelo.nave.ResultadoBatalla;
 import modelo.nave.TipoNave;
 import modelo.tripulacion.Tripulacion;
+import modelo.universo.Observable;
+import modelo.universo.Observador;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,6 +38,16 @@ import modelo.tripulacion.Tripulante;
  * Las misiones realizadas se conservan con su informe, y al cerrar cada una su informe queda resumido
  * en la Bitácora, que así sirve como informe de lo ocurrido en cada misión (Aclaración, R5).
  *
+ * Es el sujeto observable de la nave (patrón Observer, Paso 4 de la E2): extiende {@link Observable} de la
+ * cátedra y notifica en {@link #registrarEvento(TipoEvento, String)}, el único punto de notificación. Como
+ * toda orden deja su entrada en la Bitácora, cada variación de recursos, del motor, de la tripulación, cada
+ * destrucción y cada cierre de informe se notifican una sola vez, con la descripción como mensaje (push), y
+ * el observador consulta el estado con los getters (pull). La nave no notifica por su cuenta.
+ *
+ * Las notificaciones pueden llegar desde el hilo de la misión mientras una vista se suscribe desde el hilo de
+ * eventos de Swing, y la lista de observadores de la cátedra no admite accesos concurrentes. Por eso
+ * agregar, quitar y notificar se redefinen como synchronized, delegando en Observable sin cambiar su lógica.
+ *
  * Invariante:
  *  - nave != null, bitacora != null y misionesRealizadas != null;
  *  - todas las misiones realizadas están cerradas y fueron encomendadas a este asistente;
@@ -45,7 +56,7 @@ import modelo.tripulacion.Tripulante;
  *    etapas intermedias);
  *  - la misión en ejecución, si existe, es la misión pendiente.
  */
-public class AsistenteComando implements Asistente {
+public class AsistenteComando extends Observable implements Asistente {
 
     private final Nave nave;
     private final Bitacora bitacora;
@@ -165,9 +176,15 @@ public class AsistenteComando implements Asistente {
         return bitacora.getEventos();
     }
 
+    /**
+     * Registra el evento en la Bitácora y, recién después, lo notifica: si el evento es inválido, la excepción
+     * se propaga antes de notificar. Las órdenes lo invocan una vez aplicado el cambio a la nave, de modo que
+     * el observador que consulta los getters ya ve el estado nuevo.
+     */
     @Override
     public void registrarEvento(TipoEvento tipo, String descripcion) {
         bitacora.registrarEvento(new Evento(tipo, descripcion));
+        notificarObservadores(descripcion);
     }
 
     // --- Órdenes sobre la nave ---
@@ -293,9 +310,10 @@ public class AsistenteComando implements Asistente {
         assert enemiga != nave : "La nave no puede enfrentarse consigo misma.";
         assert !nave.estaDestruida() : "Una nave destruida no puede librar batallas.";
         ResultadoBatalla resultado = nave.enfrentarseCon(enemiga);
+        // Se aplica antes de registrar: el observador notificado ya consulta el resultado aplicado a la nave.
+        nave.aplicarResultado(resultado);
         registrarEvento(TipoEvento.RELEVANTE, "Batalla contra " + enemiga.getNombre() + ": "
                 + resultado.getDescripcion() + ".");
-        nave.aplicarResultado(resultado);
         registrarSiFueDestruida(false, "la derrota contra " + enemiga.getNombre());
         assert nave.estaDestruida() == resultado.destruyeNavePropia()
                 : "Fallo postcondición: sólo la derrota destruye la nave.";
@@ -358,7 +376,6 @@ public class AsistenteComando implements Asistente {
         }
         registrarEvento(TipoEvento.MOTOR, "Salto normal: la nave avanza " + casilleros + " casillero. " + nave);
         registrarSiFueDestruida(destruidaAntes, "el salto normal");
-        nave.notificarObservadores();
         assert invariante() : "Fallo invariante tras el salto normal.";
         return casilleros;
     }
@@ -378,22 +395,35 @@ public class AsistenteComando implements Asistente {
         }
         registrarEvento(TipoEvento.MOTOR, descripcion + " " + nave);
         registrarSiFueDestruida(destruidaAntes, "la maniobra warp");
-        nave.notificarObservadores();
         assert invariante() : "Fallo invariante tras el turno de la maniobra warp.";
         return casilleros;
     }
 
-    // --- Patrón Observer ---
+    // --- Patrón Observer (E2, Paso 4) ---
 
+    /**
+     * @pre observador != null.
+     * @post observador queda registrado una sola vez.
+     */
     @Override
-    public void agregarObservador(ObservadorNave observador) {
+    public synchronized void agregarObservador(Observador observador) {
         assert observador != null : "El observador no puede ser nulo.";
-        this.nave.agregarObservador(observador);
+        super.agregarObservador(observador);
     }
 
     @Override
-    public void eliminarObservador(ObservadorNave observador) {
-        this.nave.eliminarObservador(observador);
+    public synchronized void quitarObservador(Observador observador) {
+        super.quitarObservador(observador);
+    }
+
+    /**
+     * Notifica a los observadores con exclusión mutua respecto de las suscripciones. Cada observador debe
+     * resolver rápido su actualización (una vista Swing la delega con invokeLater) y no suscribirse ni
+     * quitarse dentro de actualizar(String).
+     */
+    @Override
+    public synchronized void notificarObservadores(String mensaje) {
+        super.notificarObservadores(mensaje);
     }
 
     // --- Misiones ---

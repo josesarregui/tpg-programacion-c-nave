@@ -5,33 +5,32 @@ import vista.principal.panelnave.paneldetallesnave.IVistaDetallesNave;
 
 /**
  * Controlador del panel de detalles de la nave.
- * Coordina la presentación inicial de datos y suscribe la vista como observadora
- * de la nave (patrón Observer) para garantizar actualizaciones en tiempo real.
+ * Coordina la presentación inicial de datos y le entrega a la vista el asistente que debe observar
+ * (patrón Observer). La suscripción la hace la propia vista con {@code asistente.agregarObservador(this)}:
+ * según el apunte de Observer, es responsabilidad del observador vincularse con el observado; el controlador
+ * sólo tiene acceso al modelo y a la vista (apunte de MVC).
  */
 public class ControladorDetallesNave {
     private final IVistaDetallesNave vista;
     private final Asistente asistente;
 
+    /**
+     * @pre vista != null y asistente != null.
+     * @post La vista observa al asistente.
+     */
     public ControladorDetallesNave(IVistaDetallesNave vista, Asistente asistente) {
+        assert vista != null && asistente != null : "El controlador necesita la vista y el asistente.";
         this.vista = vista;
         this.asistente = asistente;
 
-        suscribirObservador();
-    }
-
-    private void suscribirObservador() {
-        if (this.asistente != null) {
-            this.asistente.agregarObservador(this.vista);
-        }
+        this.vista.observar(this.asistente);
     }
 
     /**
-     * Desuscribe la vista del modelo.
+     * La vista deja de observar al asistente.
      */
     public void desuscribir() {
-        if (this.asistente != null) {
-            this.asistente.eliminarObservador(this.vista);
-        }
+        this.vista.dejarDeObservar();
     }
 
     public void actualizarVista() {

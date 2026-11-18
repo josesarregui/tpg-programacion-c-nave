@@ -29,7 +29,7 @@ public class PlataformaDeCargaTest {
     public void testDepositarYRetirar() throws Exception {
         PlataformaDeCarga p = new PlataformaDeCarga(3);
         List<String> eventos = new ArrayList<>();
-        p.agregarObservador((mensaje, baterias) -> eventos.add(mensaje));
+        p.agregarObservador(mensaje -> eventos.add(mensaje));
 
         p.depositar("Gen-1");
         assertEquals(1, p.getBaterias());
