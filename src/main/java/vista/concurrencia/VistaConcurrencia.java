@@ -41,8 +41,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 import javax.swing.text.DefaultCaret;
-import modelo.concurrencia.ObservadorConcurrencia;
 import modelo.concurrencia.PlataformaDeCarga;
+import modelo.universo.Observador;
 
 /**
  * Vista de la pantalla de Concurrencia ("Universo Paralelo"). 1. Generadora de
@@ -51,13 +51,16 @@ import modelo.concurrencia.PlataformaDeCarga;
  * Consumidoras (consumidores, con boton Agregar y soporte para detener hilo con
  * doble clic)
  *
- * Implementa {@link IVistaConcurrencia} (que extiende
- * {@link ObservadorConcurrencia}), recibiendo directamente las notificaciones
- * de la {@link PlataformaDeCarga} y despachandolas.
+ * Implementa {@link IVistaConcurrencia} (que extiende {@link Observador}, Versión 2 de la cátedra): se
+ * suscribe ella misma a la {@link PlataformaDeCarga} ({@link #observar(PlataformaDeCarga)}) y vuelca cada
+ * mensaje recibido en la consola, consultando el stock con los getters de la plataforma (modelo pull).
  */
 public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
 
     private static final DateTimeFormatter HORA_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+    /** Plataforma observada, o null si la vista todavía no observa ninguna. */
+    private PlataformaDeCarga plataforma;
 
     private final JLabel lblBaterias;
     private final JLabel lblGeneradoras;
@@ -489,11 +492,41 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
         this.areaConsola.setText("");
     }
 
+    /**
+     * La vista se vincula ella misma con la plataforma observada (apunte de Observer).
+     */
     @Override
-    public void notificarEvento(String mensaje, int bateriasActuales) {
+    public void observar(PlataformaDeCarga plataforma) {
+        assert plataforma != null : "La vista debe observar una plataforma de carga.";
+        dejarDeObservar();
+        this.plataforma = plataforma;
+        this.plataforma.agregarObservador(this);
+    }
+
+    @Override
+    public void dejarDeObservar() {
+        if (this.plataforma != null) {
+            this.plataforma.quitarObservador(this);
+            this.plataforma = null;
+        }
+    }
+
+    /**
+     * Recibe el evento de la plataforma (push) y consulta el stock con los getters (pull). La consulta se hace
+     * en el hilo que notifica, que tiene tomado el monitor de la plataforma, para que el stock corresponda al
+     * evento; la consola y el contador se modifican después en el hilo de eventos de Swing con invokeLater.
+     *
+     * @pre La vista observa una plataforma (sólo esa plataforma la notifica).
+     */
+    @Override
+    public void actualizar(String mensaje) {
+        PlataformaDeCarga observada = this.plataforma;
+        assert observada != null : "La vista recibió un evento sin observar una plataforma.";
+        final int baterias = observada.getBaterias();
+        final int capacidad = observada.getCapacidadMaxima();
         SwingUtilities.invokeLater(() -> {
             agregarEvento(mensaje);
-            actualizarBaterias(bateriasActuales, this.capacidadMaxima);
+            actualizarBaterias(baterias, capacidad);
         });
     }
 

@@ -40,7 +40,16 @@ classDiagram
     <<interface>> ElementoDelUniverso
     class Tablero
     class Destino
+    class Observable
+    <<abstract>> Observable
+    class Observador
+    <<interface>> Observador
+    class PlataformaDeCarga
 
+    Observable <|-- Tablero
+    Observable <|-- AsistenteComando
+    Observable <|-- PlataformaDeCarga
+    Observable o-- Observador : notifica actualizar(mensaje) (0..*)
     CentroDeControl o-- Asistente : registra (0..*) y nave en uso (0..1)
     Asistente <|.. AsistenteComando
     AsistenteComando --> Nave : opera (1)
@@ -240,6 +249,9 @@ subclase responde con `enemiga.serEnfrentadaPor<SuTipo>(this)` (vuelta). Cada su
 vuelta con su **columna** de la tabla (resultado para la nave propia): `Exploradora` paz / pierde / gana, `Carguero`
 gana / paz / pierde, `Combate` pierde / gana / paz (propia Exploradora / Carguero / Combate). Sin `instanceof`,
 `getClass()` ni condicionales de tipo.
+
+**La nave no es observable (Paso 4 de la E2).** Toda orden a la nave pasa por su asistente (Aclaración, R2), que es el
+sujeto que notifica (secciones 5 y 10). Si la nave también notificara, cada cambio llegaría dos veces.
 
 ## 3. Motor Warp (E1-02, patrón State)
 
@@ -572,6 +584,8 @@ classDiagram
         + encomendarMision(mision: Mision)
         + cancelarMision()
         + ejecutarMision() InformeMision throws NaveNoDisponibleException, RecursoInsuficienteException
+        + agregarObservador(observador: Observador)
+        + quitarObservador(observador: Observador)
     }
     class AsistenteComando {
         - Nave nave
@@ -614,6 +628,9 @@ classDiagram
         + encomendarMision(mision: Mision)
         + cancelarMision()
         + ejecutarMision() InformeMision throws NaveNoDisponibleException, RecursoInsuficienteException
+        + agregarObservador(observador: Observador)
+        + quitarObservador(observador: Observador)
+        + notificarObservadores(mensaje: String)
         - registrarInforme(informe: InformeMision)
         - registrarSiFueDestruida(destruidaAntes: boolean, causa: String)
         - registrarRechazoDelMotor(e: EstadoMotorInvalidoException)
@@ -665,8 +682,14 @@ classDiagram
     <<abstract>> Mision
     class NaveYaRegistradaException
     class NaveInexistenteException
+    class Observable
+    <<abstract>> Observable
+    class Observador
+    <<interface>> Observador
 
     Asistente <|.. AsistenteComando
+    Observable <|-- AsistenteComando : sujeto (Observer)
+    Asistente ..> Observador : agregarObservador / quitarObservador
     AsistenteComando --> Nave : opera (1)
     AsistenteComando *-- Bitacora : composición
     AsistenteComando o-- Mision : pendiente (0..1), en ejecución (0..1) y realizadas (0..*)
@@ -680,6 +703,12 @@ classDiagram
 El asistente no conoce el tablero: la posición de la nave es estado del `Tablero`, que maneja la misión (sección 4).
 `Bitacora` y `Evento` rechazan los eventos nulos, vacíos o fuera de orden con `IllegalArgumentException`
 (excepción no comprobada, por eso no figura en `throws`).
+
+**Sujeto observable (Paso 4 de la E2).** `AsistenteComando` extiende `Observable` de la cátedra y notifica en
+`registrarEvento`, su único punto de notificación: cada entrada de la Bitácora (recursos, motor, tripulación, rechazos,
+destrucción y cierre del informe) produce exactamente un `actualizar(descripcion)`. Los clientes se suscriben a través de
+la interfaz `Asistente`, sin depender de la clase concreta. Los tres métodos del Observer se redefinen como `synchronized`
+delegando en `Observable` (detalle en la sección 10).
 
 ## 6. Tripulación (E1-04)
 
@@ -1140,3 +1169,130 @@ resultado y lo registra en la Bitácora; si la nave propia pierde, queda destrui
 las casillas libres y las estaciones sin condicionales de tipo. `FabricaDeUniverso` arma el tablero de 20 x 20 con naves de
 `NaveFactory`; quien lo usa crea el `Destino` sobre ese mismo tablero y entrega ambos a las misiones.
 Las dos excepciones de la cátedra son comprobadas (extienden `Exception`).
+`Tablero` sigue siendo un sujeto `Observable` tal como lo entregó la cátedra (sección 10): notifica al mover la nave, al fijar
+el objetivo y al cerrar cada turno de `Destino`.
+
+## 10. Patrón Observer — E2, Paso 4 (sujetos, observadores y suscripción)
+
+Un único mecanismo: `Observable` y `Observador` de la cátedra (Versión 2), sin modificar su lógica. Cada notificación combina
+el modelo **push** (un `String` descriptivo en `actualizar(mensaje)`) y el modelo **pull** (el observador consulta el estado
+con los getters del sujeto). Los sujetos son `Tablero`, `AsistenteComando` y `PlataformaDeCarga`; la `Nave` no notifica.
+
+```mermaid
+classDiagram
+    class Observable {
+        <<abstract>>
+        - ArrayList~Observador~ observadores
+        + agregarObservador(observador: Observador)
+        + quitarObservador(observador: Observador)
+        + notificarObservadores(mensaje: String)
+    }
+    class Observador {
+        <<interface>>
+        + actualizar(mensaje: String)
+    }
+    class Tablero {
+        + moverNave(posicion: Posicion)
+        + obtenerObjetivo() Posicion
+        # notificarActualizacion(mensaje: String)
+    }
+    class Asistente {
+        <<interface>>
+        + registrarEvento(tipo: TipoEvento, descripcion: String)
+        + agregarObservador(observador: Observador)
+        + quitarObservador(observador: Observador)
+    }
+    class AsistenteComando {
+        + registrarEvento(tipo: TipoEvento, descripcion: String)
+        + agregarObservador(observador: Observador)
+        + quitarObservador(observador: Observador)
+        + notificarObservadores(mensaje: String)
+    }
+    class PlataformaDeCarga {
+        + int CAPACIDAD_POR_DEFECTO = 5$
+        - int capacidadMaxima
+        - int baterias
+        + PlataformaDeCarga()
+        + PlataformaDeCarga(capacidadMaxima: int)
+        + agregarObservador(observador: Observador)
+        + quitarObservador(observador: Observador)
+        + notificarObservadores(mensaje: String)
+        + getCapacidadMaxima() int
+        + getBaterias() int
+        + notificarIngreso(tipo: String, id: String)
+        + notificarEgreso(tipo: String, id: String)
+        + depositar(idGeneradora: String) throws InterruptedException
+        + retirar(idNave: String) throws InterruptedException
+        - invariante() boolean
+    }
+    class IVistaDetallesNave {
+        <<interface>>
+        + observar(asistente: Asistente)
+        + dejarDeObservar()
+    }
+    class VistaDetallesNave {
+        - Asistente asistente
+        + observar(asistente: Asistente)
+        + dejarDeObservar()
+        + actualizar(mensaje: String)
+    }
+    class IVistaConcurrencia {
+        <<interface>>
+        + observar(plataforma: PlataformaDeCarga)
+        + dejarDeObservar()
+    }
+    class VistaConcurrencia {
+        - PlataformaDeCarga plataforma
+        + observar(plataforma: PlataformaDeCarga)
+        + dejarDeObservar()
+        + actualizar(mensaje: String)
+    }
+    class ControladorDetallesNave {
+        - IVistaDetallesNave vista
+        - Asistente asistente
+        + ControladorDetallesNave(vista: IVistaDetallesNave, asistente: Asistente)
+        + desuscribir()
+        + actualizarVista()
+    }
+    class ControladorConcurrencia {
+        - IVistaConcurrencia vista
+        - PlataformaDeCarga plataforma
+        + desuscribir()
+        + detenerTodo()
+    }
+
+    Observable <|-- Tablero
+    Observable <|-- AsistenteComando
+    Observable <|-- PlataformaDeCarga
+    Asistente <|.. AsistenteComando
+    Observable o-- Observador : notifica (0..*)
+    Observador <|-- IVistaDetallesNave
+    Observador <|-- IVistaConcurrencia
+    IVistaDetallesNave <|.. VistaDetallesNave
+    IVistaConcurrencia <|.. VistaConcurrencia
+    VistaDetallesNave --> Asistente : observa, se suscribe y consulta (pull)
+    VistaConcurrencia --> PlataformaDeCarga : observa, se suscribe y consulta (pull)
+    ControladorDetallesNave --> IVistaDetallesNave : observar(asistente)
+    ControladorDetallesNave --> Asistente
+    ControladorConcurrencia --> IVistaConcurrencia : observar(plataforma)
+    ControladorConcurrencia --> PlataformaDeCarga
+```
+
+**Quién suscribe.** Según el apunte de Observer (Clase 11), el observador mantiene la referencia al observado y es
+responsable de vincularse con él (`Mi_Observer(Mi_Observable uO)`; en el ejemplo, `Ojo` invoca `addObserver(this)`), y
+según el de MVC (Clase 13) la vista puede registrarse con el modelo mientras el controlador sólo tiene acceso al modelo y a
+las vistas. Por eso la llamada `agregarObservador(this)` está en la vista: el controlador le entrega el sujeto con
+`observar(...)` (las vistas se construyen antes de que exista el asistente) y la vista se suscribe; `dejarDeObservar()`
+hace `quitarObservador(this)`. Hoy no hay vistas que observen el `Tablero` (la grilla de la misión corresponde al Paso 6).
+
+| Sujeto | Notifica | Mensaje (push) | Estado consultable (pull) |
+|---|---|---|---|
+| `Tablero` (cátedra) | `moverNave`, `obtenerObjetivo`, fin de `turnoDestino` | "La nave se movió a la posición (x, y).", etc. | `getPosicionNave()`, `getObjetivo()`, `verTablero()` |
+| `AsistenteComando` | cada entrada de la Bitácora (`registrarEvento`) | la descripción del evento | getters de `Asistente` (recursos, motor, tripulación, destrucción, Bitácora, misiones) |
+| `PlataformaDeCarga` | solicitud, espera, producción, retiro, ingreso y egreso de entidades | los del Enunciado: "Batería producida por [G-1].", "[Nave-1] esperando por falta de baterías en la Plataforma.", etc. | `getBaterias()`, `getCapacidadMaxima()` |
+
+**Hilos.** Las notificaciones llegan desde el hilo de la misión (asistente y tablero) o desde los hilos de las generadoras y
+naves (plataforma). La vista consulta el estado en el hilo que notifica y modifica los componentes con
+`SwingUtilities.invokeLater(...)`. La lista de `Observable` es un `ArrayList` sin sincronizar: `AsistenteComando` y
+`PlataformaDeCarga` redefinen agregar, quitar y notificar como `synchronized` delegando en `super`, sin tocar la clase de la
+cátedra. Al `Tablero` (no modificable) hay que suscribirse antes de lanzar el hilo de la misión.

@@ -47,11 +47,12 @@ recursos y mantenimiento con el **Escenario D**; el **Escenario B** y el **Escen
 ```
 mvn test
 ```
-Ejecuta las 293 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Ejecuta las 312 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
 Las pruebas de misiones son deterministas: usan un tablero de prueba con los elementos ubicados por la prueba, un Destino que
 no mueve elementos (o que los mueve como indica la prueba), un `Random` con semilla y pausa 0 entre turnos.
 Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/nave.mv.db`. Las pruebas de las vistas Swing
-(`VistasAccesoTest`) se omiten si no hay entorno gráfico.
+(`VistasAccesoTest`, `VistaDetallesNaveTest`, `VistaConcurrenciaTest` y las demás de `src/test/java/vista`) se omiten si no hay
+entorno gráfico.
 
 ### Matriz de verificación — Entrega 2: acceso al sistema
 | Caso | Qué se verifica (resultado esperado) | Prueba automática |
@@ -91,6 +92,18 @@ Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/n
 | Universo de 20 x 20 | Con `FabricaDeUniverso` y el Destino de la cátedra la misión termina con un informe válido y un recorrido válido. | `TravesiaTest` |
 | Nave ya destruida | La misión se rechaza con `NaveNoDisponibleException` (`isNaveDestruida()`). | `MisionTest` |
 
+### Matriz de verificación — Entrega 2: patrón Observer (modelo hacia la vista)
+| Caso | Qué se verifica (resultado esperado) | Prueba automática |
+|---|---|---|
+| Mecanismo único | `Observable` / `Observador` de la cátedra (Versión 2) en todo el sistema: mensaje descriptivo en `actualizar(String)` (push) y estado consultado con getters (pull). Sujetos: `Tablero`, `AsistenteComando` y `PlataformaDeCarga`; la nave no notifica. | `AsistenteObservadorTest`, `PlataformaDeCargaObservadorTest`, `TableroYDestinoTest` |
+| Asistente: recursos | Cada carga, consumo, impacto, reabastecimiento y mantenimiento produce una notificación con la descripción de la Bitácora, y el observador ya consulta el combustible, la energía o el desgaste nuevos. Una orden rechazada notifica su entrada de error y el estado no cambia. | `AsistenteObservadorTest` |
+| Asistente: motor, tripulación y Bitácora | Salto normal y turno warp notifican una vez con el estado del motor nuevo; la asignación de la tripulación, una vez con la tripulación ya consultable; cada entrada registrada por misiones o el centro de control, con su descripción. Un evento inválido no notifica. | `AsistenteObservadorTest` |
+| Asistente: destrucción e informe | La destrucción se notifica aparte del cambio que la causa, con la nave ya destruida (también al notificar la batalla perdida). El cierre de la misión es la última notificación ("Informe de ..."), con la misión ya entre las realizadas. | `AsistenteObservadorTest` |
+| Sin duplicados ni faltantes | Los mensajes recibidos coinciden, en orden, con las entradas agregadas a la Bitácora; un observador registrado dos veces recibe un aviso por cambio; tras quitarlo no recibe más; uno nulo viola la precondición. | `AsistenteObservadorTest`, `PlataformaDeCargaObservadorTest` |
+| Plataforma de carga | Solicitud, espera (llena o vacía), producción, retiro, ingreso y egreso con los mensajes del Enunciado; el stock se consulta con `getBaterias()` en el momento de cada evento. | `PlataformaDeCargaObservadorTest`, `ControladorConcurrenciaTest` |
+| Suscripción desde la vista | La vista recibe el sujeto del controlador (`observar(...)`) y se suscribe ella misma; al dejar de observar no recibe más avisos; al observar otro asistente sólo sigue a ése. | `VistaDetallesNaveTest`, `VistaConcurrenciaTest`, `ControladorConcurrenciaTest`, `ControladorPrincipalTest` |
+| Hilos | Una notificación desde otro hilo (misión o plataforma) actualiza los componentes en el EDT con `invokeLater`. Suscribir y quitar observadores mientras otro hilo notifica no rompe la lista ni pierde avisos. | `VistaDetallesNaveTest`, `VistaConcurrenciaTest`, `AsistenteObservadorTest`, `PlataformaDeCargaObservadorTest` |
+
 ### Matriz de verificación — Entrega 1
 | Caso | Qué se verifica (resultado esperado) | Prueba automática | En `DemostracionEntrega1` |
 |---|---|---|---|
@@ -112,7 +125,7 @@ Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/n
 La Entrega 1 se identifica con la etiqueta Git `entrega-e1`.
 
 ## Documentación
-* [docs/diseño.md](docs/diseño.md): responsabilidades de cada paquete, patrones (Factory, State, Template Method y Decorator), Double Dispatch, contratos, manejo de errores y decisiones de interpretación adoptadas ante ambigüedades de la consigna (sección 4).
+* [docs/diseño.md](docs/diseño.md): responsabilidades de cada paquete, patrones (Factory, State, Template Method, Decorator y Observer), Double Dispatch, contratos, manejo de errores y decisiones de interpretación adoptadas ante ambigüedades de la consigna (sección 4).
 * [docs/diagrama_clases.md](docs/diagrama_clases.md): diagrama de clases.
 * [docs/uso-ia.md](docs/uso-ia.md): registro del uso de inteligencia artificial.
 

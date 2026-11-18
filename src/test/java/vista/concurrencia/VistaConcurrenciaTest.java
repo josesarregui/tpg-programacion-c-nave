@@ -5,6 +5,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.awt.GraphicsEnvironment;
+import javax.swing.SwingUtilities;
+import modelo.concurrencia.PlataformaDeCarga;
+import modelo.universo.Observador;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
@@ -48,11 +51,42 @@ public class VistaConcurrenciaTest {
     }
 
     @Test
-    @DisplayName("VistaConcurrencia es una IVistaConcurrencia y un ObservadorConcurrencia")
+    @DisplayName("VistaConcurrencia es una IVistaConcurrencia y un Observador de la cátedra")
     public void testImplementacionInterfaces() {
         VistaConcurrencia vista = new VistaConcurrencia();
-        assertTrue(vista instanceof IVistaConcurrencia);
-        assertTrue(vista instanceof modelo.concurrencia.ObservadorConcurrencia);
+        // Las asignaciones lo verifican en compilación, sin consultar el tipo en ejecución.
+        IVistaConcurrencia comoVista = vista;
+        Observador comoObservador = vista;
+        assertSame(comoVista, comoObservador);
+    }
+
+    @Test
+    @DisplayName("Observer: la vista se suscribe sola, vuelca cada evento y consulta el stock (pull) en el EDT")
+    public void testObservaLaPlataforma() throws Exception {
+        VistaConcurrencia vista = new VistaConcurrencia();
+        PlataformaDeCarga plataforma = new PlataformaDeCarga(5);
+        vista.observar(plataforma);
+
+        // La notificación llega desde otro hilo, como desde una generadora.
+        Thread generadora = new Thread(() -> {
+            try {
+                plataforma.depositar("G-1");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        generadora.start();
+        generadora.join(1000);
+        SwingUtilities.invokeAndWait(() -> { });
+
+        assertTrue(vista.getAreaConsola().getText().contains("Batería producida por [G-1]."));
+        assertEquals("1 / 5", vista.getLblBaterias().getText());
+
+        vista.dejarDeObservar();
+        plataforma.depositar("G-2");
+        SwingUtilities.invokeAndWait(() -> { });
+        assertFalse(vista.getAreaConsola().getText().contains("[G-2]"), "Tras dejar de observar no recibe eventos.");
+        assertEquals("1 / 5", vista.getLblBaterias().getText());
     }
 
     @Test

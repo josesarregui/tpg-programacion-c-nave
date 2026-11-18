@@ -6,15 +6,15 @@ import java.util.ArrayList;
 import java.util.List;
 import modelo.concurrencia.GeneradoraDeEnergia;
 import modelo.concurrencia.NaveConsumidora;
-import modelo.concurrencia.ObservadorConcurrencia;
 import modelo.concurrencia.PlataformaDeCarga;
 import vista.concurrencia.IVistaConcurrencia;
 
 /**
  * Controlador del módulo de Concurrencia (Visor del Universo Paralelo). Sigue
  * el mismo lineamiento que {@link controlador.nave.ControladorDetallesNave}:
- * trabaja contra la interfaz {@link IVistaConcurrencia} y suscribe la vista
- * como observadora si implementa {@link ObservadorConcurrencia}.
+ * trabaja contra la interfaz {@link IVistaConcurrencia} y le entrega la
+ * plataforma que debe observar; la suscripción la hace la propia vista
+ * (patrón Observer: el observador se vincula con el observado).
  *
  * Implementa {@link ActionListener} para capturar los eventos del usuario
  * (MVC), instanciar las tareas {@link Runnable} y ejecutarlas en nuevos hilos
@@ -53,8 +53,8 @@ public class ControladorConcurrencia implements ActionListener {
         this.contadorGeneradoras = 1;
         this.contadorNaves = 1;
 
-        // Patron Observer: el Modelo notifica directamente a la Vista
-        this.plataforma.agregarObservador(this.vista);
+        // Patron Observer: la vista se suscribe a la plataforma antes de que exista algún hilo.
+        this.vista.observar(this.plataforma);
 
         this.vista.setControlador(this);
         this.vista.setOyenteDetenerGeneradora(this::detenerGeneradora);
@@ -64,10 +64,11 @@ public class ControladorConcurrencia implements ActionListener {
         this.vista.actualizarEntidades(0, 0);
     }
 
+    /**
+     * La vista deja de observar la plataforma.
+     */
     public void desuscribir() {
-        if (this.plataforma != null) {
-            this.plataforma.eliminarObservador(this.vista);
-        }
+        this.vista.dejarDeObservar();
     }
 
     public int getGeneradorasActivas() {
