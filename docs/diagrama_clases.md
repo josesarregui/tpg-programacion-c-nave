@@ -45,6 +45,8 @@ classDiagram
     class Observador
     <<interface>> Observador
     class PlataformaDeCarga
+    class GeneradoraDeEnergia
+    class NaveConsumidora
 
     Observable <|-- Tablero
     Observable <|-- AsistenteComando
@@ -73,6 +75,8 @@ classDiagram
     Destino --> Tablero : mueve elementos
     ElementoDelUniverso ..> Asistente : interactuarCon
     ElementoDelUniverso <|.. Nave : naves del tablero (Double Dispatch)
+    GeneradoraDeEnergia --> PlataformaDeCarga : deposita (monitor compartido)
+    NaveConsumidora --> PlataformaDeCarga : retira (monitor compartido)
 ```
 
 ## 2. Nave y fábrica (E1-01, E1-07 Factory, E1-09)
@@ -1221,9 +1225,8 @@ classDiagram
         + getBaterias() int
         + notificarIngreso(tipo: String, id: String)
         + notificarEgreso(tipo: String, id: String)
-        + depositar(idGeneradora: String) throws InterruptedException
-        + retirar(idNave: String) throws InterruptedException
-        - invariante() boolean
+        + depositarBateria(idGeneradora: String) throws InterruptedException
+        + retirarBateria(idNave: String) throws InterruptedException
     }
     class IVistaDetallesNave {
         <<interface>>
@@ -1289,10 +1292,114 @@ hace `quitarObservador(this)`. Hoy no hay vistas que observen el `Tablero` (la g
 |---|---|---|---|
 | `Tablero` (cátedra) | `moverNave`, `obtenerObjetivo`, fin de `turnoDestino` | "La nave se movió a la posición (x, y).", etc. | `getPosicionNave()`, `getObjetivo()`, `verTablero()` |
 | `AsistenteComando` | cada entrada de la Bitácora (`registrarEvento`) | la descripción del evento | getters de `Asistente` (recursos, motor, tripulación, destrucción, Bitácora, misiones) |
-| `PlataformaDeCarga` | solicitud, espera, producción, retiro, ingreso y egreso de entidades | los del Enunciado: "Batería producida por [G-1].", "[Nave-1] esperando por falta de baterías en la Plataforma.", etc. | `getBaterias()`, `getCapacidadMaxima()` |
+| `PlataformaDeCarga` | producción, solicitud, espera, depósito, retiro, ingreso y egreso de entidades | los del Enunciado ("Batería producida por [G-1].", "[Nave-1] esperando por falta de baterías en la Plataforma.", etc.) y los adicionales de solicitud de acceso, depósito y egreso (sección 11) | `getBaterias()`, `getCapacidadMaxima()` |
 
 **Hilos.** Las notificaciones llegan desde el hilo de la misión (asistente y tablero) o desde los hilos de las generadoras y
 naves (plataforma). La vista consulta el estado en el hilo que notifica y modifica los componentes con
 `SwingUtilities.invokeLater(...)`. La lista de `Observable` es un `ArrayList` sin sincronizar: `AsistenteComando` y
 `PlataformaDeCarga` redefinen agregar, quitar y notificar como `synchronized` delegando en `super`, sin tocar la clase de la
 cátedra. Al `Tablero` (no modificable) hay que suscribirse antes de lanzar el hilo de la misión.
+
+## 11. Módulo de concurrencia — E2, Paso 5 (`modelo.concurrencia`; Productor-Consumidor con monitores)
+
+`PlataformaDeCarga` es el monitor: el único recurso compartido, con toda la lógica de sincronización. `GeneradoraDeEnergia`
+y `NaveConsumidora` son tareas `Runnable` sin sincronización propia que reciben por constructor la misma plataforma y sólo
+le piden depositar o retirar. `ControladorConcurrencia` crea cada tarea, la lanza en su propio `Thread` con `start()` y
+asocia el identificador de la entidad con su hilo.
+
+```mermaid
+classDiagram
+    direction LR
+    class Runnable {
+        <<interface>>
+        + run()
+    }
+    class PlataformaDeCarga {
+        + int CAPACIDAD_POR_DEFECTO = 5$
+        - int capacidadMaxima
+        - int baterias
+        + PlataformaDeCarga()
+        + PlataformaDeCarga(capacidadMaxima: int)
+        + depositarBateria(idGeneradora: String) throws InterruptedException
+        + retirarBateria(idNave: String) throws InterruptedException
+        + getBaterias() int
+        + getCapacidadMaxima() int
+        + notificarIngreso(tipo: String, id: String)
+        + notificarEgreso(tipo: String, id: String)
+        - estaLlena() boolean
+        - estaVacia() boolean
+        - identificadorValido(id: String) boolean$
+        - invariante() boolean
+    }
+    class GeneradoraDeEnergia {
+        + int DELAY_POR_DEFECTO_MS = 3500$
+        - String idGeneradora
+        - PlataformaDeCarga plataforma
+        - int delayProduccionMs
+        + GeneradoraDeEnergia(idGeneradora: String, plataforma: PlataformaDeCarga)
+        + GeneradoraDeEnergia(idGeneradora: String, plataforma: PlataformaDeCarga, delayProduccionMs: int)
+        + getIdGeneradora() String
+        + run()
+    }
+    class NaveConsumidora {
+        + int DELAY_POR_DEFECTO_MS = 4000$
+        - String idNave
+        - PlataformaDeCarga plataforma
+        - int delayConsumoMs
+        + NaveConsumidora(idNave: String, plataforma: PlataformaDeCarga)
+        + NaveConsumidora(idNave: String, plataforma: PlataformaDeCarga, delayConsumoMs: int)
+        + getIdNave() String
+        + run()
+    }
+    class ControladorConcurrencia {
+        + long ESPERA_MAXIMA_DETENCION_MS = 2000$
+        - IVistaConcurrencia vista
+        - PlataformaDeCarga plataforma
+        - Map~String,Thread~ generadoras
+        - Map~String,Thread~ naves
+        - int contadorGeneradoras
+        - int contadorNaves
+        + ControladorConcurrencia(vista: IVistaConcurrencia)
+        + ControladorConcurrencia(vista: IVistaConcurrencia, plataforma: PlataformaDeCarga)
+        + crearGeneradora() GeneradoraDeEnergia
+        + crearNave() NaveConsumidora
+        + detenerGeneradora(idGeneradora: String) boolean
+        + detenerNave(idNave: String) boolean
+        + detenerTodo()
+        + getGeneradorasActivas() int
+        + getNavesActivas() int
+        + getPlataforma() PlataformaDeCarga
+        + desuscribir()
+        + actionPerformed(e: ActionEvent)
+        ~ getHilo(id: String) Thread
+        - lanzar(registro: Map, tipo: String, id: String, tarea: Runnable)
+        - finalizar(hilo: Thread, tipo: String, id: String)
+    }
+    class Thread
+
+    Observable <|-- PlataformaDeCarga
+    Runnable <|.. GeneradoraDeEnergia
+    Runnable <|.. NaveConsumidora
+    GeneradoraDeEnergia --> PlataformaDeCarga : depositarBateria (monitor compartido)
+    NaveConsumidora --> PlataformaDeCarga : retirarBateria (monitor compartido)
+    ControladorConcurrencia --> PlataformaDeCarga : una sola instancia
+    ControladorConcurrencia o-- Thread : id → hilo (0..*)
+    ControladorConcurrencia ..> GeneradoraDeEnergia : crea y lanza con start()
+    ControladorConcurrencia ..> NaveConsumidora : crea y lanza con start()
+    Thread ..> Runnable : ejecuta run()
+```
+
+**Monitor (componentes de la Clase 10).** Datos protegidos privados (`baterias`, `capacidadMaxima`); inicialización en el
+constructor; métodos privados (`estaLlena()`, `estaVacia()`, `invariante()`); métodos del monitor `synchronized`
+(`depositarBateria`, `retirarBateria`, `getBaterias`); la cola de entrada la administra la JVM.
+
+**Ciclo de cada hilo y mensajes (en orden).**
+
+| Entidad | Fuera del monitor | Dentro del monitor (un solo método `synchronized`) |
+|---|---|---|
+| `GeneradoraDeEnergia` | `Thread.sleep(delayProduccionMs)`: produce la batería | "Batería producida por [G-x]." → "[G-x] solicitando acceso a la Plataforma." → `while (estaLlena())` { "[G-x] esperando a que se libere espacio en la Plataforma."; `wait()` } → `baterias++` → "Batería depositada por [G-x] en la Plataforma." → `notifyAll()` |
+| `NaveConsumidora` | `Thread.sleep(delayConsumoMs)` después de retirar: consume la batería | "[Nave-y] solicitando batería." → `while (estaVacia())` { "[Nave-y] esperando por falta de baterías en la Plataforma."; `wait()` } → `baterias--` → "Batería retirada y utilizada por [Nave-y]." → `notifyAll()` |
+
+**Detención.** `detenerGeneradora` / `detenerNave` quitan la entidad del mapa, llaman a `interrupt()` y esperan con
+`join(ESPERA_MAXIMA_DETENCION_MS)` a que el hilo salga de `run()`; recién entonces se publica el egreso. `detenerTodo()`
+interrumpe todos los hilos, espera a cada uno, publica cada egreso y después la vista deja de observar.

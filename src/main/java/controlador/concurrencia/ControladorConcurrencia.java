@@ -2,8 +2,8 @@ package controlador.concurrencia;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import modelo.concurrencia.GeneradoraDeEnergia;
 import modelo.concurrencia.NaveConsumidora;
 import modelo.concurrencia.PlataformaDeCarga;
@@ -17,19 +17,34 @@ import vista.concurrencia.IVistaConcurrencia;
  * (patrón Observer: el observador se vincula con el observado).
  *
  * Implementa {@link ActionListener} para capturar los eventos del usuario
- * (MVC), instanciar las tareas {@link Runnable} y ejecutarlas en nuevos hilos
- * {@link Thread}. Permite además detener hilos individuales al interactuar con
- * las entidades (mediante doble clic sobre la lista de generadoras o naves). El
- * controlador captura cualquier excepción y delega en la vista la presentación
- * del mensaje de error (sin propagar excepciones al entorno visual).
+ * (MVC). Crea en tiempo de ejecución las tareas {@link Runnable}
+ * ({@link GeneradoraDeEnergia}, {@link NaveConsumidora}), todas con la misma
+ * {@link PlataformaDeCarga}, y lanza cada una en su propio {@link Thread} con
+ * start(). Asocia el identificador de cada entidad con su hilo, de modo que
+ * detenerla (doble clic sobre la lista, o al cerrar sesión) no depende del
+ * nombre del hilo.
+ *
+ * Detener una entidad es interrumpir su hilo y esperar con join (con tiempo
+ * límite) a que salga de run(); recién entonces se publica su egreso. Los hilos
+ * nunca toman el candado de este controlador y la vista sólo encola con
+ * invokeLater, por eso esperar desde el hilo de eventos no produce un bloqueo
+ * mutuo. El controlador captura las excepciones de creación y de detención
+ * total y delega en la vista la presentación del mensaje.
  */
 public class ControladorConcurrencia implements ActionListener {
+    /** Tiempo máximo que se espera a que un hilo interrumpido termine antes de informar su egreso. */
+    public static final long ESPERA_MAXIMA_DETENCION_MS = 2000;
+
+    private static final String TIPO_GENERADORA = "Generadora de Energía";
+    private static final String TIPO_NAVE = "Nave Consumidora";
+
     private final IVistaConcurrencia vista;
     private final PlataformaDeCarga plataforma;
 
-    private final List<GeneradoraDeEnergia> generadoras;
-    private final List<NaveConsumidora> naves;
-    private final List<Thread> hilos;
+    /** Identificador de cada generadora activa y el hilo que la ejecuta, en orden de creación. */
+    private final Map<String, Thread> generadoras;
+    /** Identificador de cada nave activa y el hilo que la ejecuta, en orden de creación. */
+    private final Map<String, Thread> naves;
 
     private int contadorGeneradoras;
     private int contadorNaves;
@@ -47,9 +62,8 @@ public class ControladorConcurrencia implements ActionListener {
         }
         this.vista = vista;
         this.plataforma = plataforma;
-        this.generadoras = new ArrayList<>();
-        this.naves = new ArrayList<>();
-        this.hilos = new ArrayList<>();
+        this.generadoras = new LinkedHashMap<>();
+        this.naves = new LinkedHashMap<>();
         this.contadorGeneradoras = 1;
         this.contadorNaves = 1;
 
@@ -71,79 +85,32 @@ public class ControladorConcurrencia implements ActionListener {
         this.vista.dejarDeObservar();
     }
 
-    public int getGeneradorasActivas() {
-        int activas = 0;
-        for (GeneradoraDeEnergia g : this.generadoras) {
-            if (g.isActivo()) {
-                activas++;
-            }
-        }
-        return activas;
+    public synchronized int getGeneradorasActivas() {
+        return this.generadoras.size();
     }
 
-    public int getNavesActivas() {
-        int activas = 0;
-        for (NaveConsumidora n : this.naves) {
-            if (n.isActivo()) {
-                activas++;
-            }
-        }
-        return activas;
-    }
-
-    /**
-     * Detiene todas las tareas Runnable y los hilos en ejecución.
-     */
-    public void detenerTodo() {
-        try {
-            for (GeneradoraDeEnergia generador : this.generadoras) {
-                generador.detener();
-            }
-            for (NaveConsumidora nave : this.naves) {
-                nave.detener();
-            }
-            for (Thread hilo : this.hilos) {
-                hilo.interrupt();
-            }
-            this.generadoras.clear();
-            this.naves.clear();
-            this.hilos.clear();
-
-            this.desuscribir();
-            this.vista.limpiarEntidades();
-            this.vista.actualizarEntidades(0, 0);
-        } catch (Exception ex) {
-            this.vista.mostrarError(ex.getMessage() != null ? ex.getMessage() : "Error al detener los procesos concurrentes.");
-        }
+    public synchronized int getNavesActivas() {
+        return this.naves.size();
     }
 
     public PlataformaDeCarga getPlataforma() {
         return this.plataforma;
     }
 
-    public List<GeneradoraDeEnergia> getGeneradoras() {
-        return this.generadoras;
-    }
-
-    public List<NaveConsumidora> getNaves() {
-        return this.naves;
-    }
-
-    public List<Thread> getHilos() {
-        return this.hilos;
+    /**
+     * Hilo que ejecuta la entidad activa con ese identificador, o null si no hay ninguna. Sólo para las pruebas
+     * del paquete (verificar que el hilo terminó).
+     */
+    synchronized Thread getHilo(String id) {
+        Thread hilo = this.generadoras.get(id);
+        return hilo != null ? hilo : this.naves.get(id);
     }
 
     public synchronized GeneradoraDeEnergia crearGeneradora() {
         try {
             String id = "G-" + this.contadorGeneradoras++;
             GeneradoraDeEnergia generadora = new GeneradoraDeEnergia(id, this.plataforma);
-            Thread hilo = new Thread(generadora, "Thread-" + id);
-
-            this.generadoras.add(generadora);
-            this.hilos.add(hilo);
-
-            this.plataforma.notificarIngreso("Generadora de Energía", id);
-            hilo.start();
+            lanzar(this.generadoras, TIPO_GENERADORA, id, generadora);
 
             this.vista.agregarGeneradora(id);
             this.vista.actualizarEntidades(getGeneradorasActivas(), getNavesActivas());
@@ -158,13 +125,7 @@ public class ControladorConcurrencia implements ActionListener {
         try {
             String id = "Nave-" + this.contadorNaves++;
             NaveConsumidora nave = new NaveConsumidora(id, this.plataforma);
-            Thread hilo = new Thread(nave, "Thread-" + id);
-
-            this.naves.add(nave);
-            this.hilos.add(hilo);
-
-            this.plataforma.notificarIngreso("Nave Consumidora", id);
-            hilo.start();
+            lanzar(this.naves, TIPO_NAVE, id, nave);
 
             this.vista.agregarNaveConsumidora(id);
             this.vista.actualizarEntidades(getGeneradorasActivas(), getNavesActivas());
@@ -176,70 +137,69 @@ public class ControladorConcurrencia implements ActionListener {
     }
 
     /**
-     * Detiene el hilo y la tarea de una generadora de energía específica (por
-     * ejemplo al hacer doble clic).
+     * Detiene el hilo de una generadora de energía específica (por ejemplo al hacer doble clic).
      *
      * @param idGeneradora identificador de la generadora a detener.
-     * @return true si la generadora existía y fue detenida, false en caso
-     * contrario.
+     * @return true si la generadora estaba activa y fue detenida, false en caso contrario.
+     * @post La generadora ya no está activa y su hilo fue interrumpido; si terminó dentro del tiempo límite, se
+     *       publicó su egreso.
      */
     public synchronized boolean detenerGeneradora(String idGeneradora) {
         if (idGeneradora == null) {
             return false;
-        } else {
-            for (GeneradoraDeEnergia g : this.generadoras) {
-                if (g.getIdGeneradora().equalsIgnoreCase(idGeneradora.trim())) {
-                    g.detener();
-                    this.generadoras.remove(g);
-
-                    for (Thread h : this.hilos) {
-                        if (h.getName().endsWith(g.getIdGeneradora())) {
-                            h.interrupt();
-                            this.hilos.remove(h);
-                            break;
-                        }
-                    }
-
-                    this.plataforma.notificarEgreso("Generadora de Energía", g.getIdGeneradora());
-                    this.vista.removerGeneradora(g.getIdGeneradora());
-                    this.vista.actualizarEntidades(getGeneradorasActivas(), getNavesActivas());
-                    return true;
-                }
-            }
+        }
+        String id = idGeneradora.trim();
+        Thread hilo = this.generadoras.remove(id);
+        if (hilo == null) {
             return false;
         }
+        finalizar(hilo, TIPO_GENERADORA, id);
+        this.vista.removerGeneradora(id);
+        this.vista.actualizarEntidades(getGeneradorasActivas(), getNavesActivas());
+        return true;
     }
 
     /**
-     * Detiene el hilo y la tarea de una nave consumidora especifica.
+     * Detiene el hilo de una nave consumidora específica.
      *
      * @param idNave identificador de la nave a detener.
-     * @return true si la nave existía y fue detenida, false en caso contrario.
+     * @return true si la nave estaba activa y fue detenida, false en caso contrario.
+     * @post La nave ya no está activa y su hilo fue interrumpido; si terminó dentro del tiempo límite, se publicó
+     *       su egreso.
      */
     public synchronized boolean detenerNave(String idNave) {
         if (idNave == null) {
             return false;
-        } else {
-            for (NaveConsumidora n : this.naves) {
-                if (n.getIdNave().equalsIgnoreCase(idNave.trim())) {
-                    n.detener();
-                    this.naves.remove(n);
-
-                    for (Thread h : this.hilos) {
-                        if (h.getName().endsWith(n.getIdNave())) {
-                            h.interrupt();
-                            this.hilos.remove(h);
-                            break;
-                        }
-                    }
-
-                    this.plataforma.notificarEgreso("Nave Consumidora", n.getIdNave());
-                    this.vista.removerNaveConsumidora(n.getIdNave());
-                    this.vista.actualizarEntidades(getGeneradorasActivas(), getNavesActivas());
-                    return true;
-                }
-            }
+        }
+        String id = idNave.trim();
+        Thread hilo = this.naves.remove(id);
+        if (hilo == null) {
             return false;
+        }
+        finalizar(hilo, TIPO_NAVE, id);
+        this.vista.removerNaveConsumidora(id);
+        this.vista.actualizarEntidades(getGeneradorasActivas(), getNavesActivas());
+        return true;
+    }
+
+    /**
+     * Detiene todas las entidades (se invoca al cerrar sesión): primero interrumpe todos los hilos, para que terminen
+     * a la vez, después espera a cada uno y publica su egreso, y por último la vista deja de observar la plataforma.
+     *
+     * @post No queda ninguna entidad activa.
+     */
+    public synchronized void detenerTodo() {
+        try {
+            interrumpirTodos(this.generadoras);
+            interrumpirTodos(this.naves);
+            finalizarTodos(this.generadoras, TIPO_GENERADORA);
+            finalizarTodos(this.naves, TIPO_NAVE);
+
+            this.desuscribir();
+            this.vista.limpiarEntidades();
+            this.vista.actualizarEntidades(0, 0);
+        } catch (Exception ex) {
+            this.vista.mostrarError(ex.getMessage() != null ? ex.getMessage() : "Error al detener los procesos concurrentes.");
         }
     }
 
@@ -256,6 +216,52 @@ public class ControladorConcurrencia implements ActionListener {
             }
         } catch (Exception ex) {
             this.vista.mostrarError(ex.getMessage() != null ? ex.getMessage() : "Error al procesar la acción.");
+        }
+    }
+
+    // --- Ciclo de vida de los hilos ---
+
+    /**
+     * Publica el ingreso antes de lanzar el hilo, para que preceda a los eventos de la entidad, y registra la entidad
+     * sólo si se lanzó. Si la publicación falla, no queda nada registrado ni ningún hilo lanzado.
+     */
+    private void lanzar(Map<String, Thread> registro, String tipo, String id, Runnable tarea) {
+        Thread hilo = new Thread(tarea, tipo + " [" + id + "]");
+        this.plataforma.notificarIngreso(tipo, id);
+        hilo.start();
+        registro.put(id, hilo);
+    }
+
+    private void interrumpirTodos(Map<String, Thread> registro) {
+        for (Thread hilo : registro.values()) {
+            hilo.interrupt();
+        }
+    }
+
+    private void finalizarTodos(Map<String, Thread> registro, String tipo) {
+        for (Map.Entry<String, Thread> entidad : registro.entrySet()) {
+            finalizar(entidad.getValue(), tipo, entidad.getKey());
+        }
+        registro.clear();
+    }
+
+    /**
+     * Interrumpe el hilo y espera, con tiempo límite, a que salga de run(). El egreso se publica sólo si el hilo
+     * terminó; si no, o si se interrumpe la espera, se informa el error en la vista (la interrupción del hilo que
+     * espera se restaura).
+     */
+    private void finalizar(Thread hilo, String tipo, String id) {
+        hilo.interrupt();
+        try {
+            hilo.join(ESPERA_MAXIMA_DETENCION_MS);
+            if (hilo.isAlive()) {
+                this.vista.mostrarError("La " + tipo + " [" + id + "] no finalizó en el tiempo esperado.");
+            } else {
+                this.plataforma.notificarEgreso(tipo, id);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            this.vista.mostrarError("Se interrumpió la espera de la detención de la " + tipo + " [" + id + "].");
         }
     }
 }

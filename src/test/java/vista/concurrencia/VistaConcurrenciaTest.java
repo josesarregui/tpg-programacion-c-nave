@@ -70,7 +70,7 @@ public class VistaConcurrenciaTest {
         // La notificación llega desde otro hilo, como desde una generadora.
         Thread generadora = new Thread(() -> {
             try {
-                plataforma.depositar("G-1");
+                plataforma.depositarBateria("G-1");
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -83,7 +83,7 @@ public class VistaConcurrenciaTest {
         assertEquals("1 / 5", vista.getLblBaterias().getText());
 
         vista.dejarDeObservar();
-        plataforma.depositar("G-2");
+        plataforma.depositarBateria("G-2");
         SwingUtilities.invokeAndWait(() -> { });
         assertFalse(vista.getAreaConsola().getText().contains("[G-2]"), "Tras dejar de observar no recibe eventos.");
         assertEquals("1 / 5", vista.getLblBaterias().getText());
