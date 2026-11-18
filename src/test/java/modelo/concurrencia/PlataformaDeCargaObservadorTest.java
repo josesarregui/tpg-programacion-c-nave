@@ -64,27 +64,28 @@ public class PlataformaDeCargaObservadorTest {
     }
 
     @Test
-    @DisplayName("Producción: depositar publica la solicitud y la batería producida; el stock nuevo es consultable")
+    @DisplayName("Producción: depositar publica, en el orden del Enunciado, la batería producida, la solicitud y el depósito; el stock nuevo es consultable")
     public void testProduccion() throws Exception {
         PlataformaDeCarga plataforma = new PlataformaDeCarga(3);
         Registro registro = new Registro(plataforma);
 
-        plataforma.depositar("G-1");
+        plataforma.depositarBateria("G-1");
 
-        assertEquals(List.of("[G-1] solicitando acceso a la Plataforma.", "Batería producida por [G-1]."),
-                registro.mensajes());
+        assertEquals(List.of("Batería producida por [G-1].", "[G-1] solicitando acceso a la Plataforma.",
+                "Batería depositada por [G-1] en la Plataforma."), registro.mensajes());
+        assertEquals(0, registro.stockAl("Batería producida por [G-1]."));
         assertEquals(0, registro.stockAl("[G-1] solicitando acceso a la Plataforma."));
-        assertEquals(1, registro.stockAl("Batería producida por [G-1]."));
+        assertEquals(1, registro.stockAl("Batería depositada por [G-1] en la Plataforma."));
     }
 
     @Test
     @DisplayName("Retiro: retirar publica la solicitud y la batería retirada; el stock nuevo es consultable")
     public void testRetiro() throws Exception {
         PlataformaDeCarga plataforma = new PlataformaDeCarga(3);
-        plataforma.depositar("G-1");
+        plataforma.depositarBateria("G-1");
         Registro registro = new Registro(plataforma);
 
-        plataforma.retirar("Nave-1");
+        plataforma.retirarBateria("Nave-1");
 
         assertEquals(List.of("[Nave-1] solicitando batería.", "Batería retirada y utilizada por [Nave-1]."),
                 registro.mensajes());
@@ -95,13 +96,13 @@ public class PlataformaDeCargaObservadorTest {
     @DisplayName("Espera: con la plataforma llena, la generadora publica que espera; el stock consultado es la capacidad")
     public void testEsperaPorPlataformaLlena() throws Exception {
         PlataformaDeCarga plataforma = new PlataformaDeCarga(1);
-        plataforma.depositar("G-1");
+        plataforma.depositarBateria("G-1");
         String espera = "[G-2] esperando a que se libere espacio en la Plataforma.";
         Registro registro = new Registro(plataforma, espera);
 
         Thread generadora = new Thread(() -> {
             try {
-                plataforma.depositar("G-2");
+                plataforma.depositarBateria("G-2");
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -111,10 +112,17 @@ public class PlataformaDeCargaObservadorTest {
         assertTrue(registro.esperar(), "La generadora debe publicar que espera.");
         assertEquals(1, registro.stockAl(espera));
 
-        plataforma.retirar("Nave-1");
+        plataforma.retirarBateria("Nave-1");
         generadora.join(1000);
         assertFalse(generadora.isAlive());
-        assertTrue(registro.mensajes().contains("Batería producida por [G-2]."));
+        List<String> mensajes = registro.mensajes();
+        int producida = mensajes.indexOf("Batería producida por [G-2].");
+        int solicitud = mensajes.indexOf("[G-2] solicitando acceso a la Plataforma.");
+        int esperaPublicada = mensajes.indexOf(espera);
+        int deposito = mensajes.indexOf("Batería depositada por [G-2] en la Plataforma.");
+        assertTrue(producida >= 0 && producida < solicitud && solicitud < esperaPublicada && esperaPublicada < deposito,
+                "La generadora publica producción, solicitud, espera y depósito en ese orden: " + mensajes);
+        assertEquals(1, registro.stockAl("Batería depositada por [G-2] en la Plataforma."));
     }
 
     @Test
@@ -126,7 +134,7 @@ public class PlataformaDeCargaObservadorTest {
 
         Thread nave = new Thread(() -> {
             try {
-                plataforma.retirar("Nave-1");
+                plataforma.retirarBateria("Nave-1");
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -136,7 +144,7 @@ public class PlataformaDeCargaObservadorTest {
         assertTrue(registro.esperar(), "La nave debe publicar que espera.");
         assertEquals(0, registro.stockAl(espera));
 
-        plataforma.depositar("G-1");
+        plataforma.depositarBateria("G-1");
         nave.join(1000);
         assertFalse(nave.isAlive());
         assertTrue(registro.mensajes().contains("Batería retirada y utilizada por [Nave-1]."));
