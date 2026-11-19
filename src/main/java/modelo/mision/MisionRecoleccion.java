@@ -99,7 +99,7 @@ public class MisionRecoleccion extends Mision {
     }
 
     @Override
-    protected String getCondicionDeExito() {
+    public String getCondicionDeExito() {
         return "llegar al punto de interés y recolectar las gemas";
     }
 }

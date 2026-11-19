@@ -9,30 +9,36 @@ import java.awt.event.ActionListener;
 import modelo.universo.CentroDeControl;
 import modelo.usuario.ServicioUsuarios;
 import modelo.usuario.Usuario;
+import vista.FabricaDeVistas;
 import vista.usuario.IVistaLogin;
 import vista.usuario.IVistaRegistro;
-import vista.usuario.VistaLogin;
 
 /**
  * Controlador de la pantalla de registro (patrón MVC): recibe los comandos de acción de la vista, invoca al
  * servicio y coordina la respuesta. No contiene reglas de negocio ni SQL.
  *
- * Selección de vista: después de un registro exitoso, o con "Volver", regresa a la pantalla de login.
+ * Selección de vista: después de un registro exitoso, o con "Volver", regresa a la pantalla de login. La pide a la
+ * {@link FabricaDeVistas}, así que sólo conoce las vistas por sus interfaces.
  */
 public class ControladorRegistro implements ActionListener {
 
     private final IVistaRegistro vista;
     private final ServicioUsuarios modelo;
     private final CentroDeControl centroDeControl;
+    private final FabricaDeVistas fabricaDeVistas;
 
-    public ControladorRegistro(IVistaRegistro vista, ServicioUsuarios modelo) {
-        this(vista, modelo, new CentroDeControl());
-    }
-
-    public ControladorRegistro(IVistaRegistro vista, ServicioUsuarios modelo, CentroDeControl centroDeControl) {
+    /**
+     * @pre Ningún parámetro es nulo.
+     * @post La vista tiene a este controlador como oyente de sus botones.
+     */
+    public ControladorRegistro(IVistaRegistro vista, ServicioUsuarios modelo, CentroDeControl centroDeControl,
+            FabricaDeVistas fabricaDeVistas) {
+        assert vista != null && modelo != null && centroDeControl != null && fabricaDeVistas != null
+                : "El controlador de registro necesita la vista, el servicio, el centro de control y la fábrica de vistas.";
         this.vista = vista;
         this.modelo = modelo;
-        this.centroDeControl = centroDeControl != null ? centroDeControl : new CentroDeControl();
+        this.centroDeControl = centroDeControl;
+        this.fabricaDeVistas = fabricaDeVistas;
         this.vista.setControlador(this);
     }
 
@@ -61,8 +67,8 @@ public class ControladorRegistro implements ActionListener {
     }
 
     private void volverAlLogin() {
-        IVistaLogin vistaLogin = new VistaLogin();
-        new ControladorLogin(vistaLogin, modelo, centroDeControl);
+        IVistaLogin vistaLogin = fabricaDeVistas.crearVistaLogin();
+        new ControladorLogin(vistaLogin, modelo, centroDeControl, fabricaDeVistas);
         vista.cerrar();
         vistaLogin.arrancar();
     }

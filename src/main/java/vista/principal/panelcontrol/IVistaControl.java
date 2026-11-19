@@ -1,13 +1,20 @@
 package vista.principal.panelcontrol;
 
+import vista.principal.panelcontrol.panelcursomision.IVistaCursoMision;
+import vista.principal.panelcontrol.panelrecursos.IVistaRecursos;
+import vista.principal.panelcontrol.panelresultadosmision.IVistaResultadosMision;
 import vista.principal.panelcontrol.panelselectmision.IVistaSelectMision;
 
 /**
- * Interfaz contenedora de la seccion Control de Nave y Ejecucion de Misiones.
- * Coordina la alternancia entre las tres etapas del ciclo de mision
- * 1. Seleccion de Mision y Bitacora (SELECT_MISION)
- * 2. Mision en Curso (MISION_CURSO)
- * 3. Resultados de la Mision (RESULTADOS_MISION)
+ * Interfaz contenedora de la sección Control de la Nave (Enunciado E2, Vistas, punto 4).
+ *
+ * Muestra siempre el estado actual de los recursos ({@link IVistaRecursos}) y alterna entre las tres etapas del
+ * ciclo de misión:
+ * 1. Selección de Misión y Bitácora (SELECT_MISION)
+ * 2. Misión en Curso, con el tablero en tiempo real (MISION_CURSO)
+ * 3. Historial de informes finales (RESULTADOS_MISION)
+ *
+ * Los métodos se invocan desde el hilo de eventos de Swing.
  */
 public interface IVistaControl {
     public String SELECT_MISION = "SELECT_MISION";
@@ -20,5 +27,11 @@ public interface IVistaControl {
 
     public void mostrarResultadosMision();
 
+    public IVistaRecursos getVistaRecursos();
+
     public IVistaSelectMision getVistaSelectMision();
+
+    public IVistaCursoMision getVistaCursoMision();
+
+    public IVistaResultadosMision getVistaResultadosMision();
 }

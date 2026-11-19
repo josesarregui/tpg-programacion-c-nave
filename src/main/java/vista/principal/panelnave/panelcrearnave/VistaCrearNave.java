@@ -461,7 +461,7 @@ public class VistaCrearNave extends JPanel implements IVistaCrearNave {
     }
 
     private BufferedImage cargarImagenRecortada(String rutaImagen) {
-        URL ruta = getClass().getResource(rutaImagen);
+        URL ruta = VistaCrearNave.class.getResource(rutaImagen);
         if (ruta == null) {
             return null;
         }

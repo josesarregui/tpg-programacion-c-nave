@@ -26,7 +26,17 @@ mvn compile
 
 ## Ejecución (forma de iniciar el sistema)
 El programa principal `app.App` abre la pantalla de **inicio de sesión** (E2, Control de Acceso al Sistema). Desde ella se puede
-pasar al **registro** de un usuario nuevo. Se ejecuta con las aserciones activas (`-ea`) mediante:
+pasar al **registro** de un usuario nuevo. Al iniciar sesión se cierra el login y se abre la **ventana principal**, con un menú
+lateral para sus secciones:
+* **Nave:** elegir el tipo de nave y crearla (queda registrada en el centro de control con su asistente); luego, su estado.
+* **Tripulación:** dar de alta Capitán, Consejero, Teniente y Alférez (un/a capitán/a y al menos 5 integrantes) y asignarlos
+  a la nave; después, la nómina con el sueldo de cada tripulante y el recibo con su desglose ("Ver recibo").
+* **Control de la nave:** recursos actuales, Bitácora en vivo, selección e inicio de una misión, tablero de 20 x 20 que se
+  actualiza solo mientras la nave avanza (la misión corre en su propio hilo y puede cancelarse) e historial de informes finales.
+* **Visor:** el universo paralelo de la Plataforma de Carga, con los botones para agregar generadoras y naves consumidoras.
+* **Cerrar sesión:** detiene la misión en curso y los hilos del Visor y vuelve al login.
+
+Se ejecuta con las aserciones activas (`-ea`) mediante:
 ```
 mvn compile exec:exec
 ```
@@ -47,12 +57,14 @@ recursos y mantenimiento con el **Escenario D**; el **Escenario B** y el **Escen
 ```
 mvn test
 ```
-Ejecuta las 325 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Ejecuta las 349 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
 Las pruebas de misiones son deterministas: usan un tablero de prueba con los elementos ubicados por la prueba, un Destino que
 no mueve elementos (o que los mueve como indica la prueba), un `Random` con semilla y pausa 0 entre turnos.
-Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/nave.mv.db`. Las pruebas de las vistas Swing
-(`VistasAccesoTest`, `VistaDetallesNaveTest`, `VistaConcurrenciaTest` y las demás de `src/test/java/vista`) se omiten si no hay
-entorno gráfico.
+Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/nave.mv.db`. Los controladores se prueban con
+vistas de prueba que implementan las interfaces `IVista...` sin abrir ventanas (`controlador/VistasDePrueba`); las del hilo de la
+misión esperan los avisos con colas, `CountDownLatch` y `join` con tiempo límite, sin pausas fijas. Las pruebas de las vistas
+Swing (`VistasAccesoTest`, `VistaDetallesNaveTest`, `VistaConcurrenciaTest` y las demás de `src/test/java/vista`) se omiten si no
+hay entorno gráfico.
 
 ### Matriz de verificación — Entrega 2: acceso al sistema
 | Caso | Qué se verifica (resultado esperado) | Prueba automática |
@@ -60,7 +72,8 @@ entorno gráfico.
 | Registro | Un usuario nuevo queda guardado y puede iniciar sesión. Se rechazan: nombre vacío, con espacios o de más de 30 caracteres (`UsuarioInvalidoException`), contraseña vacía o de más de 30 (`ContrasenaInvalidaException`) y nombre repetido (`UsuarioExistenteException`), sin guardar nada. | `ServicioUsuariosTest` |
 | Login | Con credenciales correctas el operador queda en sesión. Usuario inexistente y contraseña incorrecta dan el mismo mensaje (`LoginInvalidoException`) y no cambian la sesión. | `ServicioUsuariosTest`, `ControladorLoginTest` |
 | Persistencia (DAO/DTO, JDBC) | Las credenciales se conservan para otra ejecución; consultas parametrizadas (sin inyección de SQL); toda `SQLException` se transforma en `PersistenciaException`. | `UsuarioDAOJDBCTest`, `ServicioUsuariosTest` |
-| MVC | Los controladores trabajan con las vistas por su interfaz: se prueban con vistas sin ventanas. Los errores del servicio se muestran en la vista. | `ControladorLoginTest` |
+| MVC | Los controladores trabajan con las vistas por su interfaz y piden las ventanas a la `FabricaDeVistas`: se prueban con vistas sin ventanas. Los errores del servicio se muestran en la vista. Login y registro navegan entre sí. | `ControladorLoginTest` |
+| Transición al panel central | Al autenticar, se cierra el login y se abre la ventana principal con el operador y sus secciones (el Visor ya observa su plataforma). Con credenciales incorrectas no se abre nada. | `ControladorLoginTest`, `ControladorSesionTest` |
 | Validación de formato en la Vista | "Ingresar" y "Registrar" se habilitan sólo con los campos completos; el registro avisa si las contraseñas no coinciden. | `VistasAccesoTest` |
 
 ### Matriz de verificación — Entrega 2: entorno espacial
@@ -101,8 +114,8 @@ entorno gráfico.
 | Asistente: destrucción e informe | La destrucción se notifica aparte del cambio que la causa, con la nave ya destruida (también al notificar la batalla perdida). El cierre de la misión es la última notificación ("Informe de ..."), con la misión ya entre las realizadas. | `AsistenteObservadorTest` |
 | Sin duplicados ni faltantes | Los mensajes recibidos coinciden, en orden, con las entradas agregadas a la Bitácora; un observador registrado dos veces recibe un aviso por cambio; tras quitarlo no recibe más; uno nulo viola la precondición. | `AsistenteObservadorTest`, `PlataformaDeCargaObservadorTest` |
 | Plataforma de carga | Producción, solicitud, espera (llena o vacía), depósito, retiro, ingreso y egreso con los mensajes del Enunciado y los adicionales; el stock se consulta con `getBaterias()` en el momento de cada evento. | `PlataformaDeCargaObservadorTest`, `ControladorConcurrenciaTest` |
-| Suscripción desde la vista | La vista recibe el sujeto del controlador (`observar(...)`) y se suscribe ella misma; al dejar de observar no recibe más avisos; al observar otro asistente sólo sigue a ése. | `VistaDetallesNaveTest`, `VistaConcurrenciaTest`, `ControladorConcurrenciaTest`, `ControladorPrincipalTest` |
-| Hilos | Una notificación desde otro hilo (misión o plataforma) actualiza los componentes en el EDT con `invokeLater`. Suscribir y quitar observadores mientras otro hilo notifica no rompe la lista ni pierde avisos. | `VistaDetallesNaveTest`, `VistaConcurrenciaTest`, `AsistenteObservadorTest`, `PlataformaDeCargaObservadorTest` |
+| Suscripción desde la vista | La vista recibe el sujeto del controlador (`observar(...)`) y se suscribe ella misma; al dejar de observar no recibe más avisos; al observar otro asistente sólo sigue a ése. | `VistaDetallesNaveTest`, `VistaConcurrenciaTest`, `ControladorConcurrenciaTest`, `ControladorPrincipalTest`, `ControladorControlTest`, `VistaTableroTest` |
+| Hilos | Una notificación desde otro hilo (misión o plataforma) actualiza los componentes en el EDT con `invokeLater`, sin que el hilo que notifica espere al EDT. Suscribir y quitar observadores mientras otro hilo notifica no rompe la lista ni pierde avisos. | `VistaDetallesNaveTest`, `VistaConcurrenciaTest`, `VistaTableroTest`, `VistaCursoMisionTest`, `VistaRecursosTest`, `VistaResultadosMisionTest`, `VistaSelectMisionTest`, `AsistenteObservadorTest`, `PlataformaDeCargaObservadorTest` |
 
 ### Matriz de verificación — Entrega 2: concurrencia (Productor-Consumidor con monitores)
 | Caso | Qué se verifica (resultado esperado) | Prueba automática |
@@ -115,6 +128,22 @@ entorno gráfico.
 | Finalización por interrupción | Interrumpir una entidad en `wait()` o en su pausa la termina, con la interrupción restaurada al salir de `run()` y el stock sin cambios; la plataforma sigue operativa. | `HilosProductorConsumidorTest`, `PlataformaDeCargaTest` |
 | Creación dinámica | Con la simulación en marcha se agregan generadoras y naves, cada una en su propio hilo y con la misma plataforma; todas operan y terminan al detenerlas. | `HilosProductorConsumidorTest`, `ControladorConcurrenciaTest` |
 | Detención individual y total | Al detener una entidad (en su pausa o en `wait()`) su hilo ya terminó y se publica su egreso; detener todo no deja hilos vivos, publica cada egreso y después la vista deja de observar. Un alta que falla no deja nada registrado. | `ControladorConcurrenciaTest` |
+
+### Matriz de verificación — Entrega 2: vistas y controladores de operación (MVC, Observer e hilo de la misión)
+| Caso | Qué se verifica (resultado esperado) | Prueba automática |
+|---|---|---|
+| Sección de Creación: nave | La nave se crea con `NaveFactory`, se asocia a un `AsistenteComando`, queda registrada y seleccionada en `CentroDeControl` y la vista de detalles la observa. Aceptar sin elegir el tipo muestra "Debe seleccionar una nave." y no registra nada. | `ControladorPrincipalTest` |
+| Sección de Creación: tripulación | Se dan de alta Capitán, Consejero (con sus consejos), Teniente y Alférez y la tripulación se asigna a la nave; se habilita Control de la Nave. Nombre vacío, capitán repetido, antigüedad o consejos con formato inválido y tripulación incompleta se rechazan en la vista con el mensaje del modelo, sin cambiar la nave. | `ControladorPrincipalTest`, `ControladorCrearTripulacionTest` |
+| Sección de Tripulantes | Cada tripulante figura con el sueldo de `LiquidadorHaberes` (Decorator) y su recibo con el desglose por concepto (total = suma de conceptos); el total de la nómina es la suma de los sueldos. Un rechazo del liquidador se informa en la vista. | `ControladorPrincipalTest`, `ControladorDetallesTripulacionTest`, `VistaDetallesTripulacionTest` |
+| Menú | Tripulación y Control de la Nave se rechazan hasta tener nave y tripulación; luego muestran su sección. | `ControladorPrincipalTest` |
+| Control: suscripciones y Bitácora | Al crearse la sección, las vistas de recursos, Bitácora, misión en curso e informes observan al asistente y la del tablero observa el tablero; cada evento nuevo llega a la Bitácora (copiada en el hilo que notifica) y a la consola. Sin `instanceof` ni `switch` por tipo: cada misión se describe con `getNombre()` y `getCondicionDeExito()`. | `ControladorControlTest`, `VistaSelectMisionTest` |
+| Iniciar no bloquea | Iniciar una misión vuelve enseguida (con una pausa de 60 s por turno), la misión corre en el hilo "Misión M-0x" y la sección pasa a la misión en curso. | `ControladorMisionTest` |
+| Una misión a la vez | Con una misión en curso, iniciar otra muestra el error y no toca la que corre; tampoco se puede volver a la selección. | `ControladorMisionTest` |
+| Actualización automática | Durante la misión, desde su hilo: la grilla de 20 x 20 muestra la nave y el objetivo (`verTablero()` y símbolos por polimorfismo), los recursos bajan, la Bitácora crece, la consola recibe "Informe de ..." y el informe exitoso aparece en el historial. | `ControladorMisionTest`, `VistaTableroTest`, `VistaRecursosTest`, `VistaResultadosMisionTest`, `VistaCursoMisionTest` |
+| Cancelar la misión | Cancelar interrumpe el hilo y espera su fin con `join`: el hilo terminó, la misión resulta fallida con su informe en el historial y se informa como cancelada. | `ControladorMisionTest` |
+| Excepciones del hilo | Una misión rechazada en su hilo (recursos insuficientes) se informa en la vista desde ese hilo, queda pendiente y puede reintentarse. | `ControladorMisionTest` |
+| Componentes en el EDT | Con el EDT bloqueado, una notificación desde otro hilo vuelve sin esperar y los componentes no cambian; al liberar el EDT muestran el cambio. | `VistaTableroTest`, `VistaCursoMisionTest`, `VistaRecursosTest`, `VistaResultadosMisionTest`, `VistaSelectMisionTest` |
+| Cierre de sesión | Detiene el hilo de la misión y los del Visor (ninguno queda vivo), todas las vistas dejan de observar asistente, tablero y plataforma (ningún aviso posterior les llega), cierra la sesión y la ventana y abre el login con su controlador. | `ControladorSesionTest` |
 
 ### Matriz de verificación — Entrega 1
 | Caso | Qué se verifica (resultado esperado) | Prueba automática | En `DemostracionEntrega1` |
@@ -142,4 +171,6 @@ La Entrega 1 se identifica con la etiqueta Git `entrega-e1`.
 * [docs/uso-ia.md](docs/uso-ia.md): registro del uso de inteligencia artificial.
 
 El código está organizado por subsistema en `modelo` (`tripulacion`, `liquidacion`, `warp`, `bitacora`, `nave`, `mision`,
-`asistente`, `universo`), con las excepciones propias en `excepcion` y la demostración en `app`.
+`asistente`, `universo`, `concurrencia`, `usuario`), con las excepciones propias en `excepcion`, el acceso a datos en
+`persistencia`, las pantallas Swing en `vista`, sus controladores en `controlador` y el programa principal y la demostración
+en `app`.

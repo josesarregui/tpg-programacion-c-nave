@@ -3,14 +3,11 @@ package vista.principal.panelcontrol.panelselectmision;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import javax.swing.BorderFactory;
@@ -27,15 +24,22 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import modelo.asistente.Asistente;
 import modelo.bitacora.Evento;
 import modelo.mision.Mision;
+import vista.principal.panelcontrol.EstiloControl;
 
 /**
- * Panel de Seleccion de Mision y visualizacion de Bitacora.
- * Permite examinar la bitacora cronologica y seleccionar una mision para ejecutar.
+ * Panel de Selección de Misión y Bitácora de eventos.
+ * Permite examinar la Bitácora cronológica, que se actualiza sola (patrón Observer sobre el asistente), y
+ * seleccionar una misión para ejecutar.
+ *
+ * En {@link #actualizar(String)} la vista copia los eventos del asistente en el hilo que notifica (por ejemplo, el
+ * hilo de la misión) y modifica la tabla después en el hilo de eventos de Swing con invokeLater.
  */
 public class VistaSelectMision extends JPanel implements IVistaSelectMision {
 
@@ -45,7 +49,6 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
     private final DefaultTableModel modeloTablaBitacora;
     private final JTable tablaBitacora;
     private final JLabel lblTotalEventos;
-    private final JButton btnActualizarBitacora;
 
     // Componentes de la Seleccion de Mision
     private final JComboBox<String> comboMisiones;
@@ -59,6 +62,12 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
     private final JLabel lblCondicionExito;
     private final JLabel lblEstadoNave;
     private final JButton btnIniciarMision;
+
+    /**
+     * Asistente observado. Se asigna antes de suscribirse y se anula después de quitarse; el hilo que notifica lo ve
+     * actualizado porque el asistente sincroniza la suscripción y la notificación.
+     */
+    private Asistente asistente;
 
     public VistaSelectMision() {
         this.setLayout(new BorderLayout(0, 14));
@@ -104,7 +113,7 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
         barraCabeceraBitacora.add(crearEncabezadoTarjeta(
                 "📜",
                 "Bitácora de la Nave",
-                "Registro cronológico inmutable de eventos del sistema"), BorderLayout.CENTER);
+                "Registro cronológico de eventos, actualizado en vivo"), BorderLayout.CENTER);
 
         JPanel panelAccionesBitacora = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         panelAccionesBitacora.setOpaque(false);
@@ -113,15 +122,7 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
         this.lblTotalEventos.setFont(new Font("Segoe UI", Font.BOLD, 11));
         this.lblTotalEventos.setForeground(new Color(148, 163, 184));
 
-        this.btnActualizarBitacora = crearBotonEstilizado(
-                "🔄 Refrescar",
-                new Color(30, 58, 138, 180),
-                new Color(37, 99, 235, 220),
-                new Color(56, 189, 248));
-        this.btnActualizarBitacora.setActionCommand(COMANDO_ACTUALIZAR_BITACORA);
-
         panelAccionesBitacora.add(this.lblTotalEventos);
-        panelAccionesBitacora.add(this.btnActualizarBitacora);
 
         barraCabeceraBitacora.add(panelAccionesBitacora, BorderLayout.EAST);
         cardBitacora.add(barraCabeceraBitacora, BorderLayout.NORTH);
@@ -313,7 +314,7 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
 
         // Botón inferior para seleccionar / iniciar la misión
         this.btnIniciarMision = crearBotonEstilizado(
-                "Seleccionar Misión ➔",
+                "Iniciar Misión ➔",
                 new Color(14, 116, 144, 220),
                 new Color(6, 182, 212, 240),
                 new Color(56, 189, 248));
@@ -340,7 +341,6 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
 
     @Override
     public void setControlador(ActionListener controlador) {
-        this.btnActualizarBitacora.addActionListener(controlador);
         this.comboMisiones.addActionListener(controlador);
         this.btnIniciarMision.addActionListener(controlador);
     }
@@ -397,31 +397,10 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
 
         int combustibleReq = mision.getCombustibleMinimo();
         int energiaReq = mision.getEnergiaMinima();
-        String desc = "";
-        String condicion = "";
 
-        String codigo = mision.getCodigo() != null ? mision.getCodigo().trim().toUpperCase() : "";
-        switch (codigo) {
-            case "M-01":
-                desc = "Alcanzar a la nave aliada en el tablero y entregarle combustible y energía.";
-                condicion = "Condición de éxito: llegar a la nave aliada y conservar los suministros a entregar.";
-                break;
-            case "M-02":
-                desc = "Llegar al punto de interés del tablero y recolectar gemas.";
-                condicion = "Condición de éxito: llegar al punto de interés y recolectar las gemas.";
-                break;
-            case "M-03":
-                desc = "Regresar a la base de origen (centro del tablero) para recargar y reparar la nave.";
-                condicion = "Condición de éxito: regresar a la base de origen con la nave en servicio.";
-                break;
-            default:
-                desc = mision.getNombre();
-                condicion = "Condición de éxito: objetivos cumplidos.";
-                break;
-        }
-
-        this.txtDescripcionMision.setText(desc);
-        this.lblCondicionExito.setText(condicion);
+        // El texto lo da cada misión por polimorfismo, sin condicionales de tipo.
+        this.txtDescripcionMision.setText(mision.getNombre() + ". Objetivo en el tablero de 20 x 20.");
+        this.lblCondicionExito.setText("Condición de éxito: " + mision.getCondicionDeExito() + ".");
 
         boolean alcanzaCombustible = combustibleActual >= combustibleReq;
         boolean alcanzaEnergia = energiaActual >= energiaReq;
@@ -468,78 +447,50 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
     }
 
     // =========================================================================
-    // MÉTODOS AUXILIARES DE CONSTRUCCIÓN VISUAL
+    // PATRÓN OBSERVER
     // =========================================================================
 
+    @Override
+    public void observar(Asistente asistente) {
+        assert asistente != null : "La vista debe observar un asistente.";
+        dejarDeObservar();
+        this.asistente = asistente;
+        this.asistente.agregarObservador(this);
+    }
+
+    @Override
+    public void dejarDeObservar() {
+        Asistente observado = this.asistente;
+        if (observado != null) {
+            observado.quitarObservador(this);
+            this.asistente = null;
+        }
+    }
+
+    /**
+     * Recibe la notificación del asistente (push) y copia su Bitácora (pull) en el hilo que notifica, para que la
+     * copia corresponda al evento notificado; la tabla se modifica después en el hilo de eventos de Swing.
+     *
+     * @pre La vista observa un asistente (sólo ese asistente la notifica).
+     */
+    @Override
+    public void actualizar(String mensaje) {
+        Asistente observado = this.asistente;
+        assert observado != null : "La vista recibió una notificación sin observar un asistente.";
+        final List<Evento> copia = List.copyOf(observado.getEventos());
+        SwingUtilities.invokeLater(() -> mostrarBitacora(copia));
+    }
+
     private JPanel crearPanelTranslucido(Color colorFondo, Color colorBorde) {
-        JPanel panel = new JPanel();
-        panel.setOpaque(true);
-        panel.setBackground(colorFondo);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(colorBorde, 1, true),
-                new EmptyBorder(14, 16, 14, 16)));
-        return panel;
+        return EstiloControl.crearPanelTranslucido(colorFondo, colorBorde);
     }
 
     private JPanel crearEncabezadoTarjeta(String icono, String titulo, String subtitulo) {
-        JPanel header = new JPanel();
-        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
-        header.setOpaque(false);
-
-        JPanel filaTitulo = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        filaTitulo.setOpaque(false);
-        filaTitulo.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel lblIcono = new JLabel(icono + " ");
-        lblIcono.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
-        lblIcono.setForeground(new Color(56, 189, 248));
-
-        JLabel lblTitulo = new JLabel(titulo);
-        lblTitulo.setForeground(Color.WHITE);
-        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 17));
-
-        filaTitulo.add(lblIcono);
-        filaTitulo.add(lblTitulo);
-
-        JLabel lblSub = new JLabel(subtitulo);
-        lblSub.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblSub.setForeground(new Color(148, 163, 184));
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-
-        header.add(filaTitulo);
-        header.add(Box.createVerticalStrut(2));
-        header.add(lblSub);
-        return header;
+        return EstiloControl.crearEncabezadoTarjeta(icono, titulo, subtitulo);
     }
 
     private JButton crearBotonEstilizado(String texto, Color normal, Color hover, Color borde) {
-        JButton btn = new JButton(texto);
-        btn.setBackground(normal);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btn.setFocusPainted(false);
-        btn.setOpaque(true);
-        btn.setContentAreaFilled(true);
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(borde, 1, true),
-                new EmptyBorder(6, 12, 6, 12)));
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                if (btn.isEnabled()) {
-                    btn.setBackground(hover);
-                }
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                if (btn.isEnabled()) {
-                    btn.setBackground(normal);
-                }
-            }
-        });
-        return btn;
+        return EstiloControl.crearBotonEstilizado(texto, normal, hover, borde);
     }
 
     // Getters para pruebas unitarias
@@ -559,7 +510,11 @@ public class VistaSelectMision extends JPanel implements IVistaSelectMision {
         return this.btnIniciarMision;
     }
 
-    public JButton getBtnActualizarBitacora() {
-        return this.btnActualizarBitacora;
+    JLabel getLblCodigoMision() {
+        return this.lblCodigoMision;
+    }
+
+    JLabel getLblCondicionExito() {
+        return this.lblCondicionExito;
     }
 }

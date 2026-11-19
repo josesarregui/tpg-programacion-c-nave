@@ -3,37 +3,42 @@ package controlador.usuario;
 import controlador.principal.ControladorPrincipal;
 import excepcion.LoginInvalidoException;
 import excepcion.PersistenciaException;
-import java.awt.GraphicsEnvironment;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import modelo.universo.CentroDeControl;
 import modelo.usuario.ServicioUsuarios;
 import modelo.usuario.Usuario;
+import vista.FabricaDeVistas;
 import vista.principal.IVistaPrincipal;
-import vista.principal.VistaPrincipal;
 import vista.usuario.IVistaLogin;
 import vista.usuario.IVistaRegistro;
-import vista.usuario.VistaRegistro;
 
 /**
  * Controlador de la pantalla de login (patrón MVC, como el ControlConversor del apunte): recibe los comandos de
  * acción de la vista, invoca al servicio y coordina la respuesta. No contiene reglas de negocio ni SQL.
  *
- * Selección de vista: desde aquí se abre la pantalla de registro o la ventana principal tras iniciar sesión.
+ * Selección de vista: desde aquí se abre la pantalla de registro o, al autenticar con éxito en
+ * {@link ServicioUsuarios}, se cierra el login y se abre la ventana principal con las secciones operativas. Las
+ * ventanas las crea la {@link FabricaDeVistas}: el controlador sólo conoce sus interfaces.
  */
 public class ControladorLogin implements ActionListener {
     private final IVistaLogin vista;
     private final ServicioUsuarios modelo;
     private final CentroDeControl centroDeControl;
+    private final FabricaDeVistas fabricaDeVistas;
 
-    public ControladorLogin(IVistaLogin vista, ServicioUsuarios modelo) {
-        this(vista, modelo, new CentroDeControl());
-    }
-
-    public ControladorLogin(IVistaLogin vista, ServicioUsuarios modelo, CentroDeControl centroDeControl) {
+    /**
+     * @pre Ningún parámetro es nulo.
+     * @post La vista tiene a este controlador como oyente de sus botones.
+     */
+    public ControladorLogin(IVistaLogin vista, ServicioUsuarios modelo, CentroDeControl centroDeControl,
+            FabricaDeVistas fabricaDeVistas) {
+        assert vista != null && modelo != null && centroDeControl != null && fabricaDeVistas != null
+                : "El controlador de login necesita la vista, el servicio, el centro de control y la fábrica de vistas.";
         this.vista = vista;
         this.modelo = modelo;
-        this.centroDeControl = centroDeControl != null ? centroDeControl : new CentroDeControl();
+        this.centroDeControl = centroDeControl;
+        this.fabricaDeVistas = fabricaDeVistas;
         this.vista.setControlador(this);
     }
 
@@ -53,7 +58,6 @@ public class ControladorLogin implements ActionListener {
         try {
             Usuario usuario = modelo.iniciarSesion(vista.getNombreUsuario(), vista.getContrasena());
             vista.mostrarMensaje("Acceso concedido. Bienvenido/a, " + usuario.getNombreUsuario() + ".");
-
             abrirVentanaPrincipal(usuario);
         } catch (LoginInvalidoException e) {
             vista.mostrarError(e.getMessage());
@@ -64,19 +68,20 @@ public class ControladorLogin implements ActionListener {
     }
 
     private void abrirRegistro() {
-        IVistaRegistro vistaRegistro = new VistaRegistro();
-        new ControladorRegistro(vistaRegistro, modelo, centroDeControl);
+        IVistaRegistro vistaRegistro = fabricaDeVistas.crearVistaRegistro();
+        new ControladorRegistro(vistaRegistro, modelo, centroDeControl, fabricaDeVistas);
         vista.cerrar();
         vistaRegistro.arrancar();
     }
 
+    /**
+     * @pre usuario es el usuario en sesión.
+     * @post El login quedó cerrado y la ventana principal, con su controlador, quedó visible.
+     */
     private void abrirVentanaPrincipal(Usuario usuario) {
-        this.vista.cerrar();
-
-        if (!GraphicsEnvironment.isHeadless()) {
-            IVistaPrincipal vistaPrincipal = new VistaPrincipal();
-            new ControladorPrincipal(vistaPrincipal, usuario, modelo, centroDeControl);
-            vistaPrincipal.arrancar();
-        }
+        vista.cerrar();
+        IVistaPrincipal vistaPrincipal = fabricaDeVistas.crearVistaPrincipal();
+        new ControladorPrincipal(vistaPrincipal, usuario, modelo, centroDeControl, fabricaDeVistas);
+        vistaPrincipal.arrancar();
     }
 }

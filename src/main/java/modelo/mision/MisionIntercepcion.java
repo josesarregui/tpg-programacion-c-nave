@@ -118,7 +118,7 @@ public class MisionIntercepcion extends Mision {
     }
 
     @Override
-    protected String getCondicionDeExito() {
+    public String getCondicionDeExito() {
         return "llegar a la nave aliada y conservar los suministros a entregar";
     }
 

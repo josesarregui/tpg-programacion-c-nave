@@ -10,7 +10,9 @@ import vista.principal.paneltripulacion.paneldetallestripulacion.IVistaDetallesT
 import java.time.YearMonth;
 
 /**
- * Controlador del panel de detalles de la tripulación.
+ * Controlador del panel de detalles de la tripulación (Enunciado E2, Vistas, punto 3: Sección de Tripulantes).
+ * Muestra la nómina de la nave seleccionada y, para cada tripulante, el haber que calcula
+ * {@link LiquidadorHaberes} (patrón Decorator) con su recibo, que contiene el desglose por concepto.
  * Trabaja contra la interfaz {@link IVistaDetallesTripulacion} y {@link Asistente}.
  */
 public class ControladorDetallesTripulacion {
@@ -57,11 +59,14 @@ public class ControladorDetallesTripulacion {
                         recibo
                 );
             } catch (LiquidacionInvalidaException e) {
+                // El tripulante figura en la nómina sin sueldo y el rechazo del modelo se informa en la vista.
                 this.vista.agregarTripulante(
                         tripulante.getId(),
                         tripulante.getNombre(),
                         tripulante.getCargo().toString()
                 );
+                this.vista.mostrarError("No se pudo liquidar el haber de " + tripulante.getNombre() + ": "
+                        + e.getMessage());
             }
         }
 

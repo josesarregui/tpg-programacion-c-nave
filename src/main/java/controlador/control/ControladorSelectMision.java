@@ -2,7 +2,11 @@ package controlador.control;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 import modelo.asistente.Asistente;
 import modelo.mision.Mision;
 import modelo.mision.MisionIntercepcion;
@@ -13,143 +17,152 @@ import modelo.universo.Tablero;
 import vista.principal.panelcontrol.panelselectmision.IVistaSelectMision;
 
 /**
- * Controlador para la pantalla de seleccion de mision y bitacora
- * (VistaSelectMision).
- * Administra la carga de eventos en la bitacora, la inspeccion de misiones
- * disponibles
- * y el paso a la fase de ejecucion de la mision encomendada.
- * Las misiones se crean sobre el tablero y el Destino que recibe.
+ * Controlador de la pantalla de selección de misión y Bitácora (VistaSelectMision).
+ *
+ * Le entrega a la vista el asistente que debe observar (la Bitácora se actualiza sola, patrón Observer), muestra el
+ * catálogo de misiones disponibles y, al iniciar, encomienda la misión elegida al asistente y le pide al
+ * {@link ControladorControl} que la lance en su propio hilo. No permite iniciar una misión mientras otra está en
+ * curso.
+ *
+ * Cada objeto misión se realiza una sola vez: el catálogo guarda, por código, cómo crear una misión nueva sobre el
+ * tablero y el Destino recibidos, sin condicionales de tipo.
  */
 public class ControladorSelectMision implements ActionListener {
     private final IVistaSelectMision vista;
     private final Asistente asistente;
     private final ControladorControl controladorControl;
-    private final Tablero tablero;
-    private final Destino destino;
+    private final int pausaPorTurnoMs;
+    private final Map<String, Supplier<Mision>> catalogo;
 
     private Mision misionSeleccionada;
 
     /**
-     * @pre tablero != null y destino != null, creado sobre ese tablero.
+     * @pre Ningún parámetro es nulo, destino fue creado sobre tablero y pausaPorTurnoMs >= 0.
+     * @post La vista observa al asistente y muestra el catálogo, la Bitácora y la misión seleccionada.
      */
     public ControladorSelectMision(
             IVistaSelectMision vista,
             Asistente asistente,
             ControladorControl controladorControl,
             Tablero tablero,
-            Destino destino) {
-        assert tablero != null && destino != null : "Las misiones necesitan el tablero y el Destino.";
+            Destino destino,
+            int pausaPorTurnoMs) {
+        assert vista != null && asistente != null && controladorControl != null && tablero != null
+                && destino != null : "La selección de misión necesita la vista, el asistente, el control y el universo.";
+        assert pausaPorTurnoMs >= 0 : "La pausa por turno no puede ser negativa.";
         this.vista = vista;
         this.asistente = asistente;
         this.controladorControl = controladorControl;
-        this.tablero = tablero;
-        this.destino = destino;
+        this.pausaPorTurnoMs = pausaPorTurnoMs;
+        this.catalogo = crearCatalogo(tablero, destino);
 
-        inicializarVista();
-    }
-
-    private void inicializarVista() {
-        if (this.vista == null) {
-            return;
-        }
-
-        // Catálogo de misiones disponibles según las especificaciones del sistema
-        List<Mision> misiones = List.of(
-                new MisionIntercepcion(this.tablero, this.destino),
-                new MisionRecoleccion(this.tablero, this.destino),
-                new MisionRetorno(this.tablero, this.destino));
-        this.vista.mostrarMisionesDisponibles(misiones);
+        this.vista.observar(asistente);
+        this.vista.mostrarMisionesDisponibles(misionesDisponibles());
         this.vista.setControlador(this);
-
         actualizarVista();
     }
 
+    /**
+     * Muestra la Bitácora completa y los detalles de la misión seleccionada. Lee el modelo desde el hilo de eventos,
+     * por eso sólo se invoca sin misión en curso.
+     *
+     * @pre !controladorControl.hayMisionEnCurso().
+     */
     public void actualizarVista() {
-        if (this.vista == null || this.asistente == null) {
-            return;
-        }
-
-        // 1. Cargar bitacora cronologica
-        this.vista.mostrarBitacora(this.asistente.getEventos());
-
-        // 2. Reflejar detalles y factibilidad de la mision seleccionada
+        vista.mostrarBitacora(asistente.getEventos());
         seleccionarMision();
     }
 
-    private void seleccionarMision() {
-        if (this.vista == null || this.asistente == null) {
-            return;
-        }
-        String codigo = this.vista.getMisionSeleccionada();
-        this.misionSeleccionada = crearMisionPorCodigo(codigo);
-        if (this.misionSeleccionada != null) {
-            this.vista.mostrarDetallesMision(
-                    this.misionSeleccionada,
-                    this.asistente.naveListaParaOperar(),
-                    this.asistente.getCombustible(),
-                    this.asistente.getEnergia());
-        }
-    }
-
-    private void iniciarMision() {
-        if (this.vista == null || this.asistente == null) {
-            return;
-        }
-
-        if (this.misionSeleccionada == null) {
-            this.vista.mostrarError("Debe seleccionar una directiva de misión válida.");
-            return;
-        }
-
-        if (!this.asistente.naveListaParaOperar()) {
-            this.vista.mostrarError("La nave no se encuentra lista para operar.\n"
-                    + "Verifique el estado del Motor Warp, el mantenimiento estructural y la asignación de tripulación.");
-            return;
-        }
-
-        try {
-            if (this.asistente.tieneMisionPendiente()) {
-                this.asistente.cancelarMision();
-            }
-            this.asistente.encomendarMision(this.misionSeleccionada);
-
-            if (this.controladorControl != null) {
-                this.controladorControl.misionIniciada(this.misionSeleccionada);
-            }
-        } catch (Exception ex) {
-            this.vista.mostrarError("No fue posible encomendar la misión: " + ex.getMessage());
-        }
-    }
-
-    private Mision crearMisionPorCodigo(String codigo) {
-        if (codigo == null) {
-            return null;
-        }
-        switch (codigo.trim().toUpperCase()) {
-            case "M-01":
-                return new MisionIntercepcion(this.tablero, this.destino);
-            case "M-02":
-                return new MisionRecoleccion(this.tablero, this.destino);
-            case "M-03":
-                return new MisionRetorno(this.tablero, this.destino);
-            default:
-                return null;
-        }
+    /**
+     * La vista deja de observar al asistente.
+     */
+    public void desuscribir() {
+        vista.dejarDeObservar();
     }
 
     public Mision getMisionSeleccionada() {
-        return this.misionSeleccionada;
+        return misionSeleccionada;
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
         String comando = e.getActionCommand();
         if (IVistaSelectMision.COMANDO_SELECCIONAR_MISION.equals(comando)) {
-            this.seleccionarMision();
-        } else if (IVistaSelectMision.COMANDO_ACTUALIZAR_BITACORA.equals(comando)) {
-            this.actualizarVista();
+            seleccionarMision();
         } else if (IVistaSelectMision.COMANDO_INICIAR_MISION.equals(comando)) {
-            this.iniciarMision();
+            iniciarMision();
         }
+    }
+
+    private void seleccionarMision() {
+        if (controladorControl.hayMisionEnCurso()) {
+            return;
+        }
+        misionSeleccionada = crearMision(vista.getMisionSeleccionada());
+        if (misionSeleccionada != null) {
+            vista.mostrarDetallesMision(misionSeleccionada, asistente.naveListaParaOperar(),
+                    asistente.getCombustible(), asistente.getEnergia());
+        }
+    }
+
+    /**
+     * Encomienda la misión seleccionada y la lanza en su propio hilo. Una misión rechazada antes queda pendiente
+     * (Escenario B): se cancela para encomendar la nueva.
+     */
+    private void iniciarMision() {
+        if (controladorControl.hayMisionEnCurso()) {
+            vista.mostrarError("Ya hay una misión en curso: espere a que termine o cancélela.");
+            return;
+        }
+        if (misionSeleccionada == null) {
+            vista.mostrarError("Debe seleccionar una directiva de misión válida.");
+            return;
+        }
+        if (!asistente.naveListaParaOperar()) {
+            vista.mostrarError("La nave no se encuentra lista para operar.\n"
+                    + "Verifique el estado del Motor Warp, el mantenimiento estructural y la asignación de tripulación.");
+            return;
+        }
+
+        if (asistente.tieneMisionPendiente()) {
+            asistente.cancelarMision();
+        }
+        asistente.encomendarMision(misionSeleccionada);
+        // El objeto misión ya quedó encomendado: la próxima selección crea uno nuevo.
+        misionSeleccionada = null;
+        controladorControl.lanzarMision();
+    }
+
+    private Map<String, Supplier<Mision>> crearCatalogo(Tablero tablero, Destino destino) {
+        List<Supplier<Mision>> fabricas = List.of(
+                () -> new MisionIntercepcion(tablero, destino),
+                () -> new MisionRecoleccion(tablero, destino),
+                () -> new MisionRetorno(tablero, destino));
+        Map<String, Supplier<Mision>> porCodigo = new LinkedHashMap<>();
+        for (Supplier<Mision> fabrica : fabricas) {
+            porCodigo.put(fabrica.get().getCodigo(), fabrica);
+        }
+        return porCodigo;
+    }
+
+    private List<Mision> misionesDisponibles() {
+        List<Mision> misiones = new ArrayList<>();
+        for (Supplier<Mision> fabrica : catalogo.values()) {
+            misiones.add(fabrica.get());
+        }
+        return misiones;
+    }
+
+    /**
+     * @return una misión nueva con ese código y la pausa por turno configurada, o null si el código no está en el
+     *         catálogo.
+     */
+    private Mision crearMision(String codigo) {
+        Supplier<Mision> fabrica = codigo != null ? catalogo.get(codigo.trim()) : null;
+        Mision mision = fabrica != null ? fabrica.get() : null;
+        if (mision != null) {
+            mision.configurarPausaPorTurno(pausaPorTurnoMs);
+        }
+        return mision;
     }
 }

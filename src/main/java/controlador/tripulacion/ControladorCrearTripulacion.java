@@ -44,7 +44,8 @@ public class ControladorCrearTripulacion implements ActionListener {
 
     private void agregarTripulante() {
         try {
-            Tripulante tripulante = crearTripulanteDesdeVista();
+            Alta alta = crearTripulanteDesdeVista();
+            Tripulante tripulante = alta.tripulante();
 
             this.validarCapitanUnicoEnArmado(tripulante);
 
@@ -54,14 +55,8 @@ public class ControladorCrearTripulacion implements ActionListener {
                     + " — "
                     + tripulante.getCargo()
                     + " (" + tripulante.getOrigen() + ", "
-                    + tripulante.getAntiguedad() + (tripulante.getAntiguedad() == 1 ? " año" : " años");
-
-            if (tripulante instanceof Consejero consejero) {
-                int consejos = consejero.getCantidadConsejos(YearMonth.now());
-                descripcion += ", " + consejos + (consejos == 1 ? " consejo)" : " consejos)");
-            } else {
-                descripcion += ")";
-            }
+                    + tripulante.getAntiguedad() + (tripulante.getAntiguedad() == 1 ? " año" : " años")
+                    + alta.detalle() + ")";
 
             this.vistaCrearTripulacion.agregarTripulanteLista(descripcion);
             this.vistaCrearTripulacion.limpiarCampos();
@@ -88,7 +83,18 @@ public class ControladorCrearTripulacion implements ActionListener {
         }
     }
 
-    private Tripulante crearTripulanteDesdeVista() throws TripulanteInvalidoException {
+    /**
+     * Tripulante creado desde la vista y el detalle propio de su cargo para la lista del armado (por ejemplo, los
+     * consejos iniciales de un consejero). Se arma donde se decide qué clase crear, sin consultar el tipo después.
+     */
+    private record Alta(Tripulante tripulante, String detalle) {
+    }
+
+    /**
+     * Crea el tripulante del cargo elegido en la vista (decisión de fábrica sobre el cargo, como {@code NaveFactory}
+     * sobre el tipo de nave). Las reglas de nombre, antigüedad y origen las valida el modelo.
+     */
+    private Alta crearTripulanteDesdeVista() throws TripulanteInvalidoException {
         String nombre = this.vistaCrearTripulacion.getNombre();
         String textoAntiguedad = this.vistaCrearTripulacion.getTextoAntiguedad();
 
@@ -103,12 +109,12 @@ public class ControladorCrearTripulacion implements ActionListener {
         // Las validaciones de nombre vacio, antigüedad negativa y origen nulo las
         // realiza Tripulante en el modelo.
         return switch (cargo) {
-            case CAPITAN -> new Capitan(nombre, antiguedad, origen);
+            case CAPITAN -> new Alta(new Capitan(nombre, antiguedad, origen), "");
             case CONSEJERO -> {
                 Consejero consejero = new Consejero(nombre, antiguedad, origen);
                 String textoConsejos = this.vistaCrearTripulacion.getTextoConsejos();
+                int cantidadConsejos = 0;
                 if (textoConsejos != null && !textoConsejos.isBlank()) {
-                    int cantidadConsejos;
                     try {
                         cantidadConsejos = Integer.parseInt(textoConsejos.trim());
                     } catch (NumberFormatException e) {
@@ -130,10 +136,11 @@ public class ControladorCrearTripulacion implements ActionListener {
                         }
                     }
                 }
-                yield consejero;
+                yield new Alta(consejero,
+                        ", " + cantidadConsejos + (cantidadConsejos == 1 ? " consejo" : " consejos"));
             }
-            case TENIENTE -> new Teniente(nombre, antiguedad, origen);
-            case ALFEREZ -> new Alferez(nombre, antiguedad, origen);
+            case TENIENTE -> new Alta(new Teniente(nombre, antiguedad, origen), "");
+            case ALFEREZ -> new Alta(new Alferez(nombre, antiguedad, origen), "");
         };
     }
 

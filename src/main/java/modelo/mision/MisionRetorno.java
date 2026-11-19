@@ -66,7 +66,7 @@ public class MisionRetorno extends Mision {
     }
 
     @Override
-    protected String getCondicionDeExito() {
+    public String getCondicionDeExito() {
         return "regresar a la base de origen con la nave en servicio";
     }
 }
