@@ -1,4 +1,4 @@
-# Diagrama de clases — Entrega 1 y Entrega 2 (en desarrollo)
+# Diagrama de clases — Entrega 1 y Entrega 2
 
 Primero una **vista general** con las clases y sus relaciones principales; después, un diagrama por módulo con
 atributos, métodos y excepciones, tal como están en el código.
@@ -8,7 +8,7 @@ atributos, métodos y excepciones, tal como están en el código.
 `throws` indica las excepciones comprobadas que el método declara. Flecha continua (`-->`, `*--`, `o--`) = el atributo
 existe; flecha punteada (`..>`) = dependencia (usa, crea o lanza). `App` (programa principal de la E2) y
 `DemostracionEntrega1` (demostración por consola) no forman parte del modelo. Las vistas y los controladores están en la
-sección 12.
+sección 12; el acceso al sistema y la persistencia (DAO y DTO), en la sección 13.
 
 ## 1. Vista general
 
@@ -49,6 +49,13 @@ classDiagram
     class PlataformaDeCarga
     class GeneradoraDeEnergia
     class NaveConsumidora
+    class ServicioUsuarios
+    class Usuario
+    class UsuarioDAO
+    <<interface>> UsuarioDAO
+    class UsuarioDAOJDBC
+    class UsuarioDTO
+    class ConexionBD
 
     Observable <|-- Tablero
     Observable <|-- AsistenteComando
@@ -79,6 +86,11 @@ classDiagram
     ElementoDelUniverso <|.. Nave : naves del tablero (Double Dispatch)
     GeneradoraDeEnergia --> PlataformaDeCarga : deposita (monitor compartido)
     NaveConsumidora --> PlataformaDeCarga : retira (monitor compartido)
+    ServicioUsuarios --> UsuarioDAO : credenciales (DAO)
+    ServicioUsuarios o-- Usuario : en sesión (0..1)
+    UsuarioDAO <|.. UsuarioDAOJDBC
+    UsuarioDAO ..> UsuarioDTO : transporta (DTO)
+    UsuarioDAOJDBC --> ConexionBD : abre conexiones JDBC
 ```
 
 ## 2. Nave y fábrica (E1-01, E1-07 Factory, E1-09)
@@ -750,6 +762,7 @@ classDiagram
         + calcularAdicionalAntiguedad() double*
         + calcularConceptos(periodo: YearMonth) List~ConceptoHaber~
         + calcularHaberTotal(periodo: YearMonth) double
+        + fueDecoradoCon(concepto: TipoConcepto) boolean
         + incrementarAntiguedad()
         + getId() int
         + getNombre() String
@@ -846,6 +859,7 @@ classDiagram
         + calcularHaberTotal(periodo: YearMonth) double
         + calcularAdicionalAntiguedad() double
         + getOrigen() Origen
+        + fueDecoradoCon(concepto: TipoConcepto) boolean
     }
     class Decorator {
         <<abstract>>
@@ -859,7 +873,7 @@ classDiagram
         + calcularHaberTotal(periodo: YearMonth) double
         + calcularAdicionalAntiguedad() double
         + getOrigen() Origen
-        - conceptoYaAplicado(liquidacion: Liquidacion, concepto: TipoConcepto) boolean$
+        + fueDecoradoCon(concepto: TipoConcepto) boolean
         - invariante() boolean
     }
     class AntiguedadDecorator {
@@ -938,7 +952,13 @@ classDiagram
     LiquidadorHaberes ..> LiquidacionInvalidaException : lanza
 ```
 
+**Concepto repetido sin `instanceof`.** El constructor de `Decorator` pregunta `decorado.fueDecoradoCon(concepto)` y, si
+es true, lanza `LiquidacionInvalidaException`. `Tripulante` responde `false` (caso base) y cada `Decorator` responde
+`conceptoAgregado == concepto || decorado.fueDecoradoCon(concepto)`: la consulta recorre la cadena por polimorfismo.
+
 ## 8. Excepciones propias (comprobadas: extienden `Exception`)
+
+Las excepciones del acceso al sistema y de la persistencia están en la sección 13.
 
 ```mermaid
 classDiagram
@@ -1675,3 +1695,107 @@ classDiagram
 libera `hiloMision` y llama a `misionFinalizada(resumen)` (la vista aplica ambos con `invokeLater`). `cancelarMision()`
 interrumpe el hilo y espera con `join(ESPERA_MAXIMA_FIN_MS)`; `detener()` (cierre de sesión) cancela y, con el hilo
 terminado, todas las vistas de la sección dejan de observar.
+
+## 13. Acceso al sistema y persistencia — E2 (`modelo.usuario`, `persistencia`; patrones DAO y DTO)
+
+```mermaid
+classDiagram
+    class Usuario {
+        - String nombreUsuario
+        - Nave nave
+        + Usuario(nombreUsuario: String)
+        + getNombreUsuario() String
+        + getNave() Nave
+        + setNave(nave: Nave)
+        + equals(obj: Object) boolean
+        + hashCode() int
+        - invariante() boolean
+    }
+    class ServicioUsuarios {
+        + int LONGITUD_MAXIMA$
+        - UsuarioDAO usuarioDAO
+        - Usuario usuarioEnSesion
+        + ServicioUsuarios(usuarioDAO: UsuarioDAO)
+        + registrar(nombreUsuario: String, contrasena: String) Usuario throws UsuarioInvalidoException, ContrasenaInvalidaException, UsuarioExistenteException, PersistenciaException
+        + iniciarSesion(nombreUsuario: String, contrasena: String) Usuario throws LoginInvalidoException, PersistenciaException
+        + cerrarSesion()
+        + getUsuarioEnSesion() Usuario
+        + haySesionIniciada() boolean
+        - validarNombre(nombreUsuario: String) throws UsuarioInvalidoException
+        - validarContrasena(contrasena: String) throws ContrasenaInvalidaException
+    }
+    class UsuarioDAO {
+        <<interface>>
+        + insertar(usuario: UsuarioDTO) throws PersistenciaException
+        + buscarPorNombre(nombreUsuario: String) UsuarioDTO throws PersistenciaException
+    }
+    class UsuarioDAOJDBC {
+        ~ String RECURSO_ESQUEMA$
+        - String EJECUTAR_ESQUEMA$
+        - String INSERTAR$
+        - String BUSCAR_POR_NOMBRE$
+        - ConexionBD conexionBD
+        + UsuarioDAOJDBC(conexionBD: ConexionBD)
+        + crearTablaSiNoExiste() throws PersistenciaException
+        + insertar(usuario: UsuarioDTO) throws PersistenciaException
+        + buscarPorNombre(nombreUsuario: String) UsuarioDTO throws PersistenciaException
+    }
+    class UsuarioDTO {
+        - String nombreUsuario
+        - String contrasena
+        + UsuarioDTO(nombreUsuario: String, contrasena: String)
+        + getNombreUsuario() String
+        + getContrasena() String
+    }
+    class ConexionBD {
+        + String URL_POR_DEFECTO$
+        - String USUARIO_BD$
+        - String CONTRASENA_BD$
+        - String url
+        + ConexionBD()
+        + ConexionBD(url: String)
+        + abrir() Connection throws SQLException
+    }
+    class UsuarioInvalidoException {
+        - String nombreRecibido
+        + UsuarioInvalidoException(mensaje: String, nombreRecibido: String)
+        + getNombreRecibido() String
+    }
+    class ContrasenaInvalidaException {
+        + ContrasenaInvalidaException(mensaje: String)
+    }
+    class UsuarioExistenteException {
+        - String nombreUsuario
+        + UsuarioExistenteException(nombreUsuario: String)
+        + getNombreUsuario() String
+    }
+    class LoginInvalidoException {
+        + LoginInvalidoException(mensaje: String)
+    }
+    class PersistenciaException {
+        + PersistenciaException(mensaje: String, causa: Throwable)
+    }
+    class Exception
+
+    ServicioUsuarios --> UsuarioDAO : credenciales
+    ServicioUsuarios o-- Usuario : en sesión (0..1)
+    ServicioUsuarios ..> UsuarioDTO : crea al registrar
+    UsuarioDAO <|.. UsuarioDAOJDBC
+    UsuarioDAO ..> UsuarioDTO : transporta
+    UsuarioDAOJDBC --> ConexionBD
+    ServicioUsuarios ..> UsuarioInvalidoException : lanza
+    ServicioUsuarios ..> ContrasenaInvalidaException : lanza
+    ServicioUsuarios ..> UsuarioExistenteException : lanza
+    ServicioUsuarios ..> LoginInvalidoException : lanza
+    UsuarioDAOJDBC ..> PersistenciaException : lanza (envuelve SQLException)
+    Exception <|-- UsuarioInvalidoException
+    Exception <|-- ContrasenaInvalidaException
+    Exception <|-- UsuarioExistenteException
+    Exception <|-- LoginInvalidoException
+    Exception <|-- PersistenciaException
+```
+
+**Script SQL.** La tabla `usuario` se define sólo en `database/schema.sql`. Maven copia el script al classpath
+(`RECURSO_ESQUEMA` = `/database/schema.sql`) y `crearTablaSiNoExiste()` lo ejecuta con `RUNSCRIPT` de H2
+(`EJECUTAR_ESQUEMA`); `App` la invoca al iniciar. `ServicioUsuarios` conoce al DAO sólo por la interfaz `UsuarioDAO`; las
+credenciales viajan entre ambos en un `UsuarioDTO`, y `Usuario` (el operador en sesión) no guarda la contraseña.

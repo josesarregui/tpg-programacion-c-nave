@@ -34,7 +34,7 @@ public class ControladorConcurrenciaTest {
         ActionListener controlador;
         private final List<String> eventos = new ArrayList<>();
         PlataformaDeCarga observada;
-        volatile int ultimasBaterias = -1;
+        private int ultimasBaterias = -1;
         int ultimasGeneradoras = -1;
         int ultimasNaves = -1;
         boolean consolaLimpiada = false;
@@ -88,6 +88,11 @@ public class ControladorConcurrenciaTest {
             return new ArrayList<>(this.eventos);
         }
 
+        /** Stock visto por última vez; se escribe en métodos synchronized (sin volatile). */
+        synchronized int getUltimasBaterias() {
+            return this.ultimasBaterias;
+        }
+
         synchronized boolean esperarEvento(String mensaje) throws InterruptedException {
             long limite = System.currentTimeMillis() + LIMITE_MS;
             while (!this.eventos.contains(mensaje)) {
@@ -101,7 +106,7 @@ public class ControladorConcurrenciaTest {
         }
 
         @Override
-        public void actualizarBaterias(int bateriasActuales, int capacidadMaxima) {
+        public synchronized void actualizarBaterias(int bateriasActuales, int capacidadMaxima) {
             this.ultimasBaterias = bateriasActuales;
         }
 
@@ -169,7 +174,7 @@ public class ControladorConcurrenciaTest {
         ControladorConcurrencia ctrl = new ControladorConcurrencia(vistaMock, plataforma);
 
         assertNotNull(vistaMock.controlador);
-        assertEquals(0, vistaMock.ultimasBaterias);
+        assertEquals(0, vistaMock.getUltimasBaterias());
         assertEquals(0, vistaMock.ultimasGeneradoras);
         assertEquals(0, vistaMock.ultimasNaves);
         assertSame(plataforma, ctrl.getPlataforma());
@@ -231,7 +236,7 @@ public class ControladorConcurrenciaTest {
         plataforma.depositarBateria("G-1");
         List<String> eventos = vistaMock.eventos();
         assertEquals("Batería depositada por [G-1] en la Plataforma.", eventos.get(eventos.size() - 1));
-        assertEquals(1, vistaMock.ultimasBaterias);
+        assertEquals(1, vistaMock.getUltimasBaterias());
 
         ctrl.detenerTodo();
         assertNull(vistaMock.observada);

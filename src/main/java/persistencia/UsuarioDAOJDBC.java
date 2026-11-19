@@ -9,9 +9,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Implementación JDBC del {@link UsuarioDAO} sobre la tabla {@code usuario} (ver {@code database/schema.sql}).
+ * Implementación JDBC del {@link UsuarioDAO} sobre la tabla {@code usuario}, definida en {@code database/schema.sql}.
  *
  * Criterios:
+ *  - La definición de la tabla está en un solo lugar, el script {@code database/schema.sql} (Reglas Operativas,
+ *    punto 5.9): Maven lo copia al classpath (ver pom.xml) y {@link #crearTablaSiNoExiste()} lo ejecuta.
  *  - Todas las consultas con datos del usuario usan {@link PreparedStatement} con parámetros ({@code ?}):
  *    el texto ingresado nunca se concatena al SQL, lo que evita la inyección de SQL.
  *  - {@code Connection}, {@code PreparedStatement} y {@code ResultSet} se cierran siempre, aunque ocurra un error,
@@ -22,10 +24,10 @@ import java.sql.Statement;
  */
 public class UsuarioDAOJDBC implements UsuarioDAO {
 
-    private static final String CREAR_TABLA =
-            "CREATE TABLE IF NOT EXISTS usuario ("
-            + "nombre_usuario VARCHAR(30) PRIMARY KEY, "
-            + "contrasena VARCHAR(30) NOT NULL)";
+    /** Ubicación en el classpath del script DDL del sistema ({@code database/schema.sql}). */
+    static final String RECURSO_ESQUEMA = "/database/schema.sql";
+    /** Sentencia de H2 que ejecuta el script del classpath (codificado en UTF-8, como todo el proyecto). */
+    private static final String EJECUTAR_ESQUEMA = "RUNSCRIPT FROM 'classpath:" + RECURSO_ESQUEMA + "' CHARSET 'UTF-8'";
     private static final String INSERTAR = "INSERT INTO usuario (nombre_usuario, contrasena) VALUES (?, ?)";
     private static final String BUSCAR_POR_NOMBRE =
             "SELECT nombre_usuario, contrasena FROM usuario WHERE nombre_usuario = ?";
@@ -41,15 +43,16 @@ public class UsuarioDAOJDBC implements UsuarioDAO {
     }
 
     /**
-     * Crea la tabla de usuarios si todavía no existe (misma definición que {@code database/schema.sql}).
-     * Se invoca una vez al iniciar el sistema; si la tabla ya existe, no la modifica.
+     * Crea la tabla de usuarios si todavía no existe, ejecutando el script {@code database/schema.sql}
+     * ({@code CREATE TABLE IF NOT EXISTS}). Se invoca una vez al iniciar el sistema; si la tabla ya existe, no la
+     * modifica.
      *
-     * @throws PersistenciaException si no se pudo acceder a la base de datos.
+     * @throws PersistenciaException si no se pudo acceder a la base de datos o al script.
      */
     public void crearTablaSiNoExiste() throws PersistenciaException {
         try (Connection conexion = conexionBD.abrir();
              Statement sentencia = conexion.createStatement()) {
-            sentencia.executeUpdate(CREAR_TABLA);
+            sentencia.execute(EJECUTAR_ESQUEMA);
         } catch (SQLException e) {
             throw new PersistenciaException("No se pudo preparar la base de datos de usuarios.", e);
         }

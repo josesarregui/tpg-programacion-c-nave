@@ -189,6 +189,25 @@ public class LiquidacionTest {
     }
 
     @Test
+    @DisplayName("Decorator sin instanceof: cada capa responde por su concepto y delega; el tripulante responde false")
+    public void testFueDecoradoConRecorreLaCadenaPorPolimorfismo() throws Exception {
+        Capitan capitan = new Capitan("Kirk", 3, Origen.TERRICOLA);
+        Liquidacion conAntiguedad = new AntiguedadDecorator(capitan);
+        Liquidacion conAmbos = new OrigenDecorator(conAntiguedad);
+
+        for (TipoConcepto concepto : TipoConcepto.values()) {
+            assertFalse(capitan.fueDecoradoCon(concepto), "El tripulante sin decorar: " + concepto);
+        }
+        assertTrue(conAntiguedad.fueDecoradoCon(TipoConcepto.ANTIGUEDAD));
+        assertFalse(conAntiguedad.fueDecoradoCon(TipoConcepto.ORIGEN));
+        assertTrue(conAmbos.fueDecoradoCon(TipoConcepto.ORIGEN), "Concepto de la capa exterior.");
+        assertTrue(conAmbos.fueDecoradoCon(TipoConcepto.ANTIGUEDAD), "Concepto de una capa interior, por delegación.");
+        assertFalse(conAmbos.fueDecoradoCon(TipoConcepto.CARGO), "El cargo lo aporta el tripulante, no un decorador.");
+        assertFalse(conAmbos.fueDecoradoCon(TipoConcepto.CONSEJOS));
+        assertEquals(1620.0, conAmbos.calcularHaberTotal(OCTUBRE), TOLERANCIA, "La consulta no cambia el haber.");
+    }
+
+    @Test
     @DisplayName("Rechazo: no se puede liquidar un tripulante, tripulación o período nulo")
     public void testLiquidarConDatosNulos() throws Exception {
         Alferez alferez = new Alferez("Chekov", 1, Origen.TERRICOLA);

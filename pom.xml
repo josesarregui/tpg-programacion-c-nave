@@ -32,6 +32,20 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <!-- database/schema.sql (Reglas Operativas, punto 5.9) también se copia al classpath: es el script DDL que
+                 ejecuta UsuarioDAOJDBC al iniciar el sistema, sin repetir la sentencia en el código. -->
+            <resource>
+                <directory>database</directory>
+                <targetPath>database</targetPath>
+                <includes>
+                    <include>schema.sql</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <!-- Surefire 3.x detecta y ejecuta las pruebas JUnit 5 con 'mvn test' (versiones antiguas las ignoran) -->
             <plugin>

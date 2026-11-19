@@ -1,6 +1,6 @@
 # tpg-programacion-c-nave
 
-Software embarcado de una nave interestelar tripulada — TPG 2026, Programación C. Entrega 1 y Entrega 2 (en desarrollo).
+Software embarcado de una nave interestelar tripulada — TPG 2026, Programación C. Entrega 1 y Entrega 2.
 
 ## Requisitos de ejecución
 * JDK 17 o superior (el proyecto se compila para Java 17; también se probó con JDK 25). El comando `java` debe estar en el PATH.
@@ -12,17 +12,26 @@ No requiere instalar un servidor de base de datos. Si Maven no está en el PATH,
 (`<carpeta de IntelliJ>/plugins/maven-plugin/lib/maven3/bin/mvn`) o la ventana *Maven* del IDE.
 
 **Base de datos (E2):** las credenciales de los usuarios se guardan con JDBC en una base **H2** embebida en modo archivo,
-`datos/nave.mv.db`, relativa a la carpeta desde la que se ejecuta el sistema. Se crea sola al primer inicio, junto con la tabla
-`usuario` (`database/schema.sql`), y está excluida del repositorio por el `.gitignore`. Para empezar con la base vacía,
-basta con borrar la carpeta `datos/`.
+`datos/nave.mv.db`, relativa a la carpeta desde la que se ejecuta el sistema. Se crea sola al primer inicio y está excluida del
+repositorio por el `.gitignore`. Para empezar con la base vacía, basta con borrar la carpeta `datos/`.
+
+**Script SQL (`database/schema.sql`):** es el DDL del sistema y el único lugar donde se define la tabla `usuario`
+(`CREATE TABLE IF NOT EXISTS`). Maven lo copia al classpath (`target/classes/database/schema.sql`) y, al iniciar, `app.App` lo
+ejecuta mediante `UsuarioDAOJDBC.crearTablaSiNoExiste()`: no hace falta correrlo a mano. `EsquemaSQLTest` lo ejecuta sobre una
+H2 en memoria y verifica que la tabla resultante funciona con el DAO.
 
 **Biblioteca adicional declarada (Reglas Operativas, punto 12):** `com.h2database:h2:2.3.232`, el controlador JDBC y motor de la
 base H2. Se usa sólo como driver: el acceso a datos se programa con JDBC estándar (`java.sql`), sin frameworks de persistencia.
 
-## Compilación
-```
-mvn compile
-```
+## Comandos Maven
+| Comando | Qué hace |
+|---|---|
+| `mvn compile` | Compila el código y copia los recursos (imágenes y `database/schema.sql`) a `target/classes`. |
+| `mvn clean test` | Compila desde cero y ejecuta todas las pruebas JUnit 5 con las aserciones activas. |
+| `mvn compile exec:exec` | Inicia el sistema (`app.App`) con las aserciones activas (`-ea`). |
+
+Si `mvn clean` no puede borrar `target/` en Windows (un archivo tomado por el IDE), basta con cerrar el IDE o borrar la carpeta
+`target/` y volver a ejecutar el comando.
 
 ## Ejecución (forma de iniciar el sistema)
 El programa principal `app.App` abre la pantalla de **inicio de sesión** (E2, Control de Acceso al Sistema). Desde ella se puede
@@ -55,14 +64,16 @@ recursos y mantenimiento con el **Escenario D**; el **Escenario B** y el **Escen
 
 ## Verificación
 ```
-mvn test
+mvn clean test
 ```
-Ejecuta las 349 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Ejecuta las 359 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Para una sola clase: `mvn test -Dtest=EsquemaSQLTest`.
 Las pruebas de misiones son deterministas: usan un tablero de prueba con los elementos ubicados por la prueba, un Destino que
 no mueve elementos (o que los mueve como indica la prueba), un `Random` con semilla y pausa 0 entre turnos.
 Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/nave.mv.db`. Los controladores se prueban con
 vistas de prueba que implementan las interfaces `IVista...` sin abrir ventanas (`controlador/VistasDePrueba`); las del hilo de la
-misión esperan los avisos con colas, `CountDownLatch` y `join` con tiempo límite, sin pausas fijas. Las pruebas de las vistas
+misión esperan los avisos con colas, `CountDownLatch` y `join` con tiempo límite, sin pausas fijas; lo que esas vistas de
+prueba comparten entre hilos se lee y se escribe con métodos `synchronized` (sin `volatile`). Las pruebas de las vistas
 Swing (`VistasAccesoTest`, `VistaDetallesNaveTest`, `VistaConcurrenciaTest` y las demás de `src/test/java/vista`) se omiten si no
 hay entorno gráfico.
 
@@ -72,6 +83,7 @@ hay entorno gráfico.
 | Registro | Un usuario nuevo queda guardado y puede iniciar sesión. Se rechazan: nombre vacío, con espacios o de más de 30 caracteres (`UsuarioInvalidoException`), contraseña vacía o de más de 30 (`ContrasenaInvalidaException`) y nombre repetido (`UsuarioExistenteException`), sin guardar nada. | `ServicioUsuariosTest` |
 | Login | Con credenciales correctas el operador queda en sesión. Usuario inexistente y contraseña incorrecta dan el mismo mensaje (`LoginInvalidoException`) y no cambian la sesión. | `ServicioUsuariosTest`, `ControladorLoginTest` |
 | Persistencia (DAO/DTO, JDBC) | Las credenciales se conservan para otra ejecución; consultas parametrizadas (sin inyección de SQL); toda `SQLException` se transforma en `PersistenciaException`. | `UsuarioDAOJDBCTest`, `ServicioUsuariosTest` |
+| Script SQL (`database/schema.sql`, Reglas Operativas V.5) | El script, ejecutado tal cual sobre una H2 en memoria, crea la tabla con la que el DAO guarda y recupera credenciales; la clave primaria rechaza un nombre repetido (`PersistenciaException`) y volver a ejecutarlo no borra usuarios. El sistema ejecuta ese mismo script: su copia del classpath es idéntica y crea la misma tabla. | `EsquemaSQLTest` |
 | MVC | Los controladores trabajan con las vistas por su interfaz y piden las ventanas a la `FabricaDeVistas`: se prueban con vistas sin ventanas. Los errores del servicio se muestran en la vista. Login y registro navegan entre sí. | `ControladorLoginTest` |
 | Transición al panel central | Al autenticar, se cierra el login y se abre la ventana principal con el operador y sus secciones (el Visor ya observa su plataforma). Con credenciales incorrectas no se abre nada. | `ControladorLoginTest`, `ControladorSesionTest` |
 | Validación de formato en la Vista | "Ingresar" y "Registrar" se habilitan sólo con los campos completos; el registro avisa si las contraseñas no coinciden. | `VistasAccesoTest` |
@@ -80,6 +92,7 @@ hay entorno gráfico.
 | Caso | Qué se verifica (resultado esperado) | Prueba automática |
 |---|---|---|
 | Tablero y Destino (módulo de la cátedra en `modelo.universo`) | El tablero ubica la nave en el centro, elige objetivo y notifica a sus observadores; Destino mueve elementos y avisa al cerrar el turno. | `TableroYDestinoTest` |
+| Contrato del tablero que usan los radares | En los bordes, `observarAlrededores()` devuelve `null` fuera del tablero, los vecinos en su casilla y la nave en [1][1]; `verTablero()` es una matriz nueva de filas x columnas sin la nave ni el objetivo; dimensiones fuera de 5 a 100 y más de x · y / 4 · 3 elementos se rechazan con las excepciones de la cátedra; el objetivo cae en una casilla libre a distancia de Chebyshev 2 o más; cada turno de Destino mueve a lo sumo la mitad de los elementos, a casillas vecinas dentro del tablero y nunca al objetivo, sin perder elementos, y avisa "se movieron M de N". | `TableroYDestinoTest` |
 | Asteroide (E2, punto B) | Descuenta 25 de energía sin tocar combustible ni desgaste; si la energía no alcanza queda en 0 y la nave se destruye. El impacto, la pérdida real y la destrucción quedan en la Bitácora. | `AsteroideTest`, `RecursosTest`, `DestruccionNaveTest` |
 | Estación de carga (E2, punto C) | Recarga 30 de combustible y 30 de energía sin superar 100. El acople y lo realmente cargado quedan en la Bitácora. | `EstacionDeCargaTest`, `RecursosTest` |
 | Polimorfismo en `ElementoDelUniverso` | La interacción y el símbolo para la vista se obtienen sin condicionales de tipo. Las naves de la fábrica son elementos del tablero, con nombre y símbolo de su tipo (`EX`, `CA`, `CO`). | `AsteroideTest`, `EstacionDeCargaTest`, `BatallaTest`, `TableroYDestinoTest` |
@@ -155,18 +168,30 @@ hay entorno gráfico.
 | E1-04 | Tripulante con id, cargo, origen y antigüedad ≥ 0; tripulación con un/a capitán/a + 4. Los rechazos no modifican la tripulación. | `TripulacionTest` | "LIQUIDACIÓN DE HABERES" |
 | E1-05 | Eventos en orden temporal e inmutables; se rechazan los nulos, vacíos o fuera de orden. | `BitacoraTest`, `MisionTest` | "BITÁCORA" |
 | E1-06, Escenario A (Template Method) | M-01, M-02 y M-03 hacen preparar → ejecutar → evaluar → cerrar. En la E2 el costo fijo de la E1 (4 de combustible y 4 de desgaste) se reemplazó por los costos de la travesía (ver la matriz del ciclo de vida de las misiones); la acción final sigue costando 5/5/0 de energía. | `MisionTest` | "ESCENARIO A" |
-| E1-08 (Decorator) | Haber de los 4 cargos con los 3 orígenes, dos decoradores en cualquier orden, consejos del período y detalle por concepto. Ej.: capitán terrícola con 3 años = 1000 + 600 + 20 = 1620 PG. Se rechazan conceptos nulos o repetidos. | `LiquidacionTest` | "LIQUIDACIÓN DE HABERES" |
+| E1-08 (Decorator) | Haber de los 4 cargos con los 3 orígenes, dos decoradores en cualquier orden, consejos del período y detalle por concepto. Ej.: capitán terrícola con 3 años = 1000 + 600 + 20 = 1620 PG. Se rechazan conceptos nulos o repetidos; el repetido se detecta por polimorfismo (`fueDecoradoCon`: cada capa responde por su concepto y delega, el tripulante responde `false`), sin `instanceof`. | `LiquidacionTest` | "LIQUIDACIÓN DE HABERES" |
 | E1-09, Escenario D | Carga hasta la capacidad (100); con desgaste ≥ 80 requiere mantenimiento y no opera; el mantenimiento lo lleva a 0. Una carga que excede la capacidad se rechaza y la nave conserva su estado. | `RecursosTest`, `NaveTest`, `AsistenteComandoTest` | "OPERACIONES SOBRE RECURSOS", "ESCENARIO D" |
 | Escenario B | Sin los recursos mínimos (por ejemplo, 1 de combustible, o 10 de energía para M-02, que necesita 11), la misión se rechaza con `RecursoInsuficienteException`: la nave no cambia, el motivo queda en la Bitácora y la misión sigue pendiente. | `MisionTest`, `AsistenteComandoTest`, `RecursosTest` | "ESCENARIO B" |
 | E1-10 | El informe trae misión, objetivo, resultado, acciones, ruta, balance de recursos, estado de la nave y observaciones. | `MisionTest` | "INFORME M-0x" |
 | Contratos | Una precondición o invariante incumplida se detecta con `assert` (`AssertionError`): misión realizada dos veces o sin pasar por su asistente, tripulación nula, importe negativo, estado nulo del motor. | Pruebas "Rechazo por contrato" y "Aserción" | — |
 | Aclaración R1, R2 y Pedidos del diseño | El centro registra y devuelve naves, rechaza una repetida o inexistente sin cambiar, usa una nave a la vez y admite otra variante de asistente sin modificarse. | `CentroDeControlTest` | "CASOS DE RECHAZO DEL CENTRO DE CONTROL" |
 
-## Entrega
-La Entrega 1 se identifica con la etiqueta Git `entrega-e1`.
+## Entregas (etiquetas Git)
+Cada entrega se identifica con una etiqueta Git anotada que señala el commit evaluado (Reglas Operativas, punto 4):
+
+| Entrega | Etiqueta | Commit |
+|---|---|---|
+| Entrega 1 | `entrega-e1` | `afea664` (merge en `main` de la revisión final de la E1) |
+| Entrega 2 | `entrega-e2` | commit final de `main` de la E2 |
+
+Para obtener el código de una entrega:
+```
+git fetch --tags
+git checkout entrega-e2
+```
 
 ## Documentación
-* [docs/diseño.md](docs/diseño.md): responsabilidades de cada paquete, patrones (Factory, State, Template Method, Decorator y Observer), Double Dispatch, Productor-Consumidor con monitores, contratos, manejo de errores y decisiones de interpretación adoptadas ante ambigüedades de la consigna (sección 4).
+* [docs/diseño.md](docs/diseño.md): responsabilidades de cada paquete, patrones (Factory, State, Template Method, Decorator, Observer, MVC, DAO y DTO), Double Dispatch, Productor-Consumidor con monitores, contratos, manejo de errores y decisiones de interpretación adoptadas ante ambigüedades de la consigna (sección 4).
+* [database/schema.sql](database/schema.sql): script DDL de la base de usuarios (E2).
 * [docs/diagrama_clases.md](docs/diagrama_clases.md): diagrama de clases.
 * [docs/uso-ia.md](docs/uso-ia.md): registro del uso de inteligencia artificial.
 

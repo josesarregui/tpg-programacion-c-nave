@@ -114,6 +114,18 @@ public abstract class Tripulante implements Liquidacion {
     }
 
     /**
+     * Caso base del Decorator: el tripulante sin decorar no tiene conceptos agregados por decoradores.
+     *
+     * @pre concepto != null.
+     * @post Retorna false.
+     */
+    @Override
+    public boolean fueDecoradoCon(TipoConcepto concepto) {
+        assert concepto != null : "Se debe indicar el concepto a consultar.";
+        return false;
+    }
+
+    /**
      * Suma un año a la antigüedad del tripulante.
      *
      * @post antiguedad == antiguedad anterior + 1.

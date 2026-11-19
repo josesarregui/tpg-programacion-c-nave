@@ -73,9 +73,9 @@ public class ControladorControlTest {
         assertEquals(List.of("M-01", "M-02", "M-03"),
                 vista.select.misionesDisponibles.stream().map(m -> m.getCodigo()).toList());
         assertEquals(asistente.getEventos().size(), vista.select.eventosMostrados.size());
-        assertEquals(asistente.getCombustible(), vista.recursos.combustibleMostrado);
-        assertTrue(vista.resultados.informesMostrados.isEmpty());
-        assertEquals(IVistaControl.SELECT_MISION, vista.etapa);
+        assertEquals(asistente.getCombustible(), vista.recursos.getCombustibleMostrado());
+        assertTrue(vista.resultados.getInformesMostrados().isEmpty());
+        assertEquals(IVistaControl.SELECT_MISION, vista.getEtapa());
         assertFalse(controlador.hayMisionEnCurso());
     }
 
@@ -103,9 +103,9 @@ public class ControladorControlTest {
         asistente.registrarEvento(TipoEvento.ERROR, "Alerta de prueba");
 
         assertEquals(notificacionesAntes + 1, vista.select.notificaciones.get());
-        assertEquals(asistente.getEventos().size(), vista.select.eventosVistos);
+        assertEquals(asistente.getEventos().size(), vista.select.getEventosVistos());
         assertTrue(vista.curso.mensajes.contains("Alerta de prueba"), "La consola recibe el mensaje (push).");
-        assertEquals(asistente.getEnergia(), vista.recursos.energiaVista, "Los recursos se consultan (pull).");
+        assertEquals(asistente.getEnergia(), vista.recursos.getEnergiaVista(), "Los recursos se consultan (pull).");
     }
 
     @Test
@@ -120,7 +120,7 @@ public class ControladorControlTest {
         assertNotNull(vista.select.ultimoError());
         assertFalse(asistente.tieneMisionPendiente());
         assertFalse(controlador.hayMisionEnCurso());
-        assertEquals(IVistaControl.SELECT_MISION, vista.etapa);
+        assertEquals(IVistaControl.SELECT_MISION, vista.getEtapa());
     }
 
     @Test
@@ -129,16 +129,16 @@ public class ControladorControlTest {
         ControladorControl controlador = crearControl();
 
         controlador.mostrarMisionCurso();
-        assertEquals(IVistaControl.MISION_CURSO, vista.etapa);
+        assertEquals(IVistaControl.MISION_CURSO, vista.getEtapa());
 
         controlador.mostrarResultadosMision();
-        assertEquals(IVistaControl.RESULTADOS_MISION, vista.etapa);
+        assertEquals(IVistaControl.RESULTADOS_MISION, vista.getEtapa());
 
         controlador.mostrarSelectMision();
-        assertEquals(IVistaControl.SELECT_MISION, vista.etapa);
+        assertEquals(IVistaControl.SELECT_MISION, vista.getEtapa());
 
         controlador.actualizarVista();
-        assertEquals(IVistaControl.SELECT_MISION, vista.etapa);
+        assertEquals(IVistaControl.SELECT_MISION, vista.getEtapa());
     }
 
     @Test

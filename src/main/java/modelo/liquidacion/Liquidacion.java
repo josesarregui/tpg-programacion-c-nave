@@ -39,4 +39,14 @@ public interface Liquidacion {
      * @return planeta de origen del tripulante.
      */
     public Origen getOrigen();
+
+    /**
+     * Indica si alguna capa de decoración ya agregó el concepto: el tripulante (componente concreto) responde
+     * false y cada decorador responde por su concepto o delega en el objeto que decora. Permite rechazar un
+     * concepto repetido sin consultar el tipo de las capas.
+     *
+     * @pre concepto != null.
+     * @return true si un decorador de la cadena ya agrega el concepto.
+     */
+    public boolean fueDecoradoCon(TipoConcepto concepto);
 }

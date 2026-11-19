@@ -80,7 +80,7 @@ public class ControladorMisionTest {
         assertTimeout(Duration.ofSeconds(2), vista.select::iniciar);
 
         assertTrue(control.hayMisionEnCurso());
-        assertEquals(IVistaControl.MISION_CURSO, vista.etapa);
+        assertEquals(IVistaControl.MISION_CURSO, vista.getEtapa());
         assertEquals(List.of("M-02"), vista.curso.iniciadas);
         Thread hilo = esperarHiloDeLaMision();
         assertNotSame(Thread.currentThread(), hilo);
@@ -98,7 +98,7 @@ public class ControladorMisionTest {
         vista.curso.controlador.actionPerformed(evento(IVistaCursoMision.COMANDO_VOLVER));
         assertEquals("La misión sigue en curso: cancélela o espere a que termine.", vista.curso.errores.get(0));
         control.actualizarVista();
-        assertEquals(IVistaControl.MISION_CURSO, vista.etapa);
+        assertEquals(IVistaControl.MISION_CURSO, vista.getEtapa());
 
         assertTrue(control.cancelarMision());
         assertFalse(hilo.isAlive());
@@ -125,33 +125,33 @@ public class ControladorMisionTest {
         assertTrue(vista.curso.hilosDeAviso.contains(hilo), "El fin lo avisa el hilo de la misión.");
 
         // Grilla: consultada en el hilo de la misión.
-        assertEquals(20, vista.curso.grilla.filasVistas);
-        assertEquals(20, vista.curso.grilla.columnasVistas);
-        assertEquals(OBJETIVO, vista.curso.grilla.naveVista, "La última notificación muestra la nave en el objetivo.");
-        assertEquals(OBJETIVO, vista.curso.grilla.objetivoVisto);
+        assertEquals(20, vista.curso.grilla.getFilasVistas());
+        assertEquals(20, vista.curso.grilla.getColumnasVistas());
+        assertEquals(OBJETIVO, vista.curso.grilla.getNaveVista(), "La última notificación muestra la nave en el objetivo.");
+        assertEquals(OBJETIVO, vista.curso.grilla.getObjetivoVisto());
         assertTrue(vista.curso.grilla.notificaciones.get() >= 3, "Un movimiento por casilla recorrida.");
 
         // Recursos, Bitácora y consola: notificados por el asistente desde el hilo de la misión.
         assertTrue(vista.recursos.hilosQueNotificaron.contains(hilo));
-        assertEquals(asistente.getCombustible(), vista.recursos.combustibleVisto);
-        assertTrue(vista.recursos.combustibleVisto < combustibleAntes);
+        assertEquals(asistente.getCombustible(), vista.recursos.getCombustibleVisto());
+        assertTrue(vista.recursos.getCombustibleVisto() < combustibleAntes);
         assertTrue(vista.select.hilosQueNotificaron.contains(hilo));
-        assertEquals(asistente.getEventos().size(), vista.select.eventosVistos);
-        assertTrue(vista.select.eventosVistos > eventosAntes);
+        assertEquals(asistente.getEventos().size(), vista.select.getEventosVistos());
+        assertTrue(vista.select.getEventosVistos() > eventosAntes);
         assertTrue(vista.curso.mensajes.stream().anyMatch(m -> m.startsWith("Informe de ")));
 
         // Informe final en el historial.
         assertTrue(vista.resultados.hilosQueNotificaron.contains(hilo));
-        List<InformeMision> informes = vista.resultados.informesVistos;
+        List<InformeMision> informes = vista.resultados.getInformesVistos();
         assertEquals(1, informes.size());
         assertTrue(informes.get(0).isExitosa());
         assertTrue(asistente.getGemas() > 0, "M-02 acredita las gemas al cerrar.");
 
         // Terminada, se puede volver a la selección e iniciar otra.
         vista.curso.controlador.actionPerformed(evento(IVistaCursoMision.COMANDO_VOLVER));
-        assertEquals(IVistaControl.SELECT_MISION, vista.etapa);
+        assertEquals(IVistaControl.SELECT_MISION, vista.getEtapa());
         vista.curso.controlador.actionPerformed(evento(IVistaCursoMision.COMANDO_VER_RESULTADOS));
-        assertEquals(IVistaControl.RESULTADOS_MISION, vista.etapa);
+        assertEquals(IVistaControl.RESULTADOS_MISION, vista.getEtapa());
     }
 
     @Test
@@ -172,7 +172,7 @@ public class ControladorMisionTest {
         assertEquals(1, asistente.getMisionesRealizadas().size());
         assertFalse(asistente.tieneMisionPendiente());
         assertFalse(asistente.getMisionesRealizadas().get(0).getInforme().isExitosa());
-        assertEquals(1, vista.resultados.informesVistos.size(), "El informe de la misión cancelada llega al historial.");
+        assertEquals(1, vista.resultados.getInformesVistos().size(), "El informe de la misión cancelada llega al historial.");
         assertTrue(vista.curso.errores.isEmpty());
     }
 

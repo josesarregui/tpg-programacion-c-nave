@@ -309,47 +309,66 @@ public final class VistasDePrueba {
     /**
      * Base de las vistas de prueba que observan al asistente: se suscriben solas, cuentan las notificaciones y
      * registran los hilos que las notificaron. Cada subclase consulta lo que le interesa en el hilo que notifica.
+     * Lo que se comparte entre ese hilo y el de la prueba se lee y se escribe con métodos {@code synchronized} (sin
+     * {@code volatile}). Las llamadas al asistente quedan fuera de esos métodos: el asistente notifica con su monitor
+     * tomado, y así los dos monitores se toman siempre en el mismo orden (asistente, luego vista).
      */
     public abstract static class ObservadorDelAsistente implements Observador {
-        private volatile Asistente observado;
+        private Asistente observado;
         public final AtomicInteger notificaciones = new AtomicInteger();
         public final Set<Thread> hilosQueNotificaron = ConcurrentHashMap.newKeySet();
 
         public void observar(Asistente asistente) {
             dejarDeObservar();
-            observado = asistente;
+            asignarObservado(asistente);
             asistente.agregarObservador(this);
         }
 
         public void dejarDeObservar() {
-            Asistente actual = observado;
+            Asistente actual = getObservado();
             if (actual != null) {
                 actual.quitarObservador(this);
-                observado = null;
+                asignarObservado(null);
             }
         }
 
-        public Asistente getObservado() {
+        public synchronized Asistente getObservado() {
             return observado;
+        }
+
+        private synchronized void asignarObservado(Asistente asistente) {
+            observado = asistente;
         }
 
         @Override
         public final void actualizar(String mensaje) {
             hilosQueNotificaron.add(Thread.currentThread());
             notificaciones.incrementAndGet();
-            alNotificar(observado, mensaje);
+            alNotificar(getObservado(), mensaje);
         }
 
         protected abstract void alNotificar(Asistente asistente, String mensaje);
     }
 
     public static class DetallesNaveDePrueba extends ObservadorDelAsistente implements IVistaDetallesNave {
-        public volatile String tipoMostrado;
-        public volatile int combustibleVisto = -1;
+        private String tipoMostrado;
+        private int combustibleVisto = -1;
 
         @Override
         protected void alNotificar(Asistente asistente, String mensaje) {
-            combustibleVisto = asistente.getCombustible();
+            registrarCombustibleVisto(asistente.getCombustible());
+        }
+
+        private synchronized void registrarCombustibleVisto(int combustible) {
+            combustibleVisto = combustible;
+        }
+
+        public synchronized int getCombustibleVisto() {
+            return combustibleVisto;
+        }
+
+        public synchronized String getTipoMostrado() {
+            return tipoMostrado;
         }
 
         @Override
@@ -357,7 +376,7 @@ public final class VistasDePrueba {
         }
 
         @Override
-        public void mostrarTipo(String tipo) {
+        public synchronized void mostrarTipo(String tipo) {
             tipoMostrado = tipo;
         }
 
@@ -570,20 +589,24 @@ public final class VistasDePrueba {
         public final SelectMisionDePrueba select = new SelectMisionDePrueba();
         public final CursoMisionDePrueba curso = new CursoMisionDePrueba();
         public final ResultadosDePrueba resultados = new ResultadosDePrueba();
-        public volatile String etapa = IVistaControl.SELECT_MISION;
+        private String etapa = IVistaControl.SELECT_MISION;
+
+        public synchronized String getEtapa() {
+            return etapa;
+        }
 
         @Override
-        public void mostrarSelectMision() {
+        public synchronized void mostrarSelectMision() {
             etapa = IVistaControl.SELECT_MISION;
         }
 
         @Override
-        public void mostrarMisionCurso() {
+        public synchronized void mostrarMisionCurso() {
             etapa = IVistaControl.MISION_CURSO;
         }
 
         @Override
-        public void mostrarResultadosMision() {
+        public synchronized void mostrarResultadosMision() {
             etapa = IVistaControl.RESULTADOS_MISION;
         }
 
@@ -609,30 +632,42 @@ public final class VistasDePrueba {
     }
 
     public static class RecursosDePrueba extends ObservadorDelAsistente implements IVistaRecursos {
-        public volatile int combustibleVisto = -1;
-        public volatile int energiaVista = -1;
-        public volatile int desgasteVisto = -1;
-        public volatile int combustibleMostrado = -1;
-        public volatile boolean destruidaMostrada;
+        private int combustibleVisto = -1;
+        private int energiaVista = -1;
+        private int combustibleMostrado = -1;
 
         @Override
         protected void alNotificar(Asistente asistente, String mensaje) {
-            combustibleVisto = asistente.getCombustible();
-            energiaVista = asistente.getEnergia();
-            desgasteVisto = asistente.getDesgaste();
+            registrarVistos(asistente.getCombustible(), asistente.getEnergia());
+        }
+
+        private synchronized void registrarVistos(int combustible, int energia) {
+            combustibleVisto = combustible;
+            energiaVista = energia;
+        }
+
+        public synchronized int getCombustibleVisto() {
+            return combustibleVisto;
+        }
+
+        public synchronized int getEnergiaVista() {
+            return energiaVista;
+        }
+
+        public synchronized int getCombustibleMostrado() {
+            return combustibleMostrado;
         }
 
         @Override
-        public void mostrarRecursos(int combustible, int energia, int desgaste, int gemas, String estadoMotor,
-                boolean listaParaOperar, boolean destruida) {
+        public synchronized void mostrarRecursos(int combustible, int energia, int desgaste, int gemas,
+                String estadoMotor, boolean listaParaOperar, boolean destruida) {
             combustibleMostrado = combustible;
-            destruidaMostrada = destruida;
         }
     }
 
     public static class SelectMisionDePrueba extends ObservadorDelAsistente implements IVistaSelectMision {
-        public volatile String codigoSeleccionado;
-        public volatile int eventosVistos = -1;
+        private String codigoSeleccionado;
+        private int eventosVistos = -1;
         public ActionListener controlador;
         public List<Evento> eventosMostrados = new ArrayList<>();
         public List<Mision> misionesDisponibles = new ArrayList<>();
@@ -645,11 +680,24 @@ public final class VistasDePrueba {
 
         @Override
         protected void alNotificar(Asistente asistente, String mensaje) {
-            eventosVistos = List.copyOf(asistente.getEventos()).size();
+            registrarEventosVistos(List.copyOf(asistente.getEventos()).size());
         }
 
-        public void seleccionar(String codigo) {
+        private synchronized void registrarEventosVistos(int cantidad) {
+            eventosVistos = cantidad;
+        }
+
+        public synchronized int getEventosVistos() {
+            return eventosVistos;
+        }
+
+        private synchronized void elegir(String codigo) {
             codigoSeleccionado = codigo;
+        }
+
+        /** Elige la misión y avisa al controlador fuera del monitor de la vista. */
+        public void seleccionar(String codigo) {
+            elegir(codigo);
             controlador.actionPerformed(evento(IVistaSelectMision.COMANDO_SELECCIONAR_MISION));
         }
 
@@ -672,7 +720,7 @@ public final class VistasDePrueba {
         }
 
         @Override
-        public void mostrarMisionesDisponibles(List<Mision> misiones) {
+        public synchronized void mostrarMisionesDisponibles(List<Mision> misiones) {
             misionesDisponibles = new ArrayList<>(misiones);
             if (codigoSeleccionado == null && !misiones.isEmpty()) {
                 codigoSeleccionado = misiones.get(0).getCodigo();
@@ -680,7 +728,7 @@ public final class VistasDePrueba {
         }
 
         @Override
-        public String getMisionSeleccionada() {
+        public synchronized String getMisionSeleccionada() {
             return codigoSeleccionado;
         }
 
@@ -758,45 +806,50 @@ public final class VistasDePrueba {
 
     /**
      * Vista de prueba del tablero: como la real, consulta verTablero(), la nave y el objetivo en el hilo que
-     * notifica.
+     * notifica. Lo que ve se guarda y se lee con métodos {@code synchronized} (sin {@code volatile}); las consultas
+     * al tablero se hacen fuera de esos métodos.
      */
     public static class GrillaDePrueba implements IVistaTablero {
-        private volatile Tablero observado;
+        private Tablero observado;
         public final AtomicInteger notificaciones = new AtomicInteger();
         public final Set<Thread> hilosQueNotificaron = ConcurrentHashMap.newKeySet();
         public final CountDownLatch primeraNotificacion = new CountDownLatch(1);
-        public volatile int filasVistas;
-        public volatile int columnasVistas;
-        public volatile int elementosVistos;
-        public volatile Posicion naveVista;
-        public volatile Posicion objetivoVisto;
+        private int filasVistas;
+        private int columnasVistas;
+        private int elementosVistos;
+        private Posicion naveVista;
+        private Posicion objetivoVisto;
 
         @Override
         public void observar(Tablero tablero) {
             dejarDeObservar();
-            observado = tablero;
+            asignarObservado(tablero);
             tablero.agregarObservador(this);
             consultar(tablero);
         }
 
         @Override
         public void dejarDeObservar() {
-            Tablero actual = observado;
+            Tablero actual = getObservado();
             if (actual != null) {
                 actual.quitarObservador(this);
-                observado = null;
+                asignarObservado(null);
             }
         }
 
-        public Tablero getObservado() {
+        public synchronized Tablero getObservado() {
             return observado;
+        }
+
+        private synchronized void asignarObservado(Tablero tablero) {
+            observado = tablero;
         }
 
         @Override
         public void actualizar(String mensaje) {
             hilosQueNotificaron.add(Thread.currentThread());
             notificaciones.incrementAndGet();
-            consultar(observado);
+            consultar(getObservado());
             primeraNotificacion.countDown();
         }
 
@@ -808,18 +861,44 @@ public final class VistasDePrueba {
                     elementos += elemento != null && !elemento.getSimbolo().isEmpty() ? 1 : 0;
                 }
             }
-            filasVistas = matriz.length;
-            columnasVistas = matriz.length > 0 ? matriz[0].length : 0;
+            registrarLoVisto(matriz.length, matriz.length > 0 ? matriz[0].length : 0, elementos,
+                    tablero.getPosicionNave(), tablero.getObjetivo());
+        }
+
+        private synchronized void registrarLoVisto(int filas, int columnas, int elementos, Posicion nave,
+                Posicion objetivo) {
+            filasVistas = filas;
+            columnasVistas = columnas;
             elementosVistos = elementos;
-            naveVista = tablero.getPosicionNave();
-            objetivoVisto = tablero.getObjetivo();
+            naveVista = nave;
+            objetivoVisto = objetivo;
+        }
+
+        public synchronized int getElementosVistos() {
+            return elementosVistos;
+        }
+
+        public synchronized int getFilasVistas() {
+            return filasVistas;
+        }
+
+        public synchronized int getColumnasVistas() {
+            return columnasVistas;
+        }
+
+        public synchronized Posicion getNaveVista() {
+            return naveVista;
+        }
+
+        public synchronized Posicion getObjetivoVisto() {
+            return objetivoVisto;
         }
     }
 
     public static class ResultadosDePrueba extends ObservadorDelAsistente implements IVistaResultadosMision {
         public ActionListener controlador;
-        public volatile List<InformeMision> informesVistos = List.of();
-        public volatile List<InformeMision> informesMostrados = List.of();
+        private List<InformeMision> informesVistos = List.of();
+        private List<InformeMision> informesMostrados = List.of();
 
         @Override
         protected void alNotificar(Asistente asistente, String mensaje) {
@@ -827,7 +906,19 @@ public final class VistasDePrueba {
             for (Mision mision : asistente.getMisionesRealizadas()) {
                 copia.add(mision.getInforme());
             }
-            informesVistos = copia;
+            registrarInformesVistos(copia);
+        }
+
+        private synchronized void registrarInformesVistos(List<InformeMision> informes) {
+            informesVistos = informes;
+        }
+
+        public synchronized List<InformeMision> getInformesVistos() {
+            return informesVistos;
+        }
+
+        public synchronized List<InformeMision> getInformesMostrados() {
+            return informesMostrados;
         }
 
         @Override
@@ -836,7 +927,7 @@ public final class VistasDePrueba {
         }
 
         @Override
-        public void mostrarInformes(List<InformeMision> informes) {
+        public synchronized void mostrarInformes(List<InformeMision> informes) {
             informesMostrados = new ArrayList<>(informes);
         }
     }
@@ -846,29 +937,34 @@ public final class VistasDePrueba {
     // =====================================================================
 
     public static class VisorDePrueba implements IVistaConcurrencia {
-        private volatile PlataformaDeCarga observada;
+        private PlataformaDeCarga observada;
         public ActionListener controlador;
         public final AtomicInteger notificaciones = new AtomicInteger();
         public final List<String> errores = new CopyOnWriteArrayList<>();
 
+        /** Como en las demás vistas de prueba, las llamadas a la plataforma quedan fuera del monitor de la vista. */
         @Override
         public void observar(PlataformaDeCarga plataforma) {
             dejarDeObservar();
-            observada = plataforma;
+            asignarObservada(plataforma);
             plataforma.agregarObservador(this);
         }
 
         @Override
         public void dejarDeObservar() {
-            PlataformaDeCarga actual = observada;
+            PlataformaDeCarga actual = getObservada();
             if (actual != null) {
                 actual.quitarObservador(this);
-                observada = null;
+                asignarObservada(null);
             }
         }
 
-        public PlataformaDeCarga getObservada() {
+        public synchronized PlataformaDeCarga getObservada() {
             return observada;
+        }
+
+        private synchronized void asignarObservada(PlataformaDeCarga plataforma) {
+            observada = plataforma;
         }
 
         @Override
