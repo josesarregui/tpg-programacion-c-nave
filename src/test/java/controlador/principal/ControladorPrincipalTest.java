@@ -66,7 +66,7 @@ public class ControladorPrincipalTest {
         assertEquals(TipoNave.EXPLORADORA, controlador.getAsistente().getTipoNave());
         assertTrue(vista.tripulacionHabilitada);
         assertTrue(vista.nave.mostrandoDetalle);
-        assertEquals("Exploradora", vista.nave.detalles.tipoMostrado);
+        assertEquals("Exploradora", vista.nave.detalles.getTipoMostrado());
         assertSame(controlador.getAsistente(), vista.nave.detalles.getObservado(), "La vista de detalles se suscribe sola.");
     }
 

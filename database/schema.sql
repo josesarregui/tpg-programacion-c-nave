@@ -4,7 +4,9 @@
 -- Alcance de la persistencia (Enunciado E2): únicamente las credenciales de los usuarios.
 -- No se persiste ninguna otra entidad del sistema (naves, tripulantes, misiones, etc.).
 --
--- persistencia.UsuarioDAOJDBC ejecuta esta misma sentencia al iniciar el sistema si la tabla no existe.
+-- Es el único lugar donde se define la tabla: Maven copia este script al classpath (ver pom.xml) y
+-- persistencia.UsuarioDAOJDBC.crearTablaSiNoExiste() lo ejecuta al iniciar el sistema (app.App).
+-- Verificado por persistencia.EsquemaSQLTest.
 
 CREATE TABLE IF NOT EXISTS usuario (
     nombre_usuario VARCHAR(30) PRIMARY KEY,

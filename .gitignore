@@ -28,7 +28,8 @@ replay_pid*
 out/
 target/
 
-# Datos locales de la base H2 (Reglas Operativas V.5, punto 10; se usará en la Entrega 2)
+# Datos locales de la base H2 (Reglas Operativas V.5, punto 10): datos/nave.mv.db y sus archivos auxiliares
+datos/
 *.mv.db
 *.trace.db
 *.lock.db

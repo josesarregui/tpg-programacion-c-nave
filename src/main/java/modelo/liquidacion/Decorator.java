@@ -34,7 +34,7 @@ public abstract class Decorator implements Liquidacion {
         }
         // Una de las desventajas del patrón es que permite combinaciones que no funcionan:
         // por ejemplo, cobrar dos veces la antigüedad. Se rechazan explícitamente.
-        if (conceptoYaAplicado(decorado, conceptoAgregado)) {
+        if (decorado.fueDecoradoCon(conceptoAgregado)) {
             throw new LiquidacionInvalidaException("El concepto " + conceptoAgregado + " ya fue aplicado a esta liquidación.", conceptoAgregado);
         }
         this.decorado = decorado;
@@ -99,18 +99,16 @@ public abstract class Decorator implements Liquidacion {
     }
 
     /**
-     * Recorre las capas de la cadena de decoradores buscando el concepto indicado.
+     * Responde por el concepto propio y, si no coincide, delega en el objeto decorado: la consulta recorre la
+     * cadena por polimorfismo hasta el tripulante, que responde false (sin {@code instanceof}).
+     *
+     * @pre concepto != null.
+     * @post Retorna true si este decorador o alguno de los que envuelve agrega el concepto.
      */
-    private static boolean conceptoYaAplicado(Liquidacion liquidacion, TipoConcepto concepto) {
-        Liquidacion capaActual = liquidacion;
-        boolean encontrado = false;
-        // Invariante de ciclo: ninguna de las capas ya recorridas agrega el concepto buscado.
-        while (!encontrado && capaActual instanceof Decorator) {
-            Decorator decorador = (Decorator) capaActual;
-            encontrado = decorador.conceptoAgregado == concepto;
-            capaActual = decorador.decorado;
-        }
-        return encontrado;
+    @Override
+    public boolean fueDecoradoCon(TipoConcepto concepto) {
+        assert concepto != null : "Se debe indicar el concepto a consultar.";
+        return conceptoAgregado == concepto || decorado.fueDecoradoCon(concepto);
     }
 
     private boolean invariante() {
