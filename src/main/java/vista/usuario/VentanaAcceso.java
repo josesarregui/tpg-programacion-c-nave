@@ -145,7 +145,7 @@ public abstract class VentanaAcceso extends JFrame implements IVistaUsuario {
      * Si la imagen no está en el classpath, usa un fondo negro del mismo tamaño en lugar de fallar.
      */
     private JLabel crearFondo() {
-        URL rutaFondo = getClass().getResource(RUTA_FONDO);
+        URL rutaFondo = VentanaAcceso.class.getResource(RUTA_FONDO);
         JLabel fondo;
         if (rutaFondo != null) {
             fondo = new JLabel(new ImageIcon(rutaFondo));
@@ -162,7 +162,7 @@ public abstract class VentanaAcceso extends JFrame implements IVistaUsuario {
      * Si la imagen del título no está en el classpath, muestra el título como texto.
      */
     private JLabel crearTitulo() {
-        URL rutaTitulo = getClass().getResource(RUTA_TITULO);
+        URL rutaTitulo = VentanaAcceso.class.getResource(RUTA_TITULO);
         JLabel titulo;
         if (rutaTitulo != null) {
             Image imagen = new ImageIcon(rutaTitulo).getImage().getScaledInstance(ANCHO_TITULO, -1, Image.SCALE_SMOOTH);

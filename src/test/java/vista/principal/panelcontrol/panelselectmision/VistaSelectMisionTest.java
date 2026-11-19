@@ -4,12 +4,16 @@ import java.awt.GraphicsEnvironment;
 import java.time.LocalDateTime;
 import java.util.List;
 import javax.swing.SwingUtilities;
+import modelo.asistente.AsistenteComando;
 import modelo.bitacora.Evento;
 import modelo.bitacora.TipoEvento;
 import modelo.mision.Mision;
 import modelo.mision.MisionIntercepcion;
 import modelo.mision.MisionRecoleccion;
 import modelo.mision.MisionRetorno;
+import modelo.nave.NaveFactory;
+import modelo.nave.TipoNave;
+import modelo.universo.Observador;
 import modelo.universo.Destino;
 import modelo.universo.FabricaDeUniverso;
 import modelo.universo.Tablero;
@@ -18,6 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static vista.EdtDePrueba.conEdtBloqueado;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
@@ -98,5 +103,42 @@ public class VistaSelectMisionTest {
         vista.mostrarDetallesMision(m1, true, 50, 50);
         esperarEDT();
         assertTrue(vista.getBtnIniciarMision().isEnabled());
+    }
+
+    @Test
+    @DisplayName("Vista: los detalles describen cada misión por polimorfismo (nombre y condición de éxito)")
+    public void testDetallesPorPolimorfismo() throws Exception {
+        VistaSelectMision vista = new VistaSelectMision();
+        Mision m2 = new MisionRecoleccion(tablero, destino);
+
+        vista.mostrarDetallesMision(m2, true, 50, 50);
+
+        assertEquals("M-02", vista.getLblCodigoMision().getText());
+        assertEquals("Condición de éxito: " + m2.getCondicionDeExito() + ".", vista.getLblCondicionExito().getText());
+    }
+
+    @Test
+    @DisplayName("Observer: la vista se suscribe sola y la Bitácora se actualiza en el EDT, sin bloquear al que notifica")
+    public void testBitacoraPorObserverEnElEdt() throws Exception {
+        VistaSelectMision vista = new VistaSelectMision();
+        Observador comoObservador = vista;
+        assertNotNull(comoObservador);
+        AsistenteComando asistente = new AsistenteComando(new NaveFactory().crearNave(TipoNave.CARGUERO));
+        vista.observar(asistente);
+        int filasAntes = vista.getModeloTablaBitacora().getRowCount();
+
+        conEdtBloqueado(
+                () -> asistente.registrarEvento(TipoEvento.RELEVANTE, "Evento desde otro hilo"),
+                () -> assertEquals(filasAntes, vista.getModeloTablaBitacora().getRowCount(),
+                        "Con el EDT bloqueado la tabla todavía no cambió."));
+
+        int filas = vista.getModeloTablaBitacora().getRowCount();
+        assertEquals(asistente.getEventos().size(), filas);
+        assertEquals("Evento desde otro hilo", vista.getModeloTablaBitacora().getValueAt(filas - 1, 2));
+
+        vista.dejarDeObservar();
+        asistente.registrarEvento(TipoEvento.SISTEMA, "Evento sin observador");
+        esperarEDT();
+        assertEquals(filas, vista.getModeloTablaBitacora().getRowCount(), "Tras dejar de observar no cambia.");
     }
 }

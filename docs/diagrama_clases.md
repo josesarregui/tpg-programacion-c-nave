@@ -6,7 +6,9 @@ atributos, métodos y excepciones, tal como están en el código.
 **Notación:** `+` público, `-` privado, `#` protegido, `~` de paquete; `*` al final = abstracto; `$` al final = estático
 (las constantes son `static final`). Se omiten `toString()`, los constructores por defecto sin código y los constructores privados de los `enum`.
 `throws` indica las excepciones comprobadas que el método declara. Flecha continua (`-->`, `*--`, `o--`) = el atributo
-existe; flecha punteada (`..>`) = dependencia (usa, crea o lanza). `App` (demostración por consola) no forma parte del modelo.
+existe; flecha punteada (`..>`) = dependencia (usa, crea o lanza). `App` (programa principal de la E2) y
+`DemostracionEntrega1` (demostración por consola) no forman parte del modelo. Las vistas y los controladores están en la
+sección 12.
 
 ## 1. Vista general
 
@@ -365,7 +367,7 @@ classDiagram
         # fijarObjetivo(tablero: Tablero) Posicion*
         # getEnergiaAdicional() int*
         # realizarAccion()*
-        # getCondicionDeExito() String*
+        + getCondicionDeExito() String*
         # getCombustibleAEntregar() int
         # getEnergiaAEntregar() int
         # getGemasObtenidas() int
@@ -424,7 +426,7 @@ classDiagram
         + getEnergiaAEntregar() int
         # realizarAccion()
         # aplicarCierre()
-        # getCondicionDeExito() String
+        + getCondicionDeExito() String
     }
     class MisionRecoleccion {
         + int ENERGIA_ADICIONAL = 5$
@@ -439,7 +441,7 @@ classDiagram
         # realizarAccion()
         + getGemasObtenidas() int
         # aplicarCierre()
-        # getCondicionDeExito() String
+        + getCondicionDeExito() String
     }
     class MisionRetorno {
         - int ENERGIA_ADICIONAL = 0$
@@ -449,7 +451,7 @@ classDiagram
         # getEnergiaAdicional() int
         # realizarAccion()
         # aplicarCierre()
-        # getCondicionDeExito() String
+        + getCondicionDeExito() String
     }
     class EtapaMision {
         <<enumeration>>
@@ -1263,6 +1265,40 @@ classDiagram
         + desuscribir()
         + detenerTodo()
     }
+    class IVistaRecursos {
+        <<interface>>
+        + observar(asistente: Asistente)
+        + dejarDeObservar()
+    }
+    class IVistaSelectMision {
+        <<interface>>
+        + observar(asistente: Asistente)
+        + dejarDeObservar()
+    }
+    class IVistaCursoMision {
+        <<interface>>
+        + observar(asistente: Asistente)
+        + dejarDeObservar()
+    }
+    class IVistaResultadosMision {
+        <<interface>>
+        + observar(asistente: Asistente)
+        + dejarDeObservar()
+    }
+    class IVistaTablero {
+        <<interface>>
+        + observar(tablero: Tablero)
+        + dejarDeObservar()
+    }
+    class VistaTablero {
+        - Tablero tablero
+        + observar(tablero: Tablero)
+        + dejarDeObservar()
+        + actualizar(mensaje: String)
+    }
+    class ControladorControl {
+        + detener() boolean
+    }
 
     Observable <|-- Tablero
     Observable <|-- AsistenteComando
@@ -1279,6 +1315,18 @@ classDiagram
     ControladorDetallesNave --> Asistente
     ControladorConcurrencia --> IVistaConcurrencia : observar(plataforma)
     ControladorConcurrencia --> PlataformaDeCarga
+    Observador <|-- IVistaRecursos
+    Observador <|-- IVistaSelectMision
+    Observador <|-- IVistaCursoMision
+    Observador <|-- IVistaResultadosMision
+    Observador <|-- IVistaTablero
+    IVistaTablero <|.. VistaTablero
+    VistaTablero --> Tablero : observa, se suscribe y consulta verTablero() (pull)
+    IVistaRecursos ..> Asistente : recursos (pull)
+    IVistaSelectMision ..> Asistente : copia de la Bitácora (pull)
+    IVistaCursoMision ..> Asistente : consola (push)
+    IVistaResultadosMision ..> Asistente : informes (pull)
+    ControladorControl ..> IVistaTablero : observar(tablero) antes del hilo
 ```
 
 **Quién suscribe.** Según el apunte de Observer (Clase 11), el observador mantiene la referencia al observado y es
@@ -1286,19 +1334,23 @@ responsable de vincularse con él (`Mi_Observer(Mi_Observable uO)`; en el ejempl
 según el de MVC (Clase 13) la vista puede registrarse con el modelo mientras el controlador sólo tiene acceso al modelo y a
 las vistas. Por eso la llamada `agregarObservador(this)` está en la vista: el controlador le entrega el sujeto con
 `observar(...)` (las vistas se construyen antes de que exista el asistente) y la vista se suscribe; `dejarDeObservar()`
-hace `quitarObservador(this)`. Hoy no hay vistas que observen el `Tablero` (la grilla de la misión corresponde al Paso 6).
+hace `quitarObservador(this)`. En el Paso 6 se sumaron los observadores de la sección Control de la Nave: `VistaRecursos`,
+`VistaSelectMision` (Bitácora), `VistaCursoMision` (consola) y `VistaResultadosMision` (informes) observan al asistente, y
+`VistaTablero` (grilla de 20 x 20) observa el `Tablero`; los controladores de la sección les entregan el sujeto al crearse
+`ControladorControl`, antes de cualquier hilo de misión.
 
 | Sujeto | Notifica | Mensaje (push) | Estado consultable (pull) |
 |---|---|---|---|
-| `Tablero` (cátedra) | `moverNave`, `obtenerObjetivo`, fin de `turnoDestino` | "La nave se movió a la posición (x, y).", etc. | `getPosicionNave()`, `getObjetivo()`, `verTablero()` |
-| `AsistenteComando` | cada entrada de la Bitácora (`registrarEvento`) | la descripción del evento | getters de `Asistente` (recursos, motor, tripulación, destrucción, Bitácora, misiones) |
+| `Tablero` (cátedra) | `moverNave`, `obtenerObjetivo`, fin de `turnoDestino` | "La nave se movió a la posición (x, y).", etc. (lo muestra `VistaTablero`) | `getPosicionNave()`, `getObjetivo()`, `verTablero()` (símbolos con `getSimbolo()`) |
+| `AsistenteComando` | cada entrada de la Bitácora (`registrarEvento`) | la descripción del evento (consola de `VistaCursoMision`) | getters de `Asistente` (recursos, motor, tripulación, destrucción, Bitácora, misiones e informes) |
 | `PlataformaDeCarga` | producción, solicitud, espera, depósito, retiro, ingreso y egreso de entidades | los del Enunciado ("Batería producida por [G-1].", "[Nave-1] esperando por falta de baterías en la Plataforma.", etc.) y los adicionales de solicitud de acceso, depósito y egreso (sección 11) | `getBaterias()`, `getCapacidadMaxima()` |
 
 **Hilos.** Las notificaciones llegan desde el hilo de la misión (asistente y tablero) o desde los hilos de las generadoras y
 naves (plataforma). La vista consulta el estado en el hilo que notifica y modifica los componentes con
 `SwingUtilities.invokeLater(...)`. La lista de `Observable` es un `ArrayList` sin sincronizar: `AsistenteComando` y
 `PlataformaDeCarga` redefinen agregar, quitar y notificar como `synchronized` delegando en `super`, sin tocar la clase de la
-cátedra. Al `Tablero` (no modificable) hay que suscribirse antes de lanzar el hilo de la misión.
+cátedra. Al `Tablero` (no modificable) hay que suscribirse antes de lanzar el hilo de la misión y quitarse cuando ese
+hilo terminó (`ControladorControl.detener()`, después del `join`).
 
 ## 11. Módulo de concurrencia — E2, Paso 5 (`modelo.concurrencia`; Productor-Consumidor con monitores)
 
@@ -1403,3 +1455,223 @@ constructor; métodos privados (`estaLlena()`, `estaVacia()`, `invariante()`); m
 **Detención.** `detenerGeneradora` / `detenerNave` quitan la entidad del mapa, llaman a `interrupt()` y esperan con
 `join(ESPERA_MAXIMA_DETENCION_MS)` a que el hilo salga de `run()`; recién entonces se publica el egreso. `detenerTodo()`
 interrumpe todos los hilos, espera a cada uno, publica cada egreso y después la vista deja de observar.
+
+## 12. Vistas y controladores de operación — E2, Paso 6 (MVC)
+
+Cada pantalla define su contrato con una interfaz `IVista...` y su controlador depende de ella, nunca de componentes
+Swing concretos; cada clase Swing `VistaX` (paquete `vista`) implementa su `IVistaX`. Los controladores reciben los gestos
+del usuario como `ActionListener` (comando de acción de cada botón), invocan al modelo y coordinan la respuesta. La
+`FabricaDeVistas` crea las ventanas entre las que navegan los controladores; sólo `App` conoce `FabricaDeVistasSwing`.
+
+### 12.1 Acceso, ventana principal y secciones
+
+```mermaid
+classDiagram
+    direction LR
+    class FabricaDeVistas {
+        <<interface>>
+        + crearVistaLogin() IVistaLogin
+        + crearVistaRegistro() IVistaRegistro
+        + crearVistaPrincipal() IVistaPrincipal
+    }
+    class FabricaDeVistasSwing
+    class ControladorLogin {
+        - IVistaLogin vista
+        - ServicioUsuarios modelo
+        - CentroDeControl centroDeControl
+        - FabricaDeVistas fabricaDeVistas
+        + ControladorLogin(vista: IVistaLogin, modelo: ServicioUsuarios, centroDeControl: CentroDeControl, fabricaDeVistas: FabricaDeVistas)
+        + actionPerformed(evento: ActionEvent)
+        - iniciarSesion()
+        - abrirRegistro()
+        - abrirVentanaPrincipal(usuario: Usuario)
+    }
+    class ControladorRegistro {
+        + ControladorRegistro(vista: IVistaRegistro, modelo: ServicioUsuarios, centroDeControl: CentroDeControl, fabricaDeVistas: FabricaDeVistas)
+        + actionPerformed(evento: ActionEvent)
+    }
+    class ControladorPrincipal {
+        - IVistaPrincipal vista
+        - Usuario usuario
+        - ServicioUsuarios servicioUsuarios
+        - CentroDeControl centroDeControl
+        - FabricaDeVistas fabricaDeVistas
+        - Asistente asistente
+        + ControladorPrincipal(vista: IVistaPrincipal, usuario: Usuario, servicioUsuarios: ServicioUsuarios, centroDeControl: CentroDeControl, fabricaDeVistas: FabricaDeVistas)
+        + naveCreada(asistente: Asistente)
+        + tripulacionCreada()
+        + getAsistente() Asistente
+        + getControladorControl() ControladorControl
+        + getControladorConcurrencia() ControladorConcurrencia
+        + actionPerformed(e: ActionEvent)
+        - cerrarSesion()
+    }
+    class IVistaPrincipal {
+        <<interface>>
+        + getPanelNave() IVistaNave
+        + getPanelTripulacion() IVistaTripulacion
+        + getPanelControl() IVistaControl
+        + getPanelVisor() IVistaConcurrencia
+        + mostrarPanel(nombrePanel: String)
+        + arrancar()
+        + cerrar()
+    }
+    class ControladorNave
+    class ControladorCrearNave {
+        - NaveFactory fabrica
+        + actionPerformed(e: ActionEvent)
+    }
+    class ControladorDetallesNave
+    class ControladorTripulacion
+    class ControladorCrearTripulacion {
+        + actionPerformed(e: ActionEvent)
+    }
+    class ControladorDetallesTripulacion {
+        - LiquidadorHaberes liquidador
+        + actualizarVista()
+    }
+    class IVistaDetallesTripulacion {
+        <<interface>>
+        + agregarTripulante(id: int, nombre: String, cargo: String, sueldoTotal: double, recibo: ReciboHaberes)
+        + mostrarCostoNomina(totalNomina: double)
+        + mostrarError(mensaje: String)
+    }
+    class ControladorControl
+    class ControladorConcurrencia
+
+    FabricaDeVistas <|.. FabricaDeVistasSwing
+    ControladorLogin --> FabricaDeVistas : crea principal o registro
+    ControladorRegistro --> FabricaDeVistas : vuelve al login
+    ControladorPrincipal --> FabricaDeVistas : login al cerrar sesión
+    ControladorLogin ..> ControladorPrincipal : crea al autenticar
+    ControladorLogin --> ServicioUsuarios
+    ControladorPrincipal --> IVistaPrincipal
+    ControladorPrincipal *-- ControladorNave
+    ControladorPrincipal *-- ControladorTripulacion
+    ControladorPrincipal *-- ControladorControl : una vez por nave
+    ControladorPrincipal *-- ControladorConcurrencia
+    ControladorNave *-- ControladorCrearNave
+    ControladorNave *-- ControladorDetallesNave
+    ControladorCrearNave ..> NaveFactory : crea la nave
+    ControladorCrearNave ..> CentroDeControl : registra y selecciona
+    ControladorTripulacion *-- ControladorCrearTripulacion
+    ControladorTripulacion *-- ControladorDetallesTripulacion
+    ControladorCrearTripulacion ..> Asistente : asignarTripulacion
+    ControladorDetallesTripulacion --> IVistaDetallesTripulacion
+    ControladorDetallesTripulacion ..> LiquidadorHaberes : sueldo y desglose (Decorator)
+```
+
+### 12.2 Sección Control de la Nave e hilo de la misión
+
+```mermaid
+classDiagram
+    direction LR
+    class ControladorControl {
+        - IVistaControl vistaControl
+        - Asistente asistente
+        - Tablero tablero
+        + ControladorControl(vistaControl: IVistaControl, asistente: Asistente)
+        + ControladorControl(vistaControl: IVistaControl, asistente: Asistente, tablero: Tablero, destino: Destino, pausaPorTurnoMs: int)
+        + actualizarVista()
+        + mostrarSelectMision()
+        + mostrarMisionCurso()
+        + mostrarResultadosMision()
+        ~ lanzarMision()
+        + hayMisionEnCurso() boolean
+        + cancelarMision() boolean
+        + detener() boolean
+        + getTablero() Tablero
+    }
+    class ControladorSelectMision {
+        - int pausaPorTurnoMs
+        - Map~String,Supplier~ catalogo
+        - Mision misionSeleccionada
+        + actualizarVista()
+        + desuscribir()
+        + actionPerformed(e: ActionEvent)
+        - iniciarMision()
+    }
+    class ControladorCursoMision {
+        + long ESPERA_MAXIMA_FIN_MS = 2000$
+        - Thread hiloMision
+        + hayMisionEnCurso() boolean
+        + lanzarMision()
+        + cancelarMision() boolean
+        + desuscribir()
+        + actionPerformed(e: ActionEvent)
+        - ejecutarMision()
+    }
+    class ControladorResultadosMision {
+        + desuscribir()
+        + actionPerformed(e: ActionEvent)
+    }
+    class IVistaControl {
+        <<interface>>
+        + mostrarSelectMision()
+        + mostrarMisionCurso()
+        + mostrarResultadosMision()
+        + getVistaRecursos() IVistaRecursos
+        + getVistaSelectMision() IVistaSelectMision
+        + getVistaCursoMision() IVistaCursoMision
+        + getVistaResultadosMision() IVistaResultadosMision
+    }
+    class IVistaRecursos {
+        <<interface>>
+        + observar(asistente: Asistente)
+        + dejarDeObservar()
+        + mostrarRecursos(combustible: int, energia: int, desgaste: int, gemas: int, estadoMotor: String, listaParaOperar: boolean, destruida: boolean)
+    }
+    class IVistaSelectMision {
+        <<interface>>
+        + observar(asistente: Asistente)
+        + dejarDeObservar()
+        + mostrarBitacora(eventos: List~Evento~)
+        + mostrarDetallesMision(mision: Mision, naveListaParaOperar: boolean, combustibleActual: int, energiaActual: int)
+        + mostrarError(mensaje: String)
+    }
+    class IVistaCursoMision {
+        <<interface>>
+        + observar(asistente: Asistente)
+        + dejarDeObservar()
+        + getVistaTablero() IVistaTablero
+        + misionIniciada(codigo: String, nombre: String)
+        + misionFinalizada(resumen: String)
+        + mostrarError(mensaje: String)
+    }
+    class IVistaTablero {
+        <<interface>>
+        + observar(tablero: Tablero)
+        + dejarDeObservar()
+    }
+    class IVistaResultadosMision {
+        <<interface>>
+        + observar(asistente: Asistente)
+        + dejarDeObservar()
+        + mostrarInformes(informes: List~InformeMision~)
+    }
+    class Thread
+
+    ControladorControl --> IVistaControl
+    ControladorControl *-- ControladorSelectMision
+    ControladorControl *-- ControladorCursoMision
+    ControladorControl *-- ControladorResultadosMision
+    ControladorControl --> Tablero : 20 x 20 (FabricaDeUniverso)
+    ControladorSelectMision --> IVistaSelectMision
+    ControladorSelectMision ..> Mision : crea y encomienda
+    ControladorCursoMision --> IVistaCursoMision
+    ControladorCursoMision o-- Thread : hilo de la misión (0..1)
+    ControladorCursoMision ..> Asistente : ejecutarMision() en el hilo
+    ControladorResultadosMision --> IVistaResultadosMision
+    IVistaControl o-- IVistaRecursos
+    IVistaControl o-- IVistaSelectMision
+    IVistaControl o-- IVistaCursoMision
+    IVistaControl o-- IVistaResultadosMision
+    IVistaCursoMision o-- IVistaTablero
+```
+
+**Hilo de la misión.** `ControladorSelectMision` rechaza iniciar si `hayMisionEnCurso()`; si no, encomienda la misión y
+`ControladorControl.lanzarMision()` delega en `ControladorCursoMision`, que crea el `Thread` "Misión M-0x" y lo lanza con
+`start()`. El hilo ejecuta `asistente.ejecutarMision()`; sus excepciones se informan con `mostrarError` y, al terminar,
+libera `hiloMision` y llama a `misionFinalizada(resumen)` (la vista aplica ambos con `invokeLater`). `cancelarMision()`
+interrumpe el hilo y espera con `join(ESPERA_MAXIMA_FIN_MS)`; `detener()` (cierre de sesión) cancela y, con el hilo
+terminado, todas las vistas de la sección dejan de observar.

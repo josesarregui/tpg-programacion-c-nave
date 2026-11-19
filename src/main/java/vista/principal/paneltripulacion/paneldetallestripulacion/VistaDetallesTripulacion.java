@@ -5,10 +5,10 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagLayout;
@@ -18,6 +18,7 @@ import java.awt.RenderingHints;
 import java.awt.Window;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -61,6 +62,8 @@ public class VistaDetallesTripulacion extends JPanel implements IVistaDetallesTr
     private final DefaultListModel<String> modeloLista;
     private final JList<String> listaTripulantes;
     private final Map<Integer, ReciboHaberes> recibosPorId = new HashMap<>();
+    /** Id del tripulante de cada fila de la lista, en el mismo orden que el modelo de la lista. */
+    private final List<Integer> idsPorFila = new ArrayList<>();
 
     public VistaDetallesTripulacion() {
         this.setLayout(new BorderLayout(0, 16));
@@ -687,6 +690,7 @@ public class VistaDetallesTripulacion extends JPanel implements IVistaDetallesTr
     public void limpiarTripulantes() {
         this.modeloLista.clear();
         this.recibosPorId.clear();
+        this.idsPorFila.clear();
         this.lblContadorLista.setText("Sin oficiales a bordo");
         this.lblCostoNomina.setText("0.00 PG");
     }
@@ -706,6 +710,7 @@ public class VistaDetallesTripulacion extends JPanel implements IVistaDetallesTr
             elemento += "   |   " + String.format(Locale.US, "%.2f PG", sueldoTotal);
         }
         this.modeloLista.addElement(elemento);
+        this.idsPorFila.add(id);
         int total = this.modeloLista.getSize();
         this.lblContadorLista.setText(
                 total == 1 ? "1 oficial a bordo" : total + " oficiales a bordo"
@@ -719,7 +724,7 @@ public class VistaDetallesTripulacion extends JPanel implements IVistaDetallesTr
         }
 
         Window owner = SwingUtilities.getWindowAncestor(this);
-        JDialog dialog = new JDialog(owner instanceof Frame ? (Frame) owner : null, "Recibo Oficial de Haberes", true);
+        JDialog dialog = new JDialog(owner, "Recibo Oficial de Haberes", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
 
@@ -860,9 +865,7 @@ public class VistaDetallesTripulacion extends JPanel implements IVistaDetallesTr
             return;
         }
 
-        String elemento = this.modeloLista.getElementAt(index);
-        Integer id = extraerIdDeCadena(elemento);
-        ReciboHaberes recibo = id != null ? this.recibosPorId.get(id) : null;
+        ReciboHaberes recibo = this.recibosPorId.get(this.idsPorFila.get(index));
 
         if (recibo != null) {
             mostrarReciboDetallado(recibo);
@@ -876,26 +879,9 @@ public class VistaDetallesTripulacion extends JPanel implements IVistaDetallesTr
         }
     }
 
-    private Integer extraerIdDeCadena(String texto) {
-        if (texto == null) {
-            return null;
-        }
-        try {
-            if (texto.contains("|")) {
-                String[] partes = texto.split("\\s*\\|\\s*");
-                if (partes.length > 0) {
-                    String idStr = partes[0].replace("ID:", "").trim();
-                    return Integer.parseInt(idStr);
-                }
-            } else if (texto.startsWith("#")) {
-                int primerEspacio = texto.indexOf(' ');
-                if (primerEspacio > 1) {
-                    return Integer.parseInt(texto.substring(1, primerEspacio).trim());
-                }
-            }
-        } catch (NumberFormatException ignored) {
-        }
-        return null;
+    @Override
+    public void mostrarError(String mensaje) {
+        JOptionPane.showMessageDialog(this, mensaje, "Tripulación", JOptionPane.ERROR_MESSAGE);
     }
 
     private JPanel crearEtiquetaDato(String etiqueta, String valor) {

@@ -30,7 +30,7 @@ public class VistaPanelMenu extends JPanel implements IVistaPanelMenu {
         // FONDO
         // =========================
 
-        URL rutaFondo = getClass().getResource("/imagenes/menu.png");
+        URL rutaFondo = VistaPanelMenu.class.getResource("/imagenes/menu.png");
 
         if (rutaFondo == null) {
             throw new RuntimeException(
@@ -149,7 +149,7 @@ public class VistaPanelMenu extends JPanel implements IVistaPanelMenu {
 
     private JButton crearBotonImagen(String rutaImagen) {
 
-        URL ruta = getClass().getResource(rutaImagen);
+        URL ruta = VistaPanelMenu.class.getResource(rutaImagen);
 
         if (ruta == null) {
             throw new RuntimeException(

@@ -330,7 +330,7 @@ public class VistaDetallesNave extends JPanel implements IVistaDetallesNave {
     }
 
     private BufferedImage cargarImagenRecortada(String rutaImagen) {
-        URL ruta = getClass().getResource(rutaImagen);
+        URL ruta = VistaDetallesNave.class.getResource(rutaImagen);
         if (ruta == null) {
             return null;
         }

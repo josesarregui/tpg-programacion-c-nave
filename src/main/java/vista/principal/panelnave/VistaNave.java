@@ -27,7 +27,7 @@ public class VistaNave extends JPanel implements IVistaNave {
     private final Image imagenFondo;
 
     public VistaNave() {
-        URL rutaFondo = getClass().getResource("/imagenes/Fondo-nave.gif");
+        URL rutaFondo = VistaNave.class.getResource("/imagenes/Fondo-nave.gif");
 
         if (rutaFondo == null) {
             throw new RuntimeException("No se encontró la imagen de fondo de Nave.");

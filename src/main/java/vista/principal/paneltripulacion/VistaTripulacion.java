@@ -28,7 +28,7 @@ public class VistaTripulacion extends JPanel implements IVistaTripulacion {
         // =========================
         // FONDO GIF
         // =========================
-        URL rutaFondo = getClass().getResource("/imagenes/Fondo-tripulacion.gif");
+        URL rutaFondo = VistaTripulacion.class.getResource("/imagenes/Fondo-tripulacion.gif");
 
         if (rutaFondo == null) {
             throw new RuntimeException("No se encontró el fondo de Tripulación.");

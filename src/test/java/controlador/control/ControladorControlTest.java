@@ -1,17 +1,9 @@
 package controlador.control;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.ArrayList;
+import controlador.VistasDePrueba.ControlDePrueba;
 import java.util.List;
 import modelo.asistente.AsistenteComando;
-import modelo.bitacora.Evento;
 import modelo.bitacora.TipoEvento;
-import modelo.mision.Mision;
-import modelo.mision.MisionIntercepcion;
-import modelo.mision.MisionRecoleccion;
-import modelo.mision.MisionRetorno;
-import modelo.nave.Nave;
 import modelo.nave.NaveFactory;
 import modelo.nave.TipoNave;
 import modelo.tripulacion.Alferez;
@@ -20,252 +12,146 @@ import modelo.tripulacion.Consejero;
 import modelo.tripulacion.Origen;
 import modelo.tripulacion.Teniente;
 import modelo.tripulacion.Tripulacion;
-import modelo.tripulacion.Tripulante;
+import modelo.universo.DestinoSinMovimiento;
+import modelo.universo.TableroDePrueba;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import vista.principal.panelcontrol.IVistaControl;
-import vista.principal.panelcontrol.panelselectmision.IVistaSelectMision;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Pruebas unitarias para ControladorControl y ControladorSelectMision.
- * Verifica el desacoplamiento MVC mediante mocks de IVistaControl e IVistaSelectMision.
+ * Pruebas de ControladorControl y ControladorSelectMision con vistas de prueba que implementan las interfaces
+ * {@code IVista...} (sin Swing): inicialización, suscripciones, selección de misión, Bitácora por Observer y
+ * transiciones entre etapas.
  */
 public class ControladorControlTest {
 
-    private VistaSelectMisionMock mockVistaSelect;
-    private VistaControlMock mockVistaControl;
+    private ControlDePrueba vista;
     private AsistenteComando asistente;
+    private TableroDePrueba tablero;
 
     @BeforeEach
-    public void setUp() {
-        Nave nave = new NaveFactory().crearNave(TipoNave.EXPLORADORA);
-        asistente = new AsistenteComando(nave);
+    public void setUp() throws Exception {
+        asistente = new AsistenteComando(new NaveFactory().crearNave(TipoNave.EXPLORADORA));
+        vista = new ControlDePrueba();
+        tablero = new TableroDePrueba(20, 20);
+    }
 
-        mockVistaSelect = new VistaSelectMisionMock();
-        mockVistaControl = new VistaControlMock(mockVistaSelect);
+    private ControladorControl crearControl() {
+        return new ControladorControl(vista, asistente, tablero, new DestinoSinMovimiento(tablero), 0);
     }
 
     private void equiparTripulacionCompleta() throws Exception {
-        List<Tripulante> integrantes = List.of(
+        asistente.asignarTripulacion(new Tripulacion(List.of(
                 new Capitan("James Kirk", 15, Origen.TERRICOLA),
                 new Consejero("Deanna Troi", 8, Origen.VULCANO),
                 new Teniente("Spock", 12, Origen.VULCANO),
                 new Alferez("Hikaru Sulu", 5, Origen.TERRICOLA),
-                new Alferez("Pavel Chekov", 2, Origen.MARCIANO)
-        );
-        Tripulacion trip = new Tripulacion(integrantes);
-        asistente.asignarTripulacion(trip);
+                new Alferez("Pavel Chekov", 2, Origen.MARCIANO))));
     }
 
     @Test
-    @DisplayName("Inicialización: ControladorSelectMision carga misiones disponibles y bitácora")
-    public void testInicializacionCargaMisionesYBitacora() {
-        int eventosIniciales = asistente.getEventos().size();
+    @DisplayName("Inicialización: las vistas se suscriben, se cargan el catálogo, la Bitácora y los recursos")
+    public void testInicializacion() {
         asistente.registrarEvento(TipoEvento.SISTEMA, "Prueba de evento 1");
         asistente.registrarEvento(TipoEvento.RELEVANTE, "Prueba de evento 2");
 
-        ControladorControl controlador = new ControladorControl(mockVistaControl, asistente);
+        ControladorControl controlador = crearControl();
 
-        assertNotNull(mockVistaSelect.controlador);
-        assertNotNull(mockVistaSelect.misionesDisponibles);
-        assertEquals(3, mockVistaSelect.misionesDisponibles.size());
+        assertSame(asistente, vista.recursos.getObservado());
+        assertSame(asistente, vista.select.getObservado());
+        assertSame(asistente, vista.curso.getObservado());
+        assertSame(asistente, vista.resultados.getObservado());
+        assertSame(tablero, vista.curso.grilla.getObservado(), "La vista del tablero observa el tablero de la misión.");
+        assertSame(tablero, controlador.getTablero());
 
-        assertNotNull(mockVistaSelect.eventosMostrados);
-        assertEquals(eventosIniciales + 2, mockVistaSelect.eventosMostrados.size());
+        assertNotNull(vista.select.controlador);
+        assertNotNull(vista.curso.controlador);
+        assertNotNull(vista.resultados.controlador);
+        assertEquals(List.of("M-01", "M-02", "M-03"),
+                vista.select.misionesDisponibles.stream().map(m -> m.getCodigo()).toList());
+        assertEquals(asistente.getEventos().size(), vista.select.eventosMostrados.size());
+        assertEquals(asistente.getCombustible(), vista.recursos.combustibleMostrado);
+        assertTrue(vista.resultados.informesMostrados.isEmpty());
+        assertEquals(IVistaControl.SELECT_MISION, vista.etapa);
+        assertFalse(controlador.hayMisionEnCurso());
     }
 
     @Test
     @DisplayName("Selección de misión: actualiza detalles y costos en la vista")
     public void testSeleccionarMisionActualizaDetalles() throws Exception {
         equiparTripulacionCompleta();
-        ControladorControl controlador = new ControladorControl(mockVistaControl, asistente);
+        ControladorControl controlador = crearControl();
 
-        mockVistaSelect.misionSeleccionadaCodigo = "M-02";
+        vista.select.seleccionar("M-02");
 
-        mockVistaSelect.controlador.actionPerformed(
-                new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaSelectMision.COMANDO_SELECCIONAR_MISION)
-        );
-
-        assertNotNull(mockVistaSelect.ultimaMisionDetallada);
-        assertEquals("M-02", mockVistaSelect.ultimaMisionDetallada.getCodigo());
-        assertNotNull(controlador.getControladorSelectMision().getMisionSeleccionada());
+        assertEquals("M-02", vista.select.ultimaMisionDetallada.getCodigo());
         assertEquals("M-02", controlador.getControladorSelectMision().getMisionSeleccionada().getCodigo());
-        assertTrue(mockVistaSelect.naveListaDetallada);
-        assertEquals(60, mockVistaSelect.combustibleDetallado);
-        assertEquals(80, mockVistaSelect.energiaDetallada);
+        assertTrue(vista.select.naveListaDetallada);
+        assertEquals(asistente.getCombustible(), vista.select.combustibleDetallado);
+        assertEquals(asistente.getEnergia(), vista.select.energiaDetallada);
     }
 
     @Test
-    @DisplayName("Actualizar bitácora: refresca eventos tras nuevas entradas")
-    public void testActualizarBitacora() {
-        int eventosIniciales = asistente.getEventos().size();
-        ControladorControl controlador = new ControladorControl(mockVistaControl, asistente);
-        assertEquals(eventosIniciales, mockVistaSelect.eventosMostrados.size());
+    @DisplayName("Bitácora por Observer: cada evento nuevo llega a la vista, que copia la Bitácora en el hilo que notifica")
+    public void testBitacoraPorObserver() {
+        crearControl();
+        int notificacionesAntes = vista.select.notificaciones.get();
 
         asistente.registrarEvento(TipoEvento.ERROR, "Alerta de prueba");
 
-        mockVistaSelect.controlador.actionPerformed(
-                new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaSelectMision.COMANDO_ACTUALIZAR_BITACORA)
-        );
-
-        assertEquals(eventosIniciales + 1, mockVistaSelect.eventosMostrados.size());
-        assertEquals("Alerta de prueba",
-                mockVistaSelect.eventosMostrados.get(mockVistaSelect.eventosMostrados.size() - 1).getDescripcion());
+        assertEquals(notificacionesAntes + 1, vista.select.notificaciones.get());
+        assertEquals(asistente.getEventos().size(), vista.select.eventosVistos);
+        assertTrue(vista.curso.mensajes.contains("Alerta de prueba"), "La consola recibe el mensaje (push).");
+        assertEquals(asistente.getEnergia(), vista.recursos.energiaVista, "Los recursos se consultan (pull).");
     }
 
     @Test
-    @DisplayName("Iniciar misión con nave no lista: muestra error y no encomienda")
+    @DisplayName("Iniciar misión con nave no lista: muestra error, no encomienda ni lanza hilo")
     public void testIniciarMisionNaveNoListaMuestraError() {
-        // La nave no tiene tripulación, por lo tanto no está lista
         assertFalse(asistente.naveListaParaOperar());
+        ControladorControl controlador = crearControl();
 
-        ControladorControl controlador = new ControladorControl(mockVistaControl, asistente);
-        mockVistaSelect.misionSeleccionadaCodigo = "M-01";
+        vista.select.seleccionar("M-01");
+        vista.select.iniciar();
 
-        mockVistaSelect.controlador.actionPerformed(
-                new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaSelectMision.COMANDO_INICIAR_MISION)
-        );
-
-        assertNotNull(mockVistaSelect.ultimoError);
+        assertNotNull(vista.select.ultimoError());
         assertFalse(asistente.tieneMisionPendiente());
-        assertFalse(mockVistaControl.mostrandoMisionCurso);
+        assertFalse(controlador.hayMisionEnCurso());
+        assertEquals(IVistaControl.SELECT_MISION, vista.etapa);
     }
 
     @Test
-    @DisplayName("Iniciar misión con nave lista: encomienda misión y pasa a Mision en Curso")
-    public void testIniciarMisionExitosoPasaAMisionCurso() throws Exception {
-        equiparTripulacionCompleta();
-        assertTrue(asistente.naveListaParaOperar());
-
-        ControladorControl controlador = new ControladorControl(mockVistaControl, asistente);
-        mockVistaSelect.misionSeleccionadaCodigo = "M-01";
-
-        mockVistaSelect.controlador.actionPerformed(
-                new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaSelectMision.COMANDO_INICIAR_MISION)
-        );
-
-        assertNull(mockVistaSelect.ultimoError);
-        assertTrue(asistente.tieneMisionPendiente());
-        assertEquals("M-01", asistente.getMisionPendiente().getCodigo());
-        assertTrue(mockVistaControl.mostrandoMisionCurso);
-    }
-
-    @Test
-    @DisplayName("Transiciones de vista en VistaControlMock")
+    @DisplayName("Transiciones entre selección, misión en curso e informes")
     public void testTransicionesVistaControl() {
-        ControladorControl controlador = new ControladorControl(mockVistaControl, asistente);
+        ControladorControl controlador = crearControl();
 
         controlador.mostrarMisionCurso();
-        assertTrue(mockVistaControl.mostrandoMisionCurso);
+        assertEquals(IVistaControl.MISION_CURSO, vista.etapa);
 
         controlador.mostrarResultadosMision();
-        assertTrue(mockVistaControl.mostrandoResultados);
+        assertEquals(IVistaControl.RESULTADOS_MISION, vista.etapa);
 
         controlador.mostrarSelectMision();
-        assertTrue(mockVistaControl.mostrandoSelectMision);
+        assertEquals(IVistaControl.SELECT_MISION, vista.etapa);
+
+        controlador.actualizarVista();
+        assertEquals(IVistaControl.SELECT_MISION, vista.etapa);
     }
 
-    // =========================================================================
-    // MOCKS DE VISTA PARA PRUEBAS SIN SWING
-    // =========================================================================
+    @Test
+    @DisplayName("Detener sin misión en curso: todas las vistas dejan de observar al asistente y al tablero")
+    public void testDetenerDesuscribe() {
+        ControladorControl controlador = crearControl();
 
-    private static class VistaSelectMisionMock implements IVistaSelectMision {
-        ActionListener controlador;
-        List<Evento> eventosMostrados = new ArrayList<>();
-        List<Mision> misionesDisponibles = new ArrayList<>();
-        String misionSeleccionadaCodigo;
-        Mision ultimaMisionDetallada;
-        boolean naveListaDetallada;
-        int combustibleDetallado;
-        int energiaDetallada;
-        boolean botonIniciarHabilitado;
-        String ultimoError;
-        String ultimoMensaje;
+        assertTrue(controlador.detener());
 
-        @Override
-        public void setControlador(ActionListener controlador) {
-            this.controlador = controlador;
-        }
-
-        @Override
-        public void mostrarBitacora(List<Evento> eventos) {
-            this.eventosMostrados = eventos != null ? new ArrayList<>(eventos) : new ArrayList<>();
-        }
-
-        @Override
-        public void mostrarMisionesDisponibles(List<Mision> misiones) {
-            this.misionesDisponibles = misiones != null ? new ArrayList<>(misiones) : new ArrayList<>();
-            if (!this.misionesDisponibles.isEmpty() && this.misionSeleccionadaCodigo == null) {
-                this.misionSeleccionadaCodigo = this.misionesDisponibles.get(0).getCodigo();
-            }
-        }
-
-        @Override
-        public String getMisionSeleccionada() {
-            return this.misionSeleccionadaCodigo;
-        }
-
-        @Override
-        public void mostrarDetallesMision(Mision mision, boolean naveListaParaOperar, int combustibleActual, int energiaActual) {
-            this.ultimaMisionDetallada = mision;
-            this.naveListaDetallada = naveListaParaOperar;
-            this.combustibleDetallado = combustibleActual;
-            this.energiaDetallada = energiaActual;
-        }
-
-        @Override
-        public void habilitarIniciarMision(boolean habilitar) {
-            this.botonIniciarHabilitado = habilitar;
-        }
-
-        @Override
-        public void mostrarError(String mensaje) {
-            this.ultimoError = mensaje;
-        }
-
-        @Override
-        public void mostrarMensaje(String mensaje) {
-            this.ultimoMensaje = mensaje;
-        }
-    }
-
-    private static class VistaControlMock implements IVistaControl {
-        final IVistaSelectMision vistaSelect;
-        boolean mostrandoSelectMision = true;
-        boolean mostrandoMisionCurso = false;
-        boolean mostrandoResultados = false;
-
-        VistaControlMock(IVistaSelectMision vistaSelect) {
-            this.vistaSelect = vistaSelect;
-        }
-
-        @Override
-        public void mostrarSelectMision() {
-            this.mostrandoSelectMision = true;
-            this.mostrandoMisionCurso = false;
-            this.mostrandoResultados = false;
-        }
-
-        @Override
-        public void mostrarMisionCurso() {
-            this.mostrandoSelectMision = false;
-            this.mostrandoMisionCurso = true;
-            this.mostrandoResultados = false;
-        }
-
-        @Override
-        public void mostrarResultadosMision() {
-            this.mostrandoSelectMision = false;
-            this.mostrandoMisionCurso = false;
-            this.mostrandoResultados = true;
-        }
-
-        @Override
-        public IVistaSelectMision getVistaSelectMision() {
-            return this.vistaSelect;
-        }
+        assertNull(vista.recursos.getObservado());
+        assertNull(vista.select.getObservado());
+        assertNull(vista.curso.getObservado());
+        assertNull(vista.curso.grilla.getObservado());
+        assertNull(vista.resultados.getObservado());
     }
 }

@@ -142,9 +142,11 @@ public abstract class Mision {
     protected abstract void realizarAccion();
 
     /**
-     * @return texto de la condición de éxito, para las observaciones del informe.
+     * Es pública para que la vista describa cada misión por polimorfismo, sin condicionales de tipo.
+     *
+     * @return texto de la condición de éxito, para las observaciones del informe y la selección de misión.
      */
-    protected abstract String getCondicionDeExito();
+    public abstract String getCondicionDeExito();
 
     // --- Ganchos (hooks): implementación por defecto que algunas misiones redefinen ---
 
@@ -224,8 +226,8 @@ public abstract class Mision {
      * puede intentarse otra vez después de resolver el problema (Escenario B).
      *
      * Sólo la invoca {@link Asistente#ejecutarMision()}: así el asistente registra los rechazos y lleva la cuenta
-     * de sus misiones (Aclaración, R2). Puede tardar varios turnos: la vista debe invocarla fuera del hilo de
-     * eventos de Swing.
+     * de sus misiones (Aclaración, R2). Puede tardar varios turnos: quien la lanza debe hacerlo en un hilo propio,
+     * fuera del hilo de eventos de Swing (en la aplicación, el controlador de la misión en curso).
      *
      * @pre La misión fue encomendada a un asistente y está en etapa CREADA (no se realizó antes).
      * @pre Su asistente la está ejecutando: asistente.estaEjecutando(this).

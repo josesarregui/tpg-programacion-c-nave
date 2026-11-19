@@ -14,6 +14,9 @@ import modelo.tripulacion.Tripulante;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import vista.principal.paneltripulacion.paneldetallestripulacion.IVistaDetallesTripulacion;
+import excepcion.LiquidacionInvalidaException;
+import java.time.YearMonth;
+import modelo.liquidacion.LiquidadorHaberes;
 import modelo.liquidacion.ReciboHaberes;
 
 import java.util.ArrayList;
@@ -29,6 +32,7 @@ public class ControladorDetallesTripulacionTest {
         double costoNomina = -1.0;
         final List<String> filas = new ArrayList<>();
         final List<ReciboHaberes> recibos = new ArrayList<>();
+        String ultimoError;
 
         @Override
         public void mostrarCantidad(int cantidad) {
@@ -62,6 +66,11 @@ public class ControladorDetallesTripulacionTest {
             if (recibo != null) {
                 recibos.add(recibo);
             }
+        }
+
+        @Override
+        public void mostrarError(String mensaje) {
+            ultimoError = mensaje;
         }
     }
 
@@ -111,5 +120,32 @@ public class ControladorDetallesTripulacionTest {
         assertEquals("James Kirk", reciboKirk.getTripulante().getNombre());
         assertTrue(reciboKirk.getConceptos().size() >= 3, "Debe tener Cargo, Antiguedad y Origen");
         assertTrue(reciboKirk.getTotal() > 0);
+    }
+
+    @Test
+    @DisplayName("Un rechazo del liquidador se informa en la vista: el tripulante figura sin sueldo")
+    public void testRechazoDeLiquidacionSeInforma() throws Exception {
+        Nave nave = new NaveFactory().crearNave(TipoNave.COMBATE);
+        nave.asignarTripulacion(new Tripulacion(List.of(
+                new Capitan("Sisko", 8, Origen.TERRICOLA),
+                new Consejero("Dax", 6, Origen.VULCANO),
+                new Teniente("Kira", 5, Origen.MARCIANO),
+                new Alferez("Bashir", 2, Origen.TERRICOLA),
+                new Alferez("Nog", 1, Origen.MARCIANO))));
+        VistaDetallesMock vista = new VistaDetallesMock();
+        LiquidadorHaberes liquidadorQueRechaza = new LiquidadorHaberes() {
+            @Override
+            public ReciboHaberes liquidar(Tripulante tripulante, YearMonth periodo) throws LiquidacionInvalidaException {
+                throw new LiquidacionInvalidaException("Período cerrado.", null);
+            }
+        };
+
+        new ControladorDetallesTripulacion(vista, new AsistenteComando(nave), liquidadorQueRechaza).actualizarVista();
+
+        assertEquals(5, vista.filas.size(), "Cada tripulante figura en la nómina.");
+        assertTrue(vista.recibos.isEmpty());
+        assertNotNull(vista.ultimoError);
+        assertTrue(vista.ultimoError.contains("Período cerrado."));
+        assertEquals(0.0, vista.costoNomina);
     }
 }

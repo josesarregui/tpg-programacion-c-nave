@@ -90,7 +90,7 @@ public class VistaConcurrencia extends JPanel implements IVistaConcurrencia {
         this.setBorder(new EmptyBorder(16, 28, 20, 28));
 
         // Fondo espacial
-        URL rutaFondo = getClass().getResource("/imagenes/FondoEspacio.gif");
+        URL rutaFondo = VistaConcurrencia.class.getResource("/imagenes/FondoEspacio.gif");
         if (rutaFondo != null) {
             this.imagenFondo = new ImageIcon(rutaFondo).getImage();
         } else {
