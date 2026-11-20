@@ -38,7 +38,7 @@ El programa principal `app.App` abre la pantalla de **inicio de sesión** (E2, C
 pasar al **registro** de un usuario nuevo. Al iniciar sesión se cierra el login y se abre la **ventana principal**, con un menú
 lateral para sus secciones:
 * **Nave:** elegir el tipo de nave y crearla (queda registrada en el centro de control con su asistente); luego, su estado.
-* **Tripulación:** dar de alta Capitán, Consejero, Teniente y Alférez (un/a capitán/a y al menos 5 integrantes) y asignarlos
+* **Tripulación:** dar de alta Capitán, Consejero, Teniente y Alférez (al menos 5 integrantes, uno de ellos capitán/a) y asignarlos
   a la nave; después, la nómina con el sueldo de cada tripulante y el recibo con su desglose ("Ver recibo").
 * **Control de la nave:** recursos actuales, Bitácora en vivo, selección e inicio de una misión, tablero de 20 x 20 que se
   actualiza solo mientras la nave avanza (la misión corre en su propio hilo y puede cancelarse) e historial de informes finales.
@@ -66,10 +66,11 @@ recursos y mantenimiento con el **Escenario D**; el **Escenario B** y el **Escen
 ```
 mvn clean test
 ```
-Ejecuta las 359 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Ejecuta las 368 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
 Para una sola clase: `mvn test -Dtest=EsquemaSQLTest`.
 Las pruebas de misiones son deterministas: usan un tablero de prueba con los elementos ubicados por la prueba, un Destino que
-no mueve elementos (o que los mueve como indica la prueba), un `Random` con semilla y pausa 0 entre turnos.
+no mueve elementos (o que los mueve como indica la prueba), un `Random` con semilla y pausa 0 entre turnos. La única
+excepción es la prueba del universo de 20 x 20 con el Destino de la cátedra, que verifica propiedades válidas para cualquier sorteo.
 Las pruebas de la E2 usan bases H2 en memoria, de modo que no modifican `datos/nave.mv.db`. Los controladores se prueban con
 vistas de prueba que implementan las interfaces `IVista...` sin abrir ventanas (`controlador/VistasDePrueba`); las del hilo de la
 misión esperan los avisos con colas, `CountDownLatch` y `join` con tiempo límite, sin pausas fijas; lo que esas vistas de
@@ -109,12 +110,12 @@ hay entorno gráfico.
 | Interacciones en el recorrido | Asteroide: energía perdida en el balance. Estación: combustible y energía ganados (tope 100). Batalla perdida: nave y tripulación destruidas, misión fallida; batalla ganada: sigue. | `TravesiaTest` |
 | Destrucción durante el recorrido | Un impacto que deja la energía en 0 corta la travesía en ese turno; la misión se aborta, resulta fallida y el cierre no aplica nada. | `TravesiaTest` |
 | Radar de corto alcance y recálculo | Si Destino cruza un asteroide en el próximo paso, la misión recalcula (2 de energía) y lo esquiva. | `TravesiaTest` |
-| Transición entre casillas | Cada movimiento queda dentro del tablero y es vecino del anterior, también desde un borde; el salto warp avanza 2 casillas en el mismo turno (sin combustible para un salto normal) y termina con el motor Disponible. Sin recursos para avanzar, la misión se aborta sin destruir la nave. | `TravesiaTest` |
+| Transición entre casillas | Cada movimiento queda dentro del tablero y es vecino del anterior, también desde un borde; el salto warp avanza 2 casillas en el mismo turno (sin combustible para un salto normal) y termina con el motor Disponible. Sin recursos para avanzar, la misión se aborta sin destruir la nave: la maniobra warp sólo se inicia si la energía alcanza para completarla y, sin energía para el escaneo de corto alcance, la nave no escanea ni avanza. | `TravesiaTest` |
 | Verificación en destino (M-01) | Si la nave consumió en el viaje los suministros a entregar, la misión falla y no se descuenta nada. | `TravesiaTest` |
 | Fase 3: informe | Objetivo, ruta recorrida, resultado, acciones, balance como datos (consumidos, perdidos, ganados, gemas y suministros), estado al evaluar y observaciones; listas de sólo lectura. | `MisionTest` |
 | Fase 4: cierre | M-01 entrega los suministros, M-02 acredita las gemas y M-03 repara el desgaste y recarga al máximo en la base. La Bitácora registra el estado posterior al cierre. | `MisionTest`, `AsistenteComandoTest` |
 | Gemas y suministros aleatorios | Con la misma semilla son reproducibles y siempre están dentro de los rangos constantes. | `MisionTest` |
-| Pausa y concurrencia | La pausa por turno es configurable (0 en las pruebas). Si el hilo se interrumpe, se restaura la interrupción, termina la travesía y la misión falla. | `MisionTest`, `TravesiaTest` |
+| Pausa y concurrencia | La pausa por turno es configurable (0 en las pruebas). Si el hilo se interrumpe, se restaura la interrupción, termina la travesía y la misión falla, aunque la nave llegue en ese turno (el cierre no aplica nada). Una maniobra warp en curso se completa antes de terminar, para que la nave quede lista para otra misión. | `MisionTest`, `TravesiaTest` |
 | Universo de 20 x 20 | Con `FabricaDeUniverso` y el Destino de la cátedra la misión termina con un informe válido y un recorrido válido. | `TravesiaTest` |
 | Nave ya destruida | La misión se rechaza con `NaveNoDisponibleException` (`isNaveDestruida()`). | `MisionTest` |
 
@@ -172,7 +173,7 @@ hay entorno gráfico.
 | E1-09, Escenario D | Carga hasta la capacidad (100); con desgaste ≥ 80 requiere mantenimiento y no opera; el mantenimiento lo lleva a 0. Una carga que excede la capacidad se rechaza y la nave conserva su estado. | `RecursosTest`, `NaveTest`, `AsistenteComandoTest` | "OPERACIONES SOBRE RECURSOS", "ESCENARIO D" |
 | Escenario B | Sin los recursos mínimos (por ejemplo, 1 de combustible, o 10 de energía para M-02, que necesita 11), la misión se rechaza con `RecursoInsuficienteException`: la nave no cambia, el motivo queda en la Bitácora y la misión sigue pendiente. | `MisionTest`, `AsistenteComandoTest`, `RecursosTest` | "ESCENARIO B" |
 | E1-10 | El informe trae misión, objetivo, resultado, acciones, ruta, balance de recursos, estado de la nave y observaciones. | `MisionTest` | "INFORME M-0x" |
-| Contratos | Una precondición o invariante incumplida se detecta con `assert` (`AssertionError`): misión realizada dos veces o sin pasar por su asistente, tripulación nula, importe negativo, estado nulo del motor. | Pruebas "Rechazo por contrato" y "Aserción" | — |
+| Contratos | Una precondición o invariante incumplida se detecta con `assert` (`AssertionError`): misión realizada dos veces o sin pasar por su asistente, tripulación nula, consulta de los tripulantes de una nave sin tripulación, importe negativo, estado nulo del motor. | Pruebas "Rechazo por contrato" y "Aserción" | — |
 | Aclaración R1, R2 y Pedidos del diseño | El centro registra y devuelve naves, rechaza una repetida o inexistente sin cambiar, usa una nave a la vez y admite otra variante de asistente sin modificarse. | `CentroDeControlTest` | "CASOS DE RECHAZO DEL CENTRO DE CONTROL" |
 
 ## Entregas (etiquetas Git)

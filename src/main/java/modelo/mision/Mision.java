@@ -69,6 +69,14 @@ public abstract class Mision {
     public static final int DESGASTE_POR_CELDA = 1;
     /** Pausa por defecto de cada turno, para que la vista muestre el avance (Enunciado E2, Nota técnica). */
     public static final int PAUSA_POR_TURNO_MS = 400;
+    /**
+     * Energía que se necesita, después del escaneo del turno, para completar una maniobra warp sin que sus propios
+     * consumos destruyan la nave (Anexo y Tabla de Recursos, IV.2): el salto warp y un escaneo de corto alcance por
+     * cada turno restante de preparación, por el turno del salto, por su segunda casilla y por el turno de
+     * enfriamiento. La maniobra se inicia sólo con más energía que este valor, para que no quede en 0.
+     */
+    private static final int ENERGIA_MANIOBRA_WARP = MotorWarp.ENERGIA_SALTO_WARP
+            + (MotorWarp.TURNOS_PREPARACION + 2) * ENERGIA_ESCANEO_CORTO;
 
     private final String codigo;
     private final String nombre;
@@ -298,12 +306,16 @@ public abstract class Mision {
      * Fase 2: cobra el consumo de despegue y recorre el tablero por turnos (ver la descripción de la clase). La
      * travesía termina cuando la nave llega al objetivo, cuando queda destruida (la misión se aborta de inmediato),
      * cuando no tiene recursos para avanzar, cuando se interrumpe el hilo o cuando se supera el máximo de turnos.
-     * Al llegar, verifica que la nave conserve los recursos para la acción final y la entrega (sin descontar la
-     * entrega, que se hace en el cierre) y, si los conserva, paga la acción final y la realiza.
+     * En los dos últimos casos, si hay una maniobra warp en curso, primero se completa (una vez iniciada, la maniobra
+     * se completa), para que el motor quede Disponible y la nave pueda realizar otra misión.
+     * Si la nave llegó y la travesía no se interrumpió, verifica que la nave conserve los recursos para la acción
+     * final y la entrega (sin descontar la entrega, que se hace en el cierre) y, si los conserva, paga la acción
+     * final y la realiza. Una travesía interrumpida no realiza la acción aunque la nave haya llegado en ese turno.
      *
      * @pre etapa == PREPARADA (Observaciones: no se ejecuta sin preparación previa).
      * @post etapa == EJECUTADA. Cada movimiento de la nave en el tablero fue a una casilla dentro del tablero y
-     *       vecina de la anterior, o a dos casillas en la dirección de la ruta con un salto warp.
+     *       vecina de la anterior, o a dos casillas en la dirección de la ruta con un salto warp. Si la nave no fue
+     *       destruida, el motor quedó Disponible.
      */
     private void ejecutar() {
         assert etapa == EtapaMision.PREPARADA : "La misión no puede ejecutarse sin preparación previa.";
@@ -315,8 +327,9 @@ public abstract class Mision {
         int maximoTurnos = tablero.getX() * tablero.getY();
         boolean puedeAvanzar = true;
         llegoAlObjetivo = tablero.getPosicionNave().equals(objetivo);
-        while (!asistente.naveDestruida() && !llegoAlObjetivo && puedeAvanzar && !travesiaInterrumpida
-                && turno < maximoTurnos) {
+        // Sin recursos para avanzar sólo se queda la nave con el motor Disponible: puedeAvanzar no corta una maniobra.
+        while (!asistente.naveDestruida() && !llegoAlObjetivo
+                && (!asistente.motorDisponible() || (puedeAvanzar && !travesiaInterrumpida && turno < maximoTurnos))) {
             turno++;
             puedeAvanzar = turnoDeLaNave(turno);
             if (!asistente.naveDestruida()) {
@@ -331,13 +344,17 @@ public abstract class Mision {
         }
         if (asistente.naveDestruida()) {
             registrarAccion("Ejecución abortada: la nave fue destruida y su tripulación murió.");
+        } else if (travesiaInterrumpida) {
+            registrarAccion("Ejecución abortada: la travesía se interrumpió.");
         } else if (llegoAlObjetivo) {
             verificarEnDestino();
         } else if (!puedeAvanzar) {
             registrarAccion("Ejecución abortada: la nave no tiene recursos para avanzar sin destruirse.");
-        } else if (!travesiaInterrumpida) {
+        } else {
             registrarAccion("Ejecución abortada: se superó el máximo de " + maximoTurnos + " turnos.");
         }
+        assert asistente.naveDestruida() || asistente.motorDisponible()
+                : "Fallo postcondición: la travesía no puede terminar con una maniobra warp en curso.";
 
         etapa = EtapaMision.EJECUTADA;
         assert invariante() : "Fallo invariante tras ejecutar la misión.";
@@ -347,9 +364,12 @@ public abstract class Mision {
      * Turno de la nave (Enunciado E2, Fase 2, A): inspección de la posición e interacción, escaneo de corto
      * alcance y planificación y salto.
      *
+     * Con el motor Disponible, si el escaneo dejaría la energía en 0 (y destruiría la nave), la nave no escanea ni
+     * avanza. Durante una maniobra warp siempre escanea: la maniobra sólo se inicia con energía para completarla.
+     *
      * @pre !asistente.naveDestruida().
-     * @return false si la nave no puede avanzar sin destruirse (sin combustible para un salto normal ni energía
-     *         para la maniobra warp); true en otro caso.
+     * @return false si la nave no puede avanzar sin destruirse (sin energía para el escaneo, o sin combustible para
+     *         un salto normal ni energía para completar la maniobra warp); true en otro caso.
      */
     private boolean turnoDeLaNave(int turno) {
         ElementoDelUniverso elemento = tablero.inspeccionarPosicion();
@@ -358,9 +378,13 @@ public abstract class Mision {
         }
         boolean puedeAvanzar = true;
         if (!asistente.naveDestruida()) {
-            ElementoDelUniverso[][] alrededores = escanearCortoAlcance();
-            if (!asistente.naveDestruida()) {
-                puedeAvanzar = planificarYSaltar(alrededores, turno);
+            if (asistente.motorDisponible() && asistente.getEnergia() <= ENERGIA_ESCANEO_CORTO) {
+                puedeAvanzar = false;
+            } else {
+                ElementoDelUniverso[][] alrededores = escanearCortoAlcance();
+                if (!asistente.naveDestruida()) {
+                    puedeAvanzar = planificarYSaltar(alrededores, turno);
+                }
             }
         }
         return puedeAvanzar;
@@ -396,8 +420,9 @@ public abstract class Mision {
 
     /**
      * Elige el salto y mueve la nave (Anexo): con el motor Disponible, salto normal si al consumir el combustible
-     * la nave no queda destruida; si no, inicia la maniobra warp si la energía lo permite. Con una maniobra en
-     * curso, la continúa: sólo en el turno del salto la nave avanza dos casillas.
+     * la nave no queda destruida; si no, inicia la maniobra warp si la energía alcanza para completarla sin
+     * destruir la nave ({@link #ENERGIA_MANIOBRA_WARP}). Con una maniobra en curso, la continúa: sólo en el turno
+     * del salto la nave avanza dos casillas.
      *
      * @return false si no puede avanzar sin destruirse; true en otro caso.
      */
@@ -412,7 +437,7 @@ public abstract class Mision {
             int casilleros = cobrarSalto(false);
             assert casilleros == MotorWarp.CASILLEROS_SALTO_NORMAL && siguiente != null;
             moverA(siguiente, turno, "salto normal");
-        } else if (asistente.getEnergia() > MotorWarp.ENERGIA_SALTO_WARP) {
+        } else if (asistente.getEnergia() > ENERGIA_MANIOBRA_WARP) {
             cobrarSalto(true);
             registrarAccion("Turno " + turno + ": sin combustible para un salto normal; inicia la maniobra warp.");
         } else {
@@ -559,7 +584,9 @@ public abstract class Mision {
 
     /**
      * Pausa del turno (Enunciado E2, Nota técnica). Si el hilo se interrumpe, restaura el estado de interrupción
-     * para que lo vea quien lanzó la misión y termina la travesía: la misión resultará fallida.
+     * para que lo vea quien lanzó la misión y marca la travesía como interrumpida: termina en cuanto el motor esté
+     * Disponible (los turnos que faltan para completar una maniobra warp ya no duermen) y la misión resultará
+     * fallida (ver {@link #ejecutar()}).
      */
     private void pausar() {
         try {
@@ -567,7 +594,6 @@ public abstract class Mision {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             travesiaInterrumpida = true;
-            registrarAccion("Ejecución abortada: la travesía se interrumpió.");
         }
     }
 

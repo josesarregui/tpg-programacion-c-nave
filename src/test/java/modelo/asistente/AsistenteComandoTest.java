@@ -74,6 +74,15 @@ public class AsistenteComandoTest {
         assertFalse(asistente.naveListaParaOperar(), "Sin tripulación la nave no está lista para operar");
     }
 
+    @Test
+    @DisplayName("Rechazo por contrato: sin tripulación asignada no se consultan los tripulantes, el capitán ni la cantidad")
+    public void testConsultasDeTripulacionSinTripulacion() {
+        assertFalse(asistente.tieneTripulacion());
+        assertThrows(AssertionError.class, asistente::getTripulantes);
+        assertThrows(AssertionError.class, asistente::getCapitan);
+        assertThrows(AssertionError.class, asistente::getCantidadTripulantes);
+    }
+
     // --- Motor Warp (Escenario C) ---
 
     @Test
