@@ -10,8 +10,9 @@ package modelo.mision;
  *       inicial del despegue, escaneos de largo y corto alcance, recálculos y saltos del Motor Warp.</li>
  *   <li><b>Perdidos:</b> lo que quitaron los elementos del universo al coincidir con la nave (asteroides).</li>
  *   <li><b>Ganados:</b> lo que aportaron los elementos del universo (estaciones de carga).</li>
- *   <li><b>Resultado de la misión:</b> gemas obtenidas (M-02) y suministros a entregar (M-01). Se informan en la
- *       evaluación y se aplican a la nave en el cierre (Fase 4).</li>
+ *   <li><b>Resultado de la misión:</b> gemas obtenidas (M-02), suministros a entregar (M-01) y recarga de
+ *       combustible y energía y reparación del desgaste en la base (M-03, Anexo). Se informan en la evaluación y
+ *       se aplican a la nave en el cierre (Fase 4).</li>
  * </ul>
  *
  * Es inmutable y sólo lo crea {@link Mision} (constructor de paquete).
@@ -30,6 +31,9 @@ public final class BalanceRecursos {
     private final int gemasObtenidas;
     private final int combustibleEntregado;
     private final int energiaEntregada;
+    private final int combustibleRecargado;
+    private final int energiaRecargada;
+    private final int desgasteReparado;
 
     /**
      * @pre Todos los valores son mayores o iguales a 0. Los calcula la propia misión, por eso un valor inválido
@@ -38,7 +42,8 @@ public final class BalanceRecursos {
      */
     BalanceRecursos(int combustibleConsumido, int energiaConsumida, int desgasteProducido,
                     int combustiblePerdido, int energiaPerdida, int combustibleGanado, int energiaGanada,
-                    int gemasObtenidas, int combustibleEntregado, int energiaEntregada) {
+                    int gemasObtenidas, int combustibleEntregado, int energiaEntregada,
+                    int combustibleRecargado, int energiaRecargada, int desgasteReparado) {
         this.combustibleConsumido = combustibleConsumido;
         this.energiaConsumida = energiaConsumida;
         this.desgasteProducido = desgasteProducido;
@@ -49,6 +54,9 @@ public final class BalanceRecursos {
         this.gemasObtenidas = gemasObtenidas;
         this.combustibleEntregado = combustibleEntregado;
         this.energiaEntregada = energiaEntregada;
+        this.combustibleRecargado = combustibleRecargado;
+        this.energiaRecargada = energiaRecargada;
+        this.desgasteReparado = desgasteReparado;
         assert invariante() : "Fallo invariante: el balance de recursos no admite valores negativos.";
     }
 
@@ -101,11 +109,33 @@ public final class BalanceRecursos {
         return energiaEntregada;
     }
 
+    /**
+     * @return combustible recargado en la base (M-03): lo que falta para la capacidad máxima; se aplica en el cierre.
+     */
+    public int getCombustibleRecargado() {
+        return combustibleRecargado;
+    }
+
+    /**
+     * @return energía recargada en la base (M-03): lo que falta para la capacidad máxima; se aplica en el cierre.
+     */
+    public int getEnergiaRecargada() {
+        return energiaRecargada;
+    }
+
+    /**
+     * @return desgaste reparado en la base (M-03): todo el desgaste al llegar; se aplica en el cierre.
+     */
+    public int getDesgasteReparado() {
+        return desgasteReparado;
+    }
+
     private boolean invariante() {
         return combustibleConsumido >= 0 && energiaConsumida >= 0 && desgasteProducido >= 0
                 && combustiblePerdido >= 0 && energiaPerdida >= 0
                 && combustibleGanado >= 0 && energiaGanada >= 0
-                && gemasObtenidas >= 0 && combustibleEntregado >= 0 && energiaEntregada >= 0;
+                && gemasObtenidas >= 0 && combustibleEntregado >= 0 && energiaEntregada >= 0
+                && combustibleRecargado >= 0 && energiaRecargada >= 0 && desgasteReparado >= 0;
     }
 
     @Override
@@ -114,6 +144,8 @@ public final class BalanceRecursos {
                 + ", desgaste " + desgasteProducido + "); perdidos (combustible " + combustiblePerdido
                 + ", energía " + energiaPerdida + "); ganados (combustible " + combustibleGanado
                 + ", energía " + energiaGanada + "); gemas " + gemasObtenidas + "; entregados (combustible "
-                + combustibleEntregado + ", energía " + energiaEntregada + ")";
+                + combustibleEntregado + ", energía " + energiaEntregada + "); recarga en la base (combustible "
+                + combustibleRecargado + ", energía " + energiaRecargada + ", desgaste reparado " + desgasteReparado
+                + ")";
     }
 }

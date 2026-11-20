@@ -187,6 +187,36 @@ public abstract class Mision {
     }
 
     /**
+     * Sólo se consulta en la evaluación de una misión exitosa, antes del cierre.
+     *
+     * @return combustible que el cierre recarga en la nave (M-03), para el balance del informe. Por defecto, 0.
+     *         Mayor o igual a 0.
+     */
+    protected int getCombustibleARecargar() {
+        return 0;
+    }
+
+    /**
+     * Sólo se consulta en la evaluación de una misión exitosa, antes del cierre.
+     *
+     * @return energía que el cierre recarga en la nave (M-03), para el balance del informe. Por defecto, 0.
+     *         Mayor o igual a 0.
+     */
+    protected int getEnergiaARecargar() {
+        return 0;
+    }
+
+    /**
+     * Sólo se consulta en la evaluación de una misión exitosa, antes del cierre.
+     *
+     * @return desgaste que el cierre repara en la nave (M-03), para el balance del informe. Por defecto, 0.
+     *         Mayor o igual a 0.
+     */
+    protected int getDesgasteAReparar() {
+        return 0;
+    }
+
+    /**
      * Aplica a la nave, a través del asistente, lo ganado o entregado al completar la misión (Enunciado E2,
      * Fase 4). Sólo se invoca si la misión fue exitosa. Por defecto no hace nada.
      *
@@ -644,8 +674,9 @@ public abstract class Mision {
     }
 
     /**
-     * Fase 3: determina el resultado y confecciona el informe final con el balance de recursos. Las gemas y los
-     * suministros sólo figuran si la misión fue exitosa, porque sólo entonces el cierre los aplica.
+     * Fase 3: determina el resultado y confecciona el informe final con el balance de recursos. Las gemas, los
+     * suministros y la recarga y reparación en la base sólo figuran si la misión fue exitosa, porque sólo entonces
+     * el cierre los aplica.
      *
      * @pre etapa == EJECUTADA.
      * @post etapa == EVALUADA y getInforme() != null; es exitosa sólo si la nave no está destruida, llegó al
@@ -661,7 +692,10 @@ public abstract class Mision {
                 combustiblePerdido, energiaPerdida, combustibleGanado, energiaGanada,
                 exitosa ? getGemasObtenidas() : 0,
                 exitosa ? getCombustibleAEntregar() : 0,
-                exitosa ? getEnergiaAEntregar() : 0);
+                exitosa ? getEnergiaAEntregar() : 0,
+                exitosa ? getCombustibleARecargar() : 0,
+                exitosa ? getEnergiaARecargar() : 0,
+                exitosa ? getDesgasteAReparar() : 0);
         String observaciones = "Condición de éxito: " + getCondicionDeExito()
                 + (exitosa ? " (cumplida)." : " (no cumplida).") + " Balance: " + balance + ".";
         informe = new InformeMision(codigo + " — " + nombre, exitosa, acciones, objetivo, recorrido, balance,

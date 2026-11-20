@@ -403,3 +403,21 @@
 * **Revisión o modificación realizada por el equipo:** Luca Zuanetti fijó la precedencia de fuentes, revisó la auditoría, aprobó las lecturas propuestas para las contradicciones (la energía inicial reemplaza el costo de la acción final; warp ante un obstáculo y, sin energía, recálculo) y revisó el código y la documentación resultantes. No se corrigieron los hallazgos para consultar (consultas públicas del motor) ni el de severidad baja (nombre de M-03). La etiqueta `entrega-e2` la crea Luca Zuanetti a mano sobre el commit final de `main`.
 
 * **Forma en que se verificó el resultado:** las 5 pruebas nuevas fallaron antes de la corrección y pasan después. `mvn clean test` pasa con 376 pruebas en verde (antes 371). Las pruebas de concurrencia, controladores, vistas y misiones se repitieron 10 veces sin fallas.
+
+### Registro de Asistencia: Prueba manual de la E2 (20/11/2026)
+
+* **Herramienta utilizada:** Claude Code (Anthropic), con control del escritorio para operar la ventana Swing.
+
+* **Propósito de la consulta:** probar a mano `app.App`, en la rama `luca-revision-anexo`, contra el Enunciado E2 y el Anexo Misiones y Motor Warp: acceso (DAO/DTO), creación de nave y tripulación, tripulantes y salarios, control de la nave (Observer y tablero), misiones (mínimos, despegue, encuentros, warp ante un obstáculo, cancelación, informe), Visor de concurrencia y robustez; reproducir cada hallazgo y confirmarlo en el código; corregir sólo lo aprobado.
+
+* **Componente o documento afectado:** `BalanceRecursos` (recarga y reparación en la base), `Mision` (ganchos `getCombustibleARecargar()`, `getEnergiaARecargar()` y `getDesgasteAReparar()` y su uso en `evaluar()`), `MisionRetorno` (los redefine); pruebas nuevas en `MisionTest` (2) y comprobaciones agregadas en `TravesiaTest`; `README.md`, `docs/diseño.md` (secciones 3 y 4), `docs/diagrama_clases.md` y este registro.
+
+* **Resultado aprovechado:**
+  * Partimos de código propio y de compañeros: el ciclo de misiones y su informe son de Axel Sanches (commit `947dd8c`), integrados y corregidos por Luca Zuanetti (`5f4b860`, `590ead1`).
+  * Claude propuso lo suyo: la prueba manual con su tabla de casos (la base de prueba se creó fuera de `datos/`, con `-Dexec.workingdir`), los hallazgos reproducidos y confirmados en el código, y la corrección del aprobado con su prueba.
+  * Corregimos en conjunto el error aprobado: el informe de M-03 no mostraba en el balance la recarga ni la reparación que aplica el cierre. Ahora las informa aparte de los "ganados" del trayecto, como las gemas de M-02 y los suministros de M-01.
+  * Implementamos todo de la forma más coherente posible con el diseño existente: con ganchos con implementación por defecto (Template Method), sin condicionales de tipo, sin modificar el asistente, las clases de la cátedra ni las vistas (el informe se muestra con `toString()` del balance).
+
+* **Revisión o modificación realizada por el equipo:** Luca Zuanetti fijó las fuentes y las reglas de la prueba, revisó el informe y eligió qué hallazgo corregir. No se corrigieron los de severidad baja (ids de tripulante consumidos por altas rechazadas; Enter no envía el login) ni el que queda para consultar a la cátedra (una nave puede quedar "Operativa" sin energía para ninguna misión). La etiqueta `entrega-e2` la crea Luca Zuanetti a mano sobre el commit final de `main`.
+
+* **Forma en que se verificó el resultado:** la prueba nueva del balance de M-03 falla sin la corrección (esperaba 70 de combustible recargado y obtenía 0) y pasa después. `mvn clean test` pasa con 378 pruebas en verde (antes 376). En la aplicación, una M-03 muestra en el informe la misma recarga y reparación que registra la Bitácora.

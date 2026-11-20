@@ -257,6 +257,9 @@ public class TravesiaTest {
         assertFalse(asistente.naveDestruida());
         assertEquals(new Posicion(5, 2), tablero.getPosicionNave());
         assertTrue(informe.getAcciones().stream().anyMatch(a -> a.contains("no tiene recursos para avanzar")));
+        assertEquals(0, informe.getBalance().getCombustibleRecargado(), "M-03 fallida: el cierre no recarga");
+        assertEquals(0, informe.getBalance().getEnergiaRecargada());
+        assertEquals(0, informe.getBalance().getDesgasteReparado());
     }
 
     // --- Verificación en destino (Fase 2, punto 3) ---

@@ -390,6 +390,9 @@ classDiagram
         # getCombustibleAEntregar() int
         # getEnergiaAEntregar() int
         # getGemasObtenidas() int
+        # getCombustibleARecargar() int
+        # getEnergiaARecargar() int
+        # getDesgasteAReparar() int
         # aplicarCierre()
         + asignarAsistente(asistente: Asistente)
         + configurarPausaPorTurno(milisegundos: int)
@@ -469,6 +472,9 @@ classDiagram
         # fijarObjetivo(tablero: Tablero) Posicion
         # getEnergiaInicial() int
         # realizarAccion()
+        # getCombustibleARecargar() int
+        # getEnergiaARecargar() int
+        # getDesgasteAReparar() int
         # aplicarCierre()
         + getCondicionDeExito() String
     }
@@ -517,7 +523,8 @@ classDiagram
         - int combustiblePerdido, energiaPerdida
         - int combustibleGanado, energiaGanada
         - int gemasObtenidas, combustibleEntregado, energiaEntregada
-        ~ BalanceRecursos(...10 valores...)
+        - int combustibleRecargado, energiaRecargada, desgasteReparado
+        ~ BalanceRecursos(...13 valores...)
         + getCombustibleConsumido() int
         + getEnergiaConsumida() int
         + getDesgasteProducido() int
@@ -528,6 +535,9 @@ classDiagram
         + getGemasObtenidas() int
         + getCombustibleEntregado() int
         + getEnergiaEntregada() int
+        + getCombustibleRecargado() int
+        + getEnergiaRecargada() int
+        + getDesgasteReparado() int
         - invariante() boolean
     }
     class Asistente

@@ -13,7 +13,8 @@ import modelo.universo.Tablero;
  *       Paso 3). No se registra como objetivo del tablero, porque {@link Tablero#obtenerObjetivo()} siempre elige
  *       una casilla al azar.</li>
  *   <li>Energía inicial: 0 (Anexo, consumo inicial); al regresar tampoco hay consumos adicionales.</li>
- *   <li>Cierre (Fase 4): reparación del desgaste y recarga total (100 %) de combustible y energía (Anexo).</li>
+ *   <li>Cierre (Fase 4): reparación del desgaste y recarga total (100 %) de combustible y energía (Anexo). El
+ *       informe (Fase 3) ya las incluye en el balance, como las gemas de M-02 y los suministros de M-01.</li>
  * </ul>
  *
  * Sólo redefine sus pasos particulares; el ciclo lo fija {@link Mision#realizar()} (Template Method).
@@ -52,6 +53,35 @@ public class MisionRetorno extends Mision {
     @Override
     protected void realizarAccion() {
         registrarAccion("Ejecución: arribo confirmado a la base de origen (la recarga y la reparación se aplican en el cierre).");
+    }
+
+    /**
+     * Lo que el cierre recarga, para el balance del informe (Fase 3): lo que le falta a la nave para la capacidad
+     * máxima, porque el reabastecimiento no la supera.
+     *
+     * @pre La misión fue exitosa y todavía no se cerró (se consulta en la evaluación, con la nave en la base).
+     */
+    @Override
+    protected int getCombustibleARecargar() {
+        return RECARGA_EN_BASE - getAsistente().getCombustible();
+    }
+
+    /**
+     * @pre La misión fue exitosa y todavía no se cerró (se consulta en la evaluación, con la nave en la base).
+     */
+    @Override
+    protected int getEnergiaARecargar() {
+        return RECARGA_EN_BASE - getAsistente().getEnergia();
+    }
+
+    /**
+     * Lo que el cierre repara, para el balance del informe (Fase 3): el mantenimiento lleva el desgaste a 0.
+     *
+     * @pre La misión fue exitosa y todavía no se cerró (se consulta en la evaluación, con la nave en la base).
+     */
+    @Override
+    protected int getDesgasteAReparar() {
+        return getAsistente().getDesgaste();
     }
 
     /**
