@@ -99,8 +99,8 @@ public class VistaSelectMisionTest {
         esperarEDT();
         assertFalse(vista.getBtnIniciarMision().isEnabled());
 
-        // Recursos y estado suficientes
-        vista.mostrarDetallesMision(m1, true, 50, 50);
+        // Recursos y estado suficientes para cualquier sorteo de suministros (hasta 50 de cada uno, Anexo)
+        vista.mostrarDetallesMision(m1, true, 100, 100);
         esperarEDT();
         assertTrue(vista.getBtnIniciarMision().isEnabled());
     }

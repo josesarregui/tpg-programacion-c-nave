@@ -355,6 +355,8 @@ estados pueden cambiar el estado.
 classDiagram
     class Mision {
         <<abstract>>
+        + int COMBUSTIBLE_DESPEGUE = 4$
+        + int DESGASTE_DESPEGUE = 4$
         + int ENERGIA_ESCANEO_LARGO = 5$
         + int ENERGIA_ESCANEO_CORTO = 1$
         + int ENERGIA_RECALCULO = 2$
@@ -382,7 +384,7 @@ classDiagram
         - int combustiblePerdido, energiaPerdida, combustibleGanado, energiaGanada
         # Mision(codigo: String, nombre: String, tablero: Tablero, destino: Destino)
         # fijarObjetivo(tablero: Tablero) Posicion*
-        # getEnergiaAdicional() int*
+        # getEnergiaInicial() int*
         # realizarAccion()*
         + getCondicionDeExito() String*
         # getCombustibleAEntregar() int
@@ -430,15 +432,15 @@ classDiagram
         ~ sonVecinas(una: Posicion, otra: Posicion) boolean$
     }
     class MisionIntercepcion {
-        + int ENERGIA_ADICIONAL = 5$
-        + int SUMINISTRO_MINIMO = 5$
-        + int SUMINISTRO_MAXIMO = 20$
+        + int ENERGIA_INICIAL = 5$
+        + int SUMINISTRO_MINIMO = 0$
+        + int SUMINISTRO_MAXIMO = 50$
         - int combustibleAEntregar
         - int energiaAEntregar
         + MisionIntercepcion(tablero: Tablero, destino: Destino)
         + MisionIntercepcion(tablero: Tablero, destino: Destino, azar: Random)
         # fijarObjetivo(tablero: Tablero) Posicion
-        # getEnergiaAdicional() int
+        # getEnergiaInicial() int
         + getCombustibleAEntregar() int
         + getEnergiaAEntregar() int
         # realizarAccion()
@@ -446,26 +448,26 @@ classDiagram
         + getCondicionDeExito() String
     }
     class MisionRecoleccion {
-        + int ENERGIA_ADICIONAL = 5$
-        + int GEMAS_MINIMAS = 60$
+        + int ENERGIA_INICIAL = 10$
+        + int GEMAS_MINIMAS = 20$
         + int GEMAS_MAXIMAS = 100$
         - Random azar
         - int gemasObtenidas
         + MisionRecoleccion(tablero: Tablero, destino: Destino)
         + MisionRecoleccion(tablero: Tablero, destino: Destino, azar: Random)
         # fijarObjetivo(tablero: Tablero) Posicion
-        # getEnergiaAdicional() int
+        # getEnergiaInicial() int
         # realizarAccion()
         + getGemasObtenidas() int
         # aplicarCierre()
         + getCondicionDeExito() String
     }
     class MisionRetorno {
-        - int ENERGIA_ADICIONAL = 0$
+        - int ENERGIA_INICIAL = 0$
         + int RECARGA_EN_BASE = 100$
         + MisionRetorno(tablero: Tablero, destino: Destino)
         # fijarObjetivo(tablero: Tablero) Posicion
-        # getEnergiaAdicional() int
+        # getEnergiaInicial() int
         # realizarAccion()
         # aplicarCierre()
         + getCondicionDeExito() String
@@ -553,22 +555,23 @@ classDiagram
     Mision ..> RecursoInsuficienteException : lanza
 ```
 
-**Ciclo de travesía (Enunciado E2, Fase 2).** `ejecutar()` cobra el despegue (escaneo de largo alcance) y repite, mientras
+**Ciclo de travesía (Enunciado E2, Fase 2).** `ejecutar()` cobra el despegue (consumo inicial del Anexo: 4 de combustible, 4 de desgaste y la energía inicial de la
+misión; más el escaneo de largo alcance) y repite, mientras
 la nave no esté destruida, no haya llegado y pueda avanzar (con un tope de x·y turnos; una maniobra warp en curso
 se completa aunque se interrumpa la travesía o se alcance el tope):
 
 1. **Turno de la nave:** `tablero.inspeccionarPosicion()` y, si hay elemento, `elemento.interactuarCon(asistente)`;
    `tablero.observarAlrededores()` (radar de corto alcance, 1 de energía); el `Navegador` da el próximo paso de la ruta y, si
-   el radar ve una amenaza en él, se recalcula con `tablero.verTablero()` (2 de energía); el asistente ordena `saltar()` o un
-   turno de `saltarWarp()` (Anexo) y la misión mueve la nave con `tablero.moverNave(...)` a una casilla vecina dentro del
+   el radar ve un obstáculo en él, la nave inicia la maniobra warp para esquivarlo (Anexo) o, sin energía para completarla,
+   se recalcula con `tablero.verTablero()` (2 de energía); el asistente ordena `saltar()` o un turno de `saltarWarp()` (Anexo) y la misión mueve la nave con `tablero.moverNave(...)` a una casilla vecina dentro del
    tablero (dos casillas en el turno del salto warp), con 1 de desgaste por casilla.
 2. **Turno del tablero:** `destino.turnoDestino()`.
 3. **Pausa:** `Thread.sleep(pausaPorTurno)`; si se interrumpe, se restaura la interrupción y termina la travesía (la misión
    falla aunque la nave haya llegado en ese turno).
 
 Sin energía para el escaneo, la nave no avanza; la maniobra warp se inicia sólo con energía para completarla
-(`ENERGIA_MANIOBRA_WARP`). Al llegar, completa el enfriamiento si llegó con warp, verifica en destino los recursos de la acción final y la entrega, y
-realiza la acción. `evaluar()` confecciona el informe con el balance; `cerrar()` aplica `aplicarCierre()` si fue exitosa.
+(`ENERGIA_MANIOBRA_WARP`). Al llegar, completa el enfriamiento si llegó con warp, verifica en destino los recursos de la entrega y
+realiza la acción (sin costo: la energía de la misión se cobra al despegar). `evaluar()` confecciona el informe con el balance; `cerrar()` aplica `aplicarCierre()` si fue exitosa.
 
 ## 5. Asistente, centro de control y Bitácora (E1-03, E1-05; Aclaración R1, R2, R4 y R5)
 

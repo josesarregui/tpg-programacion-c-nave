@@ -208,7 +208,7 @@ public class DemostracionEntrega1 {
         System.out.println("Nave en uso: " + describir(centro.getAsistenteEnUso()));
         try {
             asistente.asignarTripulacion(crearTripulacion("Sisko", "Dax", "Kira", "Nog", "Ezri"));
-            // M-02 necesita al menos 11 de energía (despegue, un escaneo corto y la acción final).
+            // M-02 necesita al menos 16 de energía (escaneo de largo alcance, energía inicial del Anexo y un escaneo corto).
             asistente.consumirRecursos(0, 90, 0);
         } catch (TripulanteInvalidoException | TripulacionInvalidaException | CantidadInvalidaException
                  | RecursoInsuficienteException | CapacidadExcedidaException e) {

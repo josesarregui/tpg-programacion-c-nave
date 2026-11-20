@@ -6,8 +6,8 @@ package modelo.mision;
  * sin cambiar el modelo.
  *
  * <ul>
- *   <li><b>Consumidos:</b> lo que la misión gastó por decisión propia (Tabla de Recursos, IV.5): escaneos de largo
- *       y corto alcance, recálculos, saltos del Motor Warp (Anexo) y la acción final.</li>
+ *   <li><b>Consumidos:</b> lo que la misión gastó por decisión propia (Tabla de Recursos, IV.5; Anexo): el consumo
+ *       inicial del despegue, escaneos de largo y corto alcance, recálculos y saltos del Motor Warp.</li>
  *   <li><b>Perdidos:</b> lo que quitaron los elementos del universo al coincidir con la nave (asteroides).</li>
  *   <li><b>Ganados:</b> lo que aportaron los elementos del universo (estaciones de carga).</li>
  *   <li><b>Resultado de la misión:</b> gemas obtenidas (M-02) y suministros a entregar (M-01). Se informan en la

@@ -34,8 +34,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * elementos, para que el recorrido sea determinista.
  *
  * Recorrido de referencia: la nave parte del centro (5, 5) y el objetivo está a 3 casillas, en (5, 8). Sin
- * imprevistos, cada misión cuesta (Tabla de Recursos, IV; Anexo): despegue 5 de energía; por casilla, un escaneo
- * corto (1 de energía), un salto normal (2 de combustible) y 1 de desgaste; y la acción final.
+ * imprevistos, cada misión cuesta (Anexo; Tabla de Recursos, IV): despegue 4 de combustible, 4 de desgaste y la
+ * energía inicial de la misión más 5 del escaneo de largo alcance; por casilla, un escaneo corto (1 de energía), un
+ * salto normal (2 de combustible) y 1 de desgaste.
  */
 public class MisionTest {
 
@@ -81,10 +82,10 @@ public class MisionTest {
         assertEquals(gemasEsperadas, mision.getGemasObtenidas());
         assertEquals(gemasEsperadas, asistente.getGemas(), "El cierre acredita las gemas (Fase 4)");
         assertEquals(gemasEsperadas, informe.getBalance().getGemasObtenidas());
-        // Ejemplo de la Tabla de Recursos (IV.6) con 3 casillas: 6 de combustible, 5 + 3 + 5 de energía, 3 de desgaste.
-        assertEquals(54, asistente.getCombustible());
-        assertEquals(67, asistente.getEnergia());
-        assertEquals(3, asistente.getDesgaste());
+        // Despegue (Anexo): 4 de combustible, 10 + 5 de energía y 4 de desgaste; 3 casillas: 6, 3 y 3.
+        assertEquals(60 - 4 - 6, asistente.getCombustible());
+        assertEquals(80 - 15 - 3, asistente.getEnergia());
+        assertEquals(4 + 3, asistente.getDesgaste());
         assertEquals(3, destino.getTurnos(), "Un turno de Destino por cada turno de la nave");
     }
 
@@ -99,9 +100,9 @@ public class MisionTest {
         InformeMision informe = realizar(mision);
 
         assertTrue(informe.isExitosa());
-        assertEquals(54, informe.getCombustibleFinal(), "El informe muestra el estado antes del cierre");
-        assertEquals(67, informe.getEnergiaFinal());
-        assertEquals(54 - combustible, asistente.getCombustible(), "El descuento se hace en el cierre");
+        assertEquals(50, informe.getCombustibleFinal(), "El informe muestra el estado antes del cierre");
+        assertEquals(67, informe.getEnergiaFinal(), "Despegue 5 + 5 de energía y 3 escaneos");
+        assertEquals(50 - combustible, asistente.getCombustible(), "El descuento se hace en el cierre");
         assertEquals(67 - energia, asistente.getEnergia());
         assertEquals(combustible, asistente.getNave().getCombustibleEntregado());
         assertEquals(energia, asistente.getNave().getEnergiaEntregada());
@@ -127,6 +128,74 @@ public class MisionTest {
     }
 
     @Test
+    @DisplayName("Anexo: los suministros de M-01 van de 0 a 50 de cada recurso; con 0 la asistencia se completa sin entrega")
+    public void testRangoSuministrosDelAnexo() throws Exception {
+        MisionIntercepcion maxima = new MisionIntercepcion(tablero, destino, azarFijo(true));
+        assertEquals(50, maxima.getCombustibleAEntregar());
+        assertEquals(50, maxima.getEnergiaAEntregar());
+
+        asistente.asignarTripulacion(tripulacion);
+        MisionIntercepcion minima = new MisionIntercepcion(tablero, destino, azarFijo(false));
+        assertEquals(0, minima.getCombustibleAEntregar());
+        assertEquals(0, minima.getEnergiaAEntregar());
+
+        InformeMision informe = realizar(minima);
+
+        assertTrue(informe.isExitosa());
+        assertEquals(0, asistente.getNave().getCombustibleEntregado());
+        assertEquals(0, asistente.getNave().getEnergiaEntregada());
+    }
+
+    @Test
+    @DisplayName("Anexo: M-02 recolecta entre 20 y 100 gemas")
+    public void testRangoGemasDelAnexo() throws Exception {
+        asistente.asignarTripulacion(tripulacion);
+        MisionRecoleccion mision = new MisionRecoleccion(tablero, destino, azarFijo(false));
+
+        assertTrue(realizar(mision).isExitosa());
+
+        assertEquals(20, mision.getGemasObtenidas(), "El mínimo del sorteo es 20");
+        assertEquals(20, asistente.getGemas());
+        assertEquals(MisionRecoleccion.GEMAS_MINIMAS, mision.getGemasObtenidas());
+        assertEquals(100, MisionRecoleccion.GEMAS_MAXIMAS);
+    }
+
+    @Test
+    @DisplayName("Anexo: el despegue cobra 4 de combustible, 4 de desgaste y la energía inicial de la misión (M-03: 0)")
+    public void testConsumoInicialDelAnexo() throws Exception {
+        asistente.asignarTripulacion(tripulacion);
+
+        // La nave ya está en la base: M-03 no recorre casillas y sólo paga el despegue.
+        InformeMision informe = realizar(new MisionRetorno(tablero, destino));
+
+        assertTrue(informe.isExitosa());
+        assertEquals(1, informe.getRuta().size(), "Sin turnos de travesía");
+        assertEquals(60 - 4, informe.getCombustibleFinal());
+        assertEquals(80 - Mision.ENERGIA_ESCANEO_LARGO, informe.getEnergiaFinal(), "M-03 no tiene energía inicial");
+        assertEquals(4, informe.getDesgasteFinal());
+        assertEquals(4, informe.getBalance().getCombustibleConsumido());
+        assertEquals(4, informe.getBalance().getDesgasteProducido());
+    }
+
+    @Test
+    @DisplayName("Anexo y Escenario B: sin combustible para el despegue y un salto normal, la misión se rechaza sin cambios")
+    public void testEscenarioBCombustibleDelDespegue() throws Exception {
+        asistente.asignarTripulacion(tripulacion);
+        asistente.consumirRecursos(55, 0, 0); // quedan 5: el despegue (4) y un salto normal (2) suman 6
+        tablero.moverNave(new Posicion(5, 4));
+        Mision mision = new MisionRetorno(tablero, destino);
+        asistente.encomendarMision(mision);
+
+        RecursoInsuficienteException e = assertThrows(RecursoInsuficienteException.class, asistente::ejecutarMision);
+
+        assertEquals(TipoRecurso.COMBUSTIBLE, e.getRecurso());
+        assertEquals(6, e.getCantidadSolicitada());
+        assertEquals(5, asistente.getCombustible());
+        assertEquals(0, asistente.getDesgaste());
+        assertEquals(EtapaMision.CREADA, mision.getEtapa());
+    }
+
+    @Test
     @DisplayName("Fase 4: M-03 regresa al centro (base de origen), repara el desgaste y recarga en el cierre")
     public void testRetornoExitoso() throws Exception {
         asistente.asignarTripulacion(tripulacion);
@@ -138,7 +207,7 @@ public class MisionTest {
         assertTrue(informe.isExitosa());
         assertEquals(CENTRO, informe.getObjetivo());
         assertEquals(CENTRO, tablero.getPosicionNave());
-        assertEquals(43, informe.getDesgasteFinal(), "El informe muestra el desgaste del arribo");
+        assertEquals(40 + 4 + 3, informe.getDesgasteFinal(), "El informe muestra el desgaste del arribo");
         assertEquals(0, asistente.getDesgaste(), "El cierre repara el desgaste");
         assertEquals(100, asistente.getCombustible(), "El cierre recarga el combustible");
         assertEquals(100, asistente.getEnergia(), "El cierre recarga la energía");
@@ -178,12 +247,12 @@ public class MisionTest {
         assertEquals(CENTRO, informe.getRuta().get(0));
         assertEquals(OBJETIVO, informe.getRuta().get(3));
         BalanceRecursos balance = informe.getBalance();
-        assertEquals(6, balance.getCombustibleConsumido());
-        assertEquals(13, balance.getEnergiaConsumida());
-        assertEquals(3, balance.getDesgasteProducido());
+        assertEquals(10, balance.getCombustibleConsumido());
+        assertEquals(18, balance.getEnergiaConsumida());
+        assertEquals(7, balance.getDesgasteProducido());
         assertEquals(0, balance.getEnergiaPerdida());
         assertEquals(0, balance.getEnergiaGanada());
-        assertEquals(6, informe.getCombustibleConsumido(), "Los consumos también se consultan en el informe");
+        assertEquals(10, informe.getCombustibleConsumido(), "Los consumos también se consultan en el informe");
         assertEquals("Disponible", informe.getEstadoMotorFinal());
         assertTrue(informe.isNaveOperativa());
         assertTrue(informe.getObservaciones().contains("(cumplida)"));
@@ -230,7 +299,7 @@ public class MisionTest {
     }
 
     @Test
-    @DisplayName("Escenario B: M-01 exige energía para los suministros; M-03 (sin acción final) puede realizarse")
+    @DisplayName("Escenario B: M-01 exige energía para los suministros; M-03 (sin energía inicial) puede realizarse")
     public void testEscenarioBEnergia() throws Exception {
         asistente.asignarTripulacion(tripulacion);
         asistente.consumirRecursos(0, 70, 0); // quedan 10 de energía
@@ -240,7 +309,7 @@ public class MisionTest {
         RecursoInsuficienteException e = assertThrows(RecursoInsuficienteException.class, asistente::ejecutarMision);
 
         assertEquals(TipoRecurso.ENERGIA, e.getRecurso());
-        assertEquals(Mision.ENERGIA_ESCANEO_LARGO + Mision.ENERGIA_ESCANEO_CORTO + MisionIntercepcion.ENERGIA_ADICIONAL
+        assertEquals(Mision.ENERGIA_ESCANEO_LARGO + MisionIntercepcion.ENERGIA_INICIAL + Mision.ENERGIA_ESCANEO_CORTO
                 + intercepcion.getEnergiaAEntregar(), e.getCantidadSolicitada());
         assertEquals(60, asistente.getCombustible(), "No se consumió combustible");
         asistente.cancelarMision();
@@ -262,7 +331,7 @@ public class MisionTest {
         InformeMision informe = asistente.ejecutarMision();
 
         assertTrue(informe.isExitosa());
-        assertEquals(5, asistente.getCombustible());
+        assertEquals(11 - 4 - 6, asistente.getCombustible(), "Despegue y tres saltos normales");
     }
 
     @Test
@@ -392,6 +461,18 @@ public class MisionTest {
     }
 
     // --- Auxiliares ---
+
+    /**
+     * Generador que siempre sortea el extremo indicado del rango, para probar los límites sin depender de una semilla.
+     */
+    private static Random azarFijo(boolean maximo) {
+        return new Random() {
+            @Override
+            public int nextInt(int limite) {
+                return maximo ? limite - 1 : 0;
+            }
+        };
+    }
 
     private InformeMision realizar(Mision mision) throws Exception {
         mision.configurarPausaPorTurno(0);

@@ -12,15 +12,16 @@ import modelo.universo.Tablero;
  *   <li>Objetivo: el centro del tablero, donde comienza la nave (Documentación de Destino y Tablero; Plan de la E2,
  *       Paso 3). No se registra como objetivo del tablero, porque {@link Tablero#obtenerObjetivo()} siempre elige
  *       una casilla al azar.</li>
- *   <li>Sin costo adicional de la acción final (Tabla de Recursos, IV.4).</li>
- *   <li>Cierre (Fase 4): reparación del desgaste y recarga de combustible y energía hasta la capacidad máxima.</li>
+ *   <li>Energía inicial: 0 (Anexo, consumo inicial); al regresar tampoco hay consumos adicionales.</li>
+ *   <li>Cierre (Fase 4): reparación del desgaste y recarga total (100 %) de combustible y energía (Anexo).</li>
  * </ul>
  *
  * Sólo redefine sus pasos particulares; el ciclo lo fija {@link Mision#realizar()} (Template Method).
  */
 public class MisionRetorno extends Mision {
 
-    private static final int ENERGIA_ADICIONAL = 0;
+    /** Energía específica de M-03 al ponerse en marcha (Anexo, consumo inicial). */
+    private static final int ENERGIA_INICIAL = 0;
     /**
      * Recarga en la base: igual a la capacidad máxima de cada recurso (Ficha de Inicio), de modo que el
      * reabastecimiento, que no supera el tope, los deja completos.
@@ -44,8 +45,8 @@ public class MisionRetorno extends Mision {
     }
 
     @Override
-    protected int getEnergiaAdicional() {
-        return ENERGIA_ADICIONAL;
+    protected int getEnergiaInicial() {
+        return ENERGIA_INICIAL;
     }
 
     @Override

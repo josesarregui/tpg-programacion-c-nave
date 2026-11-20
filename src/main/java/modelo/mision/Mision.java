@@ -37,15 +37,17 @@ import java.util.List;
  *       {@link BalanceRecursos}.</li>
  *   <li><b>cerrar</b> (Fase 4): si la misión fue exitosa, aplica a la nave lo ganado o entregado.</li>
  * </ul>
- * Cada misión concreta redefine sólo sus pasos particulares: las operaciones primitivas (objetivo, costo de la
- * acción final, acción al llegar y condición de éxito) y, si los necesita, los ganchos con implementación por
+ * Cada misión concreta redefine sólo sus pasos particulares: las operaciones primitivas (objetivo, energía
+ * inicial, acción al llegar y condición de éxito) y, si los necesita, los ganchos con implementación por
  * defecto (recursos a entregar, gemas obtenidas y cierre). Agregar una misión nueva no requiere modificar las
  * existentes (Aclaración, Pedidos del diseño).
  *
- * Costos (Tabla de Recursos, IV.2 y IV.5; Anexo): el despegue es el escaneo de largo alcance
- * ({@link #ENERGIA_ESCANEO_LARGO}); cada turno cuesta un escaneo de corto alcance ({@link #ENERGIA_ESCANEO_CORTO})
- * por cada casilla que se avanza; cada recálculo, {@link #ENERGIA_RECALCULO}; cada salto, lo que cobra el Motor
- * Warp (Anexo) más {@link #DESGASTE_POR_CELDA} por casilla; y la acción final, {@link #getEnergiaAdicional()}.
+ * Costos (Anexo; Tabla de Recursos, IV.2 y IV.5): el despegue cobra el costo base del Anexo
+ * ({@link #COMBUSTIBLE_DESPEGUE} de combustible y {@link #DESGASTE_DESPEGUE} de desgaste), la energía inicial de la
+ * misión ({@link #getEnergiaInicial()}) y el escaneo de largo alcance ({@link #ENERGIA_ESCANEO_LARGO}); cada turno
+ * cuesta un escaneo de corto alcance ({@link #ENERGIA_ESCANEO_CORTO}) por cada casilla que se avanza; cada recálculo,
+ * {@link #ENERGIA_RECALCULO}; y cada salto, lo que cobra el Motor Warp (Anexo) más {@link #DESGASTE_POR_CELDA} por
+ * casilla. La acción final no tiene costo: el Anexo pone la energía de cada misión al comenzar.
  *
  * Responsabilidades (Guía 4.2 y Aclaración, R2): la misión es el sistema de navegación. Lee los radares del
  * {@link Tablero}, decide con el {@link Navegador}, mueve la nave en el tablero y hace avanzar al {@link Destino}.
@@ -59,7 +61,11 @@ import java.util.List;
  */
 public abstract class Mision {
 
-    /** Escaneo de largo alcance: es el consumo de despegue (Tabla de Recursos, IV.2). */
+    /** Combustible del costo base obligatorio al poner en marcha cualquier misión (Anexo, consumo inicial). */
+    public static final int COMBUSTIBLE_DESPEGUE = 4;
+    /** Desgaste del costo base obligatorio al poner en marcha cualquier misión (Anexo, consumo inicial). */
+    public static final int DESGASTE_DESPEGUE = 4;
+    /** Escaneo de largo alcance para calcular la ruta; se cobra con el despegue (Tabla de Recursos, IV.2). */
     public static final int ENERGIA_ESCANEO_LARGO = 5;
     /** Escaneo de corto alcance, uno por cada casilla que se avanza (Tabla de Recursos, IV.2). */
     public static final int ENERGIA_ESCANEO_CORTO = 1;
@@ -138,14 +144,15 @@ public abstract class Mision {
     protected abstract Posicion fijarObjetivo(Tablero tablero);
 
     /**
-     * @return energía que consume la acción final al llegar al objetivo (Tabla de Recursos, IV.4). Mayor o igual a 0.
+     * @return energía específica que la misión consume al ponerse en marcha, además del costo base (Anexo, consumo
+     *         inicial: M-01 5, M-02 10, M-03 0). Mayor o igual a 0.
      */
-    protected abstract int getEnergiaAdicional();
+    protected abstract int getEnergiaInicial();
 
     /**
-     * Realiza la acción propia de la misión al llegar al objetivo, después de superar la verificación en destino
-     * y de pagar su costo. Debe dejar constancia de lo hecho con {@link #registrarAccion(String)}. Lo que gane o
-     * entregue la nave se aplica recién en el cierre (Enunciado E2, Fases 2 y 4).
+     * Realiza la acción propia de la misión al llegar al objetivo, después de superar la verificación en destino.
+     * Debe dejar constancia de lo hecho con {@link #registrarAccion(String)}. Lo que gane o entregue la nave se
+     * aplica recién en el cierre (Enunciado E2, Fases 2 y 4).
      */
     protected abstract void realizarAccion();
 
@@ -264,8 +271,8 @@ public abstract class Mision {
      * calcula la ruta con el radar de largo alcance. El costo del escaneo se cobra como consumo de despegue al
      * comenzar la ejecución, para que un rechazo no deje cambios en la nave.
      *
-     * Recursos mínimos: el despegue, un escaneo corto, la acción final y los suministros a entregar en energía;
-     * un salto normal y los suministros a entregar en combustible.
+     * Recursos mínimos: en energía, el despegue (escaneo de largo alcance y energía inicial), un escaneo corto y los
+     * suministros a entregar; en combustible, el despegue, un salto normal y los suministros a entregar.
      *
      * @pre etapa == CREADA.
      * @post etapa == PREPARADA, getObjetivo() está dentro del tablero y la ruta planificada termina en él.
@@ -273,7 +280,7 @@ public abstract class Mision {
      */
     private void preparar() throws NaveNoDisponibleException, RecursoInsuficienteException {
         assert etapa == EtapaMision.CREADA : "La misión sólo puede prepararse una vez.";
-        assert getEnergiaAdicional() >= 0 && getCombustibleAEntregar() >= 0 && getEnergiaAEntregar() >= 0
+        assert getEnergiaInicial() >= 0 && getCombustibleAEntregar() >= 0 && getEnergiaAEntregar() >= 0
                 : "Los recursos de la misión no pueden ser negativos.";
 
         if (!asistente.naveListaParaOperar()) {
@@ -308,9 +315,9 @@ public abstract class Mision {
      * cuando no tiene recursos para avanzar, cuando se interrumpe el hilo o cuando se supera el máximo de turnos.
      * En los dos últimos casos, si hay una maniobra warp en curso, primero se completa (una vez iniciada, la maniobra
      * se completa), para que el motor quede Disponible y la nave pueda realizar otra misión.
-     * Si la nave llegó y la travesía no se interrumpió, verifica que la nave conserve los recursos para la acción
-     * final y la entrega (sin descontar la entrega, que se hace en el cierre) y, si los conserva, paga la acción
-     * final y la realiza. Una travesía interrumpida no realiza la acción aunque la nave haya llegado en ese turno.
+     * Si la nave llegó y la travesía no se interrumpió, verifica que la nave conserve los recursos de la entrega
+     * (sin descontarlos, eso se hace en el cierre) y, si los conserva, realiza la acción final. Una travesía
+     * interrumpida no realiza la acción aunque la nave haya llegado en ese turno.
      *
      * @pre etapa == PREPARADA (Observaciones: no se ejecuta sin preparación previa).
      * @post etapa == EJECUTADA. Cada movimiento de la nave en el tablero fue a una casilla dentro del tablero y
@@ -320,8 +327,13 @@ public abstract class Mision {
     private void ejecutar() {
         assert etapa == EtapaMision.PREPARADA : "La misión no puede ejecutarse sin preparación previa.";
 
-        consumir(0, ENERGIA_ESCANEO_LARGO, 0);
-        registrarAccion("Despegue: escaneo de largo alcance (" + ENERGIA_ESCANEO_LARGO + " de energía).");
+        // La preparación verificó los mínimos y la nave lista para operar (desgaste < 80): el despegue no la destruye.
+        int energiaDespegue = ENERGIA_ESCANEO_LARGO + getEnergiaInicial();
+        consumir(COMBUSTIBLE_DESPEGUE, energiaDespegue, DESGASTE_DESPEGUE);
+        registrarAccion("Despegue: puesta en marcha (" + COMBUSTIBLE_DESPEGUE + " de combustible, " + getEnergiaInicial()
+                + " de energía y " + DESGASTE_DESPEGUE + " de desgaste) y escaneo de largo alcance ("
+                + ENERGIA_ESCANEO_LARGO + " de energía).");
+        assert !asistente.naveDestruida() : "Fallo: el despegue no puede destruir la nave.";
 
         int turno = 0;
         int maximoTurnos = tablero.getX() * tablero.getY();
@@ -419,19 +431,33 @@ public abstract class Mision {
     }
 
     /**
-     * Elige el salto y mueve la nave (Anexo): con el motor Disponible, salto normal si al consumir el combustible
-     * la nave no queda destruida; si no, inicia la maniobra warp si la energía alcanza para completarla sin
-     * destruir la nave ({@link #ENERGIA_MANIOBRA_WARP}). Con una maniobra en curso, la continúa: sólo en el turno
-     * del salto la nave avanza dos casillas.
+     * Elige el salto y mueve la nave (Anexo, "Navegación y Motor Warp"). Con el motor Disponible:
+     * <ul>
+     *   <li>si el radar de corto alcance detecta un obstáculo en la siguiente posición de la ruta y la energía alcanza
+     *       para completar la maniobra warp sin destruir la nave ({@link #ENERGIA_MANIOBRA_WARP}), la inicia para
+     *       esquivarlo;</li>
+     *   <li>si no, salto normal si al consumir el combustible la nave no queda destruida (con un obstáculo y sin
+     *       energía para el warp, antes recalcula la ruta: Tabla de Recursos, IV.3);</li>
+     *   <li>sin combustible para el salto normal, inicia la maniobra warp si la energía alcanza para completarla.</li>
+     * </ul>
+     * Con una maniobra en curso, la continúa: sólo en el turno del salto la nave avanza dos casillas.
      *
+     * @pre La nave no está en el objetivo y la ruta planificada parte de su posición.
      * @return false si no puede avanzar sin destruirse; true en otro caso.
      */
     private boolean planificarYSaltar(ElementoDelUniverso[][] alrededores, int turno) {
+        assert !rutaPlanificada.isEmpty() && Navegador.sonVecinas(tablero.getPosicionNave(), rutaPlanificada.getFirst())
+                : "La ruta planificada debe partir de la posición de la nave.";
         boolean puedeAvanzar = true;
         if (!asistente.motorDisponible()) {
             int casilleros = cobrarSalto(true);
             registrarAccion("Turno " + turno + ": maniobra warp (" + asistente.getEstadoMotor() + ").");
             avanzar(casilleros, alrededores, turno);
+        } else if (hayAmenaza(alrededores, tablero.getPosicionNave(), rutaPlanificada.getFirst())
+                && asistente.getEnergia() > ENERGIA_MANIOBRA_WARP) {
+            registrarAccion("Turno " + turno + ": obstáculo detectado en " + texto(rutaPlanificada.getFirst())
+                    + "; inicia la maniobra warp para esquivarlo.");
+            cobrarSalto(true);
         } else if (asistente.getCombustible() > MotorWarp.COMBUSTIBLE_SALTO_NORMAL) {
             Posicion siguiente = proximoPaso(alrededores, turno);
             int casilleros = cobrarSalto(false);
@@ -473,18 +499,21 @@ public abstract class Mision {
     }
 
     /**
-     * Avanza la nave los casilleros del salto warp. Cada casilla conserva su costo de escaneo y movimiento
-     * (Tabla de Recursos, IV.2): la segunda casilla se escanea antes de entrar. Si el segundo avance no puede
-     * hacerse (la nave llegó o quedó destruida), no se cobra.
+     * Avanza la nave los casilleros del salto warp. La primera casilla es la siguiente de la ruta y se pasa por
+     * encima sin recalcular: así el salto esquiva el obstáculo que lo motivó (Anexo), y la nave sólo interactúa con
+     * el elemento de la casilla en la que termina el turno. Cada casilla conserva su costo de escaneo y movimiento
+     * (Tabla de Recursos, IV.2): la segunda se escanea antes de entrar y, si hay una amenaza, se recalcula. Si el
+     * segundo avance no puede hacerse (la nave llegó o quedó destruida), no se cobra.
      */
     private void avanzar(int casilleros, ElementoDelUniverso[][] alrededores, int turno) {
-        ElementoDelUniverso[][] lectura = alrededores;
         for (int i = 0; i < casilleros && !asistente.naveDestruida() && !tablero.getPosicionNave().equals(objetivo); i++) {
-            if (i > 0) {
-                lectura = escanearCortoAlcance();
-            }
-            if (!asistente.naveDestruida()) {
-                moverA(proximoPaso(lectura, turno), turno, "salto warp");
+            if (i == 0) {
+                moverA(rutaPlanificada.getFirst(), turno, "salto warp");
+            } else {
+                ElementoDelUniverso[][] lectura = escanearCortoAlcance();
+                if (!asistente.naveDestruida()) {
+                    moverA(proximoPaso(lectura, turno), turno, "salto warp");
+                }
             }
         }
     }
@@ -563,22 +592,19 @@ public abstract class Mision {
     }
 
     /**
-     * Verificación en destino (Enunciado E2, Fase 2, punto 3): la nave debe conservar los recursos a entregar y la
-     * energía de la acción final, sin quedar destruida al usarlos. Si los conserva, paga la acción final y la
-     * realiza; si no, la misión resultará fallida. La entrega no se descuenta aquí, sino en el cierre.
+     * Verificación en destino (Enunciado E2, Fase 2, punto 3): la nave debe conservar los recursos a entregar, sin
+     * quedar destruida al entregarlos. Si los conserva, realiza la acción final (sin costo: la energía de la misión
+     * se cobró al despegar, Anexo); si no, la misión resultará fallida. La entrega no se descuenta aquí, sino en el
+     * cierre.
      */
     private void verificarEnDestino() {
         verificadaEnDestino = asistente.getCombustible() > getCombustibleAEntregar()
-                && asistente.getEnergia() > getEnergiaAEntregar() + getEnergiaAdicional();
+                && asistente.getEnergia() > getEnergiaAEntregar();
         if (verificadaEnDestino) {
-            if (getEnergiaAdicional() > 0) {
-                consumir(0, getEnergiaAdicional(), 0);
-            }
             realizarAccion();
         } else {
-            registrarAccion("Verificación en destino: la nave ya no conserva los recursos para la acción final"
-                    + " y la entrega (combustible " + getCombustibleAEntregar() + ", energía "
-                    + (getEnergiaAEntregar() + getEnergiaAdicional()) + ").");
+            registrarAccion("Verificación en destino: la nave ya no conserva los recursos para la entrega"
+                    + " (combustible " + getCombustibleAEntregar() + ", energía " + getEnergiaAEntregar() + ").");
         }
     }
 
@@ -601,7 +627,8 @@ public abstract class Mision {
      * Aplica un costo de la misión a través del asistente y lo lleva al balance.
      *
      * @pre Las cantidades son constantes no negativas y se verificó antes que el recurso alcanza; el desgaste se
-     *      cobra de a una casilla, de modo que llegar a 100 destruye la nave sin superar el máximo.
+     *      cobra de a una casilla, de modo que llegar a 100 destruye la nave sin superar el máximo, salvo el del
+     *      despegue, que se cobra con la nave lista para operar (desgaste menor que 80).
      */
     private void consumir(int combustible, int energia, int desgaste) {
         try {
@@ -695,23 +722,23 @@ public abstract class Mision {
     }
 
     /**
-     * Combustible mínimo para iniciar la misión (Fase 1): un salto normal (Anexo) más los suministros a entregar.
-     * Permite que la vista muestre la factibilidad sin repetir el cálculo.
+     * Combustible mínimo para iniciar la misión (Fase 1): el despegue y un salto normal (Anexo) más los suministros a
+     * entregar. Permite que la vista muestre la factibilidad sin repetir el cálculo.
      *
      * @post El valor retornado es mayor que 0.
      */
     public int getCombustibleMinimo() {
-        return MotorWarp.COMBUSTIBLE_SALTO_NORMAL + getCombustibleAEntregar();
+        return COMBUSTIBLE_DESPEGUE + MotorWarp.COMBUSTIBLE_SALTO_NORMAL + getCombustibleAEntregar();
     }
 
     /**
-     * Energía mínima para iniciar la misión (Fase 1): el despegue (escaneo de largo alcance), un escaneo de corto
-     * alcance, la acción final y los suministros a entregar (Tabla de Recursos, IV).
+     * Energía mínima para iniciar la misión (Fase 1): el despegue (escaneo de largo alcance y energía inicial de la
+     * misión, Anexo), un escaneo de corto alcance y los suministros a entregar (Tabla de Recursos, IV).
      *
      * @post El valor retornado es mayor que 0.
      */
     public int getEnergiaMinima() {
-        return ENERGIA_ESCANEO_LARGO + ENERGIA_ESCANEO_CORTO + getEnergiaAdicional() + getEnergiaAEntregar();
+        return ENERGIA_ESCANEO_LARGO + getEnergiaInicial() + ENERGIA_ESCANEO_CORTO + getEnergiaAEntregar();
     }
 
     /**

@@ -178,8 +178,9 @@ public class AsistenteComandoTest {
         assertSame(informe, asistente.getMisionesRealizadas().get(0).getInforme());
         assertUltimoEvento(TipoEvento.MISION, "Informe de M-03");
         assertUltimoEvento(TipoEvento.MISION, "exitosa");
-        // Una casilla: despegue 5 + escaneo 1 de energía; salto normal 2 de combustible; 1 de desgaste.
-        assertUltimoEvento(TipoEvento.MISION, "Consumo: combustible 2, energía 6, desgaste 1");
+        // Una casilla: despegue 4 de combustible, 5 de energía y 4 de desgaste (Anexo; M-03 sin energía inicial);
+        // escaneo 1 de energía; salto normal 2 de combustible; 1 de desgaste.
+        assertUltimoEvento(TipoEvento.MISION, "Consumo: combustible 6, energía 6, desgaste 5");
         assertUltimoEvento(TipoEvento.MISION, "Casillas recorridas: 1");
         // El estado final es el posterior al cierre: M-03 recarga y repara en la base.
         assertUltimoEvento(TipoEvento.MISION, "Estado final: combustible 100, energía 100, desgaste 0");
