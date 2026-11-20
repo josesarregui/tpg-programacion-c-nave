@@ -214,6 +214,47 @@ public class MisionTest {
     }
 
     @Test
+    @DisplayName("Fase 3: el balance de M-03 incluye la recarga y la reparación que aplica el cierre")
+    public void testBalanceDelRetorno() throws Exception {
+        asistente.asignarTripulacion(tripulacion);
+        asistente.consumirRecursos(20, 30, 40); // 40 / 50 / 40
+        tablero.moverNave(new Posicion(5, 2));
+
+        InformeMision informe = realizar(new MisionRetorno(tablero, destino));
+
+        // Al llegar: despegue 4 / 5 / 4 y 3 casillas 6 / 3 / 3, es decir 30 / 42 / 47.
+        assertTrue(informe.isExitosa());
+        assertEquals(30, informe.getCombustibleFinal());
+        assertEquals(42, informe.getEnergiaFinal());
+        assertEquals(47, informe.getDesgasteFinal());
+        BalanceRecursos balance = informe.getBalance();
+        assertEquals(100 - 30, balance.getCombustibleRecargado(), "Lo que falta para la capacidad máxima");
+        assertEquals(100 - 42, balance.getEnergiaRecargada());
+        assertEquals(47, balance.getDesgasteReparado(), "Todo el desgaste al llegar");
+        assertEquals(0, balance.getCombustibleGanado(), "La recarga en la base no es una ganancia del trayecto");
+        assertEquals(0, balance.getEnergiaGanada());
+        // El balance coincide con lo que el cierre aplicó a la nave.
+        assertEquals(informe.getCombustibleFinal() + balance.getCombustibleRecargado(), asistente.getCombustible());
+        assertEquals(informe.getEnergiaFinal() + balance.getEnergiaRecargada(), asistente.getEnergia());
+        assertEquals(informe.getDesgasteFinal() - balance.getDesgasteReparado(), asistente.getDesgaste());
+        assertTrue(informe.getObservaciones().contains(
+                "recarga en la base (combustible 70, energía 58, desgaste reparado 47)"));
+    }
+
+    @Test
+    @DisplayName("Fase 3: las misiones que no recargan informan recarga y reparación en 0")
+    public void testBalanceSinRecarga() throws Exception {
+        asistente.asignarTripulacion(tripulacion);
+
+        InformeMision informe = realizar(new MisionRecoleccion(tablero, destino, new Random(SEMILLA)));
+
+        assertTrue(informe.isExitosa());
+        assertEquals(0, informe.getBalance().getCombustibleRecargado());
+        assertEquals(0, informe.getBalance().getEnergiaRecargada());
+        assertEquals(0, informe.getBalance().getDesgasteReparado());
+    }
+
+    @Test
     @DisplayName("Template Method: los cuatro pasos se realizan en orden; el informe existe desde la evaluación")
     public void testCicloEnOrden() throws Exception {
         asistente.asignarTripulacion(tripulacion);

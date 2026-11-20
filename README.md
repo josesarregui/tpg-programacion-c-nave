@@ -66,7 +66,7 @@ recursos y mantenimiento con el **Escenario D**; el **Escenario B** y el **Escen
 ```
 mvn clean test
 ```
-Ejecuta las 376 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Ejecuta las 378 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
 Para una sola clase: `mvn test -Dtest=EsquemaSQLTest`.
 Las pruebas de misiones son deterministas: usan un tablero de prueba con los elementos ubicados por la prueba, un Destino que
 no mueve elementos (o que los mueve como indica la prueba), un `Random` con semilla y pausa 0 entre turnos. La única
@@ -112,7 +112,7 @@ hay entorno gráfico.
 | Obstáculo en la próxima casilla (Anexo) | Si Destino cruza un asteroide en el próximo paso, la nave inicia la maniobra warp y salta por encima de él (sin impacto ni recálculo). Sin energía para completar la maniobra, recalcula la ruta (2 de energía, Tabla de Recursos IV.3) y lo esquiva. | `TravesiaTest` |
 | Transición entre casillas | Cada movimiento queda dentro del tablero y es vecino del anterior, también desde un borde; el salto warp avanza 2 casillas en el mismo turno (ante un obstáculo o sin combustible para un salto normal) y termina con el motor Disponible. Sin recursos para avanzar, la misión se aborta sin destruir la nave: la maniobra warp sólo se inicia si la energía alcanza para completarla y, sin energía para el escaneo de corto alcance, la nave no escanea ni avanza. | `TravesiaTest` |
 | Verificación en destino (M-01) | Si la nave consumió en el viaje los suministros a entregar, la misión falla y no se descuenta nada. | `TravesiaTest` |
-| Fase 3: informe | Objetivo, ruta recorrida, resultado, acciones, balance como datos (consumidos, perdidos, ganados, gemas y suministros), estado al evaluar y observaciones; listas de sólo lectura. | `MisionTest` |
+| Fase 3: informe | Objetivo, ruta recorrida, resultado, acciones, balance como datos (consumidos, perdidos, ganados, gemas, suministros y la recarga y reparación de M-03), estado al evaluar y observaciones; listas de sólo lectura. | `MisionTest` |
 | Fase 4: cierre | M-01 entrega los suministros, M-02 acredita las gemas y M-03 repara el desgaste y recarga al 100 % en la base (Anexo). La Bitácora registra el estado posterior al cierre. | `MisionTest`, `AsistenteComandoTest` |
 | Gemas y suministros aleatorios (Anexo) | Suministros de M-01 de 0 a 50 de cada recurso (con 0 la asistencia se completa sin entrega) y gemas de M-02 de 20 a 100: se prueban los extremos del sorteo. Con la misma semilla son reproducibles. | `MisionTest` |
 | Pausa y concurrencia | La pausa por turno es configurable (0 en las pruebas). Si el hilo se interrumpe, se restaura la interrupción, termina la travesía y la misión falla, aunque la nave llegue en ese turno (el cierre no aplica nada). Una maniobra warp en curso se completa antes de terminar, para que la nave quede lista para otra misión. | `MisionTest`, `TravesiaTest` |
