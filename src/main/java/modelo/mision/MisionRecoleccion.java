@@ -11,10 +11,10 @@ import java.util.Random;
  * ({@link Tablero#obtenerObjetivo()}) y, al arribar, recolectar gemas.
  *
  * <ul>
- *   <li>Gemas: la cantidad es variable (ni la Guía 4.2 ni la Tabla de Recursos fijan montos). Se sortea al llegar,
+ *   <li>Gemas: recompensa variable de entre 20 y 100 (Anexo, consumo al final de la misión). Se sortea al llegar,
  *       entre {@link #GEMAS_MINIMAS} y {@link #GEMAS_MAXIMAS}, con un generador inyectable para que las pruebas
  *       sean deterministas. Se informan en la evaluación y se acreditan a la nave en el cierre (Fase 4).</li>
- *   <li>Costo de la acción final: {@link #ENERGIA_ADICIONAL} de energía (Tabla de Recursos, IV.4).</li>
+ *   <li>Energía inicial: {@link #ENERGIA_INICIAL}, que se cobra con el despegue (Anexo, consumo inicial).</li>
  * </ul>
  *
  * Sólo redefine sus pasos particulares; el ciclo lo fija {@link Mision#realizar()} (Template Method).
@@ -23,10 +23,11 @@ import java.util.Random;
  */
 public class MisionRecoleccion extends Mision {
 
-    public static final int ENERGIA_ADICIONAL = 5;
-    /** Mínimo de gemas que se recolectan al llegar. */
-    public static final int GEMAS_MINIMAS = 60;
-    /** Máximo de gemas que se recolectan al llegar. */
+    /** Energía específica de M-02 al ponerse en marcha (Anexo, consumo inicial). */
+    public static final int ENERGIA_INICIAL = 10;
+    /** Mínimo de gemas que se recolectan al llegar (Anexo). */
+    public static final int GEMAS_MINIMAS = 20;
+    /** Máximo de gemas que se recolectan al llegar (Anexo). */
     public static final int GEMAS_MAXIMAS = 100;
 
     private final Random azar;
@@ -60,8 +61,8 @@ public class MisionRecoleccion extends Mision {
     }
 
     @Override
-    protected int getEnergiaAdicional() {
-        return ENERGIA_ADICIONAL;
+    protected int getEnergiaInicial() {
+        return ENERGIA_INICIAL;
     }
 
     /**

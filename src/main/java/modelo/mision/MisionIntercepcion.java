@@ -14,13 +14,14 @@ import java.util.Random;
  * objetivo del tablero ({@link Tablero#obtenerObjetivo()}).
  *
  * <ul>
- *   <li>Suministros solicitados: los pide la nave aliada y son variables (ni la Guía 4.2 ni la Tabla de Recursos
- *       fijan montos). Se sortean al crear la misión, entre {@link #SUMINISTRO_MINIMO} y {@link #SUMINISTRO_MAXIMO},
- *       para que la preparación pueda verificarlos (Aclaración, R4: cada misión conoce sus requisitos). El generador
- *       es inyectable para que las pruebas sean deterministas.</li>
+ *   <li>Suministros solicitados: los pide la nave aliada y valen entre 0 y 50 puntos de energía y/o combustible
+ *       (Anexo, consumo al final de la misión). Cada uno se sortea por separado al crear la misión, entre
+ *       {@link #SUMINISTRO_MINIMO} y {@link #SUMINISTRO_MAXIMO} (con 0 en uno de ellos, la nave aliada sólo pide el
+ *       otro), para que la preparación pueda verificarlos (Aclaración, R4: cada misión conoce sus requisitos). El
+ *       generador es inyectable para que las pruebas sean deterministas.</li>
  *   <li>Verificación en destino (Fase 2): la nave debe conservar los suministros tras el viaje; si no, la misión
  *       falla. La entrega se descuenta en el cierre (Fase 4).</li>
- *   <li>Costo de la acción final: {@link #ENERGIA_ADICIONAL} de energía (Tabla de Recursos, IV.4).</li>
+ *   <li>Energía inicial: {@link #ENERGIA_INICIAL}, que se cobra con el despegue (Anexo, consumo inicial).</li>
  * </ul>
  *
  * Sólo redefine sus pasos particulares; el ciclo lo fija {@link Mision#realizar()} (Template Method).
@@ -29,11 +30,12 @@ import java.util.Random;
  */
 public class MisionIntercepcion extends Mision {
 
-    public static final int ENERGIA_ADICIONAL = 5;
-    /** Mínimo de cada suministro que puede solicitar la nave aliada. */
-    public static final int SUMINISTRO_MINIMO = 5;
-    /** Máximo de cada suministro que puede solicitar la nave aliada. */
-    public static final int SUMINISTRO_MAXIMO = 20;
+    /** Energía específica de M-01 al ponerse en marcha (Anexo, consumo inicial). */
+    public static final int ENERGIA_INICIAL = 5;
+    /** Mínimo de cada suministro que puede solicitar la nave aliada (Anexo). */
+    public static final int SUMINISTRO_MINIMO = 0;
+    /** Máximo de cada suministro que puede solicitar la nave aliada (Anexo). */
+    public static final int SUMINISTRO_MAXIMO = 50;
 
     private final int combustibleAEntregar;
     private final int energiaAEntregar;
@@ -71,8 +73,8 @@ public class MisionIntercepcion extends Mision {
     }
 
     @Override
-    protected int getEnergiaAdicional() {
-        return ENERGIA_ADICIONAL;
+    protected int getEnergiaInicial() {
+        return ENERGIA_INICIAL;
     }
 
     /**
@@ -112,7 +114,7 @@ public class MisionIntercepcion extends Mision {
         try {
             getAsistente().entregarSuministros(combustibleAEntregar, energiaAEntregar);
         } catch (CantidadInvalidaException | RecursoInsuficienteException e) {
-            // No puede ocurrir: las cantidades son positivas y la verificación en destino garantizó que alcanzan.
+            // No puede ocurrir: las cantidades no son negativas y la verificación en destino garantizó que alcanzan.
             throw new IllegalStateException("Error de programación al entregar los suministros de M-01.", e);
         }
     }

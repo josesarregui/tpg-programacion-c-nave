@@ -72,14 +72,14 @@ public class TravesiaTest {
 
         assertTrue(informe.isExitosa());
         assertEquals(Asteroide.DANIO_ENERGIA, informe.getBalance().getEnergiaPerdida());
-        assertEquals(80 - 13 - Asteroide.DANIO_ENERGIA, asistente.getEnergia());
+        assertEquals(80 - 18 - Asteroide.DANIO_ENERGIA, asistente.getEnergia(), "Despegue 15 y 3 escaneos");
         assertTrue(informe.getAcciones().stream().anyMatch(a -> a.contains("encuentro con Asteroide")));
     }
 
     @Test
     @DisplayName("Destrucción durante el recorrido: el impacto deja la energía en 0, la misión se aborta y falla")
     public void testDestruccionPorAsteroide() throws Exception {
-        asistente.consumirRecursos(0, 60, 0); // energía 20: despegue 5 -> 15; el impacto de 25 la deja en 0
+        asistente.consumirRecursos(0, 60, 0); // energía 20: despegue 5 + 10 -> 5; el impacto de 25 la deja en 0
         TableroDePrueba tablero = tableroCon(CENTRO, new Asteroide());
         MisionRecoleccion mision = new MisionRecoleccion(tablero, new DestinoSinMovimiento(tablero), new Random(1));
 
@@ -89,7 +89,7 @@ public class TravesiaTest {
         assertFalse(informe.isExitosa());
         assertFalse(informe.isNaveOperativa());
         assertEquals(CENTRO, tablero.getPosicionNave(), "La travesía terminó en el turno del impacto");
-        assertEquals(15, informe.getBalance().getEnergiaPerdida());
+        assertEquals(5, informe.getBalance().getEnergiaPerdida());
         assertEquals(0, informe.getBalance().getGemasObtenidas());
         assertEquals(0, asistente.getGemas(), "El cierre no acredita gemas de una misión fallida");
         assertTrue(informe.getAcciones().stream().anyMatch(a -> a.startsWith("Ejecución abortada")));
@@ -99,13 +99,14 @@ public class TravesiaTest {
     @DisplayName("Estación de carga en la casilla de la nave: el reabastecimiento queda como ganado, con tope 100")
     public void testEstacionDeCarga() throws Exception {
         TableroDePrueba tablero = tableroCon(CENTRO, new EstacionDeCarga());
+        asistente.cargarEnergia(20);
 
         InformeMision informe = realizar(new MisionRecoleccion(tablero, new DestinoSinMovimiento(tablero), new Random(1)));
 
         assertTrue(informe.isExitosa());
-        // Despegue: energía 75. La estación suma 30 de combustible (60 -> 90) y 25 de energía (tope 100).
+        // Despegue: combustible 56 y energía 85. La estación suma 30 de combustible (56 -> 86) y 15 de energía (tope 100).
         assertEquals(EstacionDeCarga.RECARGA_COMBUSTIBLE, informe.getBalance().getCombustibleGanado());
-        assertEquals(25, informe.getBalance().getEnergiaGanada());
+        assertEquals(15, informe.getBalance().getEnergiaGanada());
     }
 
     @Test
@@ -155,8 +156,10 @@ public class TravesiaTest {
     }
 
     @Test
-    @DisplayName("Radar de corto alcance: un asteroide que Destino cruza en la ruta obliga a recalcular (2 de energía)")
+    @DisplayName("Radar de corto alcance: sin energía para la maniobra warp, un asteroide que Destino cruza en la ruta obliga a recalcular (2 de energía)")
     public void testRecalculoPorAmenaza() throws Exception {
+        // Energía 26: tras el despegue (15) y dos escaneos quedan 9, que no superan ENERGIA_MANIOBRA_WARP.
+        asistente.consumirRecursos(0, 54, 0);
         Posicion lejos = new Posicion(0, 0);
         TableroDePrueba tablero = tableroCon(lejos, new Asteroide());
         List<Posicion> ruta = new Navegador().calcularRuta(tablero.verTablero(), CENTRO, OBJETIVO);
@@ -169,8 +172,38 @@ public class TravesiaTest {
         assertFalse(informe.getRuta().contains(segundoPaso), "La nave esquivó el asteroide");
         assertEquals(0, informe.getBalance().getEnergiaPerdida());
         assertTrue(informe.getAcciones().stream().anyMatch(a -> a.contains("recálculo de la ruta")));
-        assertEquals(5 + 3 + Mision.ENERGIA_RECALCULO + MisionRecoleccion.ENERGIA_ADICIONAL,
+        assertTrue(informe.getAcciones().stream().noneMatch(a -> a.contains("maniobra warp")));
+        assertEquals(Mision.ENERGIA_ESCANEO_LARGO + MisionRecoleccion.ENERGIA_INICIAL + 3 + Mision.ENERGIA_RECALCULO,
                 informe.getBalance().getEnergiaConsumida());
+        assertRecorridoValido(informe.getRuta(), tablero);
+    }
+
+    @Test
+    @DisplayName("Anexo: con un obstáculo en la siguiente posición, la nave inicia la maniobra warp y lo esquiva sin recalcular")
+    public void testWarpEsquivaObstaculo() throws Exception {
+        Posicion lejos = new Posicion(0, 0);
+        TableroDePrueba tablero = tableroCon(lejos, new Asteroide());
+        List<Posicion> ruta = new Navegador().calcularRuta(tablero.verTablero(), CENTRO, OBJETIVO);
+        Posicion segundoPaso = ruta.get(1);
+        Destino destino = new DestinoProgramado(tablero, 1, lejos, segundoPaso);
+
+        InformeMision informe = realizar(new MisionRecoleccion(tablero, destino, new Random(1)));
+
+        assertTrue(informe.isExitosa());
+        assertEquals(OBJETIVO, tablero.getPosicionNave());
+        assertEquals(0, informe.getBalance().getEnergiaPerdida(), "Pasó por encima del asteroide sin impactar");
+        assertTrue(informe.getAcciones().stream().anyMatch(a -> a.contains("inicia la maniobra warp para esquivarlo")));
+        assertTrue(informe.getAcciones().stream().noneMatch(a -> a.contains("recálculo de la ruta")));
+        assertEquals(2, informe.getAcciones().stream().filter(a -> a.contains("Turno 4: salto warp a")).count(),
+                "Turno 2 inicia, turno 3 completa la preparación y turno 4 salta las dos casillas");
+        assertEquals("Disponible", informe.getEstadoMotorFinal());
+        BalanceRecursos balance = informe.getBalance();
+        // Despegue: 4 de combustible, 5 + 10 de energía y 4 de desgaste. Un salto normal (2 de combustible), cuatro
+        // escaneos de turno y uno por la segunda casilla del salto, el salto warp (5), tres casillas (3 de desgaste)
+        // y el enfriamiento (3).
+        assertEquals(4 + MotorWarp.COMBUSTIBLE_SALTO_NORMAL, balance.getCombustibleConsumido());
+        assertEquals(5 + 10 + 5 + MotorWarp.ENERGIA_SALTO_WARP, balance.getEnergiaConsumida());
+        assertEquals(4 + 3 + MotorWarp.DESGASTE_ENFRIAMIENTO, balance.getDesgasteProducido());
         assertRecorridoValido(informe.getRuta(), tablero);
     }
 
@@ -192,7 +225,7 @@ public class TravesiaTest {
     @Test
     @DisplayName("Salto warp (Anexo): sin combustible para un salto normal, la maniobra avanza 2 casillas en un turno")
     public void testSaltoWarpDosCasillas() throws Exception {
-        asistente.consumirRecursos(58, 0, 0); // combustible 2: un salto normal la destruiría
+        asistente.consumirRecursos(54, 0, 0); // combustible 6: tras el despegue quedan 2 y un salto normal la destruiría
         TableroDePrueba tablero = new TableroDePrueba(10, 10);
         tablero.moverNave(new Posicion(5, 3));
 
@@ -205,16 +238,16 @@ public class TravesiaTest {
         assertEquals(2, saltosWarp, "Las dos casillas se avanzan en el mismo turno");
         assertEquals("Disponible", informe.getEstadoMotorFinal(), "Tras el arribo se completa el enfriamiento");
         BalanceRecursos balance = informe.getBalance();
-        assertEquals(0, balance.getCombustibleConsumido());
-        // Despegue 5, tres escaneos de turno y uno por la segunda casilla, más el salto warp.
+        assertEquals(Mision.COMBUSTIBLE_DESPEGUE, balance.getCombustibleConsumido(), "El warp no consume combustible");
+        // Despegue 5 (M-03 no tiene energía inicial), tres escaneos de turno y uno por la segunda casilla, más el salto warp.
         assertEquals(5 + 4 + MotorWarp.ENERGIA_SALTO_WARP, balance.getEnergiaConsumida());
-        assertEquals(2 + MotorWarp.DESGASTE_ENFRIAMIENTO, balance.getDesgasteProducido());
+        assertEquals(Mision.DESGASTE_DESPEGUE + 2 + MotorWarp.DESGASTE_ENFRIAMIENTO, balance.getDesgasteProducido());
     }
 
     @Test
     @DisplayName("Sin combustible para saltar ni energía para la maniobra warp, la misión se aborta sin destruir la nave")
     public void testSinRecursosParaAvanzar() throws Exception {
-        asistente.consumirRecursos(58, 69, 0); // combustible 2, energía 11
+        asistente.consumirRecursos(54, 69, 0); // combustible 6 y energía 11: tras el despegue, 2 y 6
         TableroDePrueba tablero = new TableroDePrueba(10, 10);
         tablero.moverNave(new Posicion(5, 2));
 
@@ -234,7 +267,7 @@ public class TravesiaTest {
         TableroDePrueba tablero = new TableroDePrueba(10, 10);
         tablero.fijarObjetivo(OBJETIVO);
         MisionIntercepcion mision = new MisionIntercepcion(tablero, new DestinoSinMovimiento(tablero), new Random(7));
-        // Combustible justo para iniciar: los tres saltos (6) consumen parte de lo que debía entregar.
+        // Combustible justo para iniciar: el despegue (4) y los tres saltos (6) consumen parte de lo que debía entregar.
         asistente.consumirRecursos(60 - mision.getCombustibleMinimo(), 0, 0);
 
         InformeMision informe = realizar(mision);
@@ -296,7 +329,7 @@ public class TravesiaTest {
     @Test
     @DisplayName("Cancelación durante la maniobra warp: se completa la maniobra y la nave queda lista para operar")
     public void testCancelacionDuranteLaManiobraWarp() throws Exception {
-        asistente.consumirRecursos(58, 0, 0); // combustible 2: sólo puede avanzar con la maniobra warp
+        asistente.consumirRecursos(54, 0, 0); // combustible 6: tras el despegue sólo puede avanzar con la maniobra warp
         TableroDePrueba tablero = new TableroDePrueba(10, 10);
         tablero.fijarObjetivo(new Posicion(5, 9));
         Mision mision = new MisionRecoleccion(tablero, new DestinoSinMovimiento(tablero), new Random(1));
@@ -324,7 +357,8 @@ public class TravesiaTest {
     @DisplayName("Sin combustible para un salto normal: la maniobra warp sólo se inicia si la energía alcanza para completarla")
     public void testManiobraWarpSinEnergiaParaCompletarla(int energiaTrasDespegue) throws Exception {
         // combustible 2 y la energía indicada después del despegue
-        asistente.consumirRecursos(58, 80 - (energiaTrasDespegue + Mision.ENERGIA_ESCANEO_LARGO), 0);
+        asistente.consumirRecursos(54, 80 - (energiaTrasDespegue + Mision.ENERGIA_ESCANEO_LARGO
+                + MisionRecoleccion.ENERGIA_INICIAL), 0);
         TableroDePrueba tablero = new TableroDePrueba(10, 10);
         tablero.fijarObjetivo(new Posicion(5, 9));
 
@@ -339,7 +373,8 @@ public class TravesiaTest {
     @Test
     @DisplayName("Sin energía para el escaneo de corto alcance, la misión se aborta antes de escanear, sin destruir la nave")
     public void testSinEnergiaParaEscanear() throws Exception {
-        asistente.consumirRecursos(0, 80 - (6 + Mision.ENERGIA_ESCANEO_LARGO), 0); // 6 de energía tras el despegue
+        // 6 de energía tras el despegue
+        asistente.consumirRecursos(0, 80 - (6 + Mision.ENERGIA_ESCANEO_LARGO + MisionRecoleccion.ENERGIA_INICIAL), 0);
         TableroDePrueba tablero = new TableroDePrueba(20, 20);
         tablero.fijarObjetivo(new Posicion(10, 19)); // 9 casillas: no alcanza la energía para escanear cada turno
 
