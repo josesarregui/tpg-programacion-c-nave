@@ -66,13 +66,16 @@ public class ControladorCursoMision implements ActionListener {
      * Lanza la misión pendiente del asistente en un hilo dedicado. Se invoca desde el hilo de eventos de Swing.
      *
      * @pre !hayMisionEnCurso() y asistente.tieneMisionPendiente().
-     * @post hayMisionEnCurso() hasta que el hilo termine; el hilo ejecuta asistente.ejecutarMision().
+     * @post hayMisionEnCurso() hasta que el hilo termine; el hilo ejecuta asistente.ejecutarMision() y la vista del
+     *       tablero sigue esa misión.
      */
     public synchronized void lanzarMision() {
         assert hiloMision == null : "Ya hay una misión en curso.";
         assert asistente.tieneMisionPendiente() : "No hay una misión encomendada para lanzar.";
         Mision mision = asistente.getMisionPendiente();
         vista.misionIniciada(mision.getCodigo(), mision.getNombre());
+        // El tablero muestra el objetivo de esta misión (M-03 no lo registra en el tablero). Se asigna antes de start().
+        vista.getVistaTablero().seguirMision(mision);
         hiloMision = new Thread(this::ejecutarMision, "Misión " + mision.getCodigo());
         hiloMision.start();
     }

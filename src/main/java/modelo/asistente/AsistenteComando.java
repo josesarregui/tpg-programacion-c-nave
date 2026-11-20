@@ -87,15 +87,21 @@ public class AsistenteComando extends Observable implements Asistente {
 
     // --- Consultas sobre la Tripulacion ---
     
+    @Override
     public List<Tripulante> getTripulantes() {
+        assert tieneTripulacion() : "La nave no tiene tripulación asignada.";
         return this.nave.getTripulacion().getTripulantes();
     }
 
+    @Override
     public Tripulante getCapitan() {
+        assert tieneTripulacion() : "La nave no tiene tripulación asignada.";
         return this.nave.getTripulacion().getCapitan();
     }
 
+    @Override
     public int getCantidadTripulantes() {
+        assert tieneTripulacion() : "La nave no tiene tripulación asignada.";
         return this.nave.getTripulacion().getCantidad();
     }
 

@@ -98,6 +98,25 @@ public class ControladorCrearTripulacionTest {
     }
 
     @Test
+    @DisplayName("Controlador: rechazar Consejero con más de 999 consejos iniciales (la vista no se congela) y aceptar 999")
+    public void testAgregarConsejeroConDemasiadosConsejos() {
+        VistaCrearTripulacionMock vista = new VistaCrearTripulacionMock("Spock", Cargo.CONSEJERO, Origen.VULCANO, "5", "1000");
+        ControladorCrearTripulacion controlador = new ControladorCrearTripulacion(vista, asistente, null);
+
+        controlador.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaCrearTripulacion.AGREGAR));
+
+        assertNotNull(vista.ultimoError);
+        assertTrue(vista.ultimoError.contains("999"), vista.ultimoError);
+        assertEquals(0, vista.tripulantesEnLista.size());
+
+        vista.textoConsejos = "999";
+        controlador.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, IVistaCrearTripulacion.AGREGAR));
+
+        assertEquals(1, vista.tripulantesEnLista.size());
+        assertTrue(vista.tripulantesEnLista.get(0).contains("999 consejos"), vista.tripulantesEnLista.get(0));
+    }
+
+    @Test
     @DisplayName("Controlador: rechazar Consejero con cantidad de consejos no numérica")
     public void testAgregarConsejeroConConsejosNoNumericos() {
         VistaCrearTripulacionMock vista = new VistaCrearTripulacionMock("Spock", Cargo.CONSEJERO, Origen.VULCANO, "5", "muchos");

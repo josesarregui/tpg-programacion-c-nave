@@ -25,6 +25,13 @@ import vista.principal.paneltripulacion.panelcreartripulacion.IVistaCrearTripula
  * negocio en el modelo.
  */
 public class ControladorCrearTripulacion implements ActionListener {
+    /**
+     * Máximo de consejos iniciales que se registran al dar de alta un consejero. El alta corre en el hilo de eventos
+     * y cada consejo verifica los contratos de {@link Consejero} recorriendo los ya registrados: sin un tope, una
+     * cantidad con formato válido pero enorme congelaría la interfaz.
+     */
+    public static final int MAXIMO_CONSEJOS_INICIALES = 999;
+
     private final IVistaCrearTripulacion vistaCrearTripulacion;
     private final Asistente asistente;
     private final ControladorTripulacion controladorTripulacion;
@@ -125,6 +132,11 @@ public class ControladorCrearTripulacion implements ActionListener {
                     if (cantidadConsejos < 0) {
                         throw new TripulanteInvalidoException(
                                 "La cantidad de consejos iniciales no puede ser negativa.",
+                                nombre, antiguedad, origen);
+                    }
+                    if (cantidadConsejos > MAXIMO_CONSEJOS_INICIALES) {
+                        throw new TripulanteInvalidoException(
+                                "La cantidad de consejos iniciales no puede superar " + MAXIMO_CONSEJOS_INICIALES + ".",
                                 nombre, antiguedad, origen);
                     }
                     YearMonth ahora = YearMonth.now();

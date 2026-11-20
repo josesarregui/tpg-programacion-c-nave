@@ -2,11 +2,24 @@ package vista.principal.panelcontrol.panelcursomision;
 
 import java.awt.GraphicsEnvironment;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import javax.swing.SwingUtilities;
+import modelo.asistente.AsistenteComando;
+import modelo.mision.Mision;
+import modelo.mision.MisionRecoleccion;
+import modelo.mision.MisionRetorno;
 import modelo.nave.NaveFactory;
 import modelo.nave.TipoNave;
+import modelo.tripulacion.Alferez;
+import modelo.tripulacion.Capitan;
+import modelo.tripulacion.Origen;
+import modelo.tripulacion.Teniente;
+import modelo.tripulacion.Tripulacion;
 import modelo.universo.Asteroide;
+import modelo.universo.Destino;
+import modelo.universo.DestinoSinMovimiento;
 import modelo.universo.ElementoDelUniverso;
 import modelo.universo.EstacionDeCarga;
 import modelo.universo.Observador;
@@ -75,6 +88,45 @@ public class VistaTableroTest {
 
         assertEquals(new Posicion(10, 11), vista.getPosicionNaveMostrada());
         assertTrue(vista.getMensajeMostrado().contains("(10, 11)"), "Muestra el mensaje recibido (push).");
+    }
+
+    @Test
+    @DisplayName("M-03: marca como objetivo la base de la misión que sigue, no el que el tablero conserva de la M-02")
+    public void muestraElObjetivoDeLaMisionSeguida() throws Exception {
+        TableroDePrueba vacio = new TableroDePrueba(20, 20);
+        vacio.fijarObjetivo(new Posicion(1, 7));
+        Destino destino = new DestinoSinMovimiento(vacio);
+        VistaTablero vista = new VistaTablero();
+        SwingUtilities.invokeAndWait(() -> vista.observar(vacio));
+        AsistenteComando asistente = new AsistenteComando(new NaveFactory().crearNave(TipoNave.EXPLORADORA));
+        asistente.asignarTripulacion(new Tripulacion(List.of(
+                new Capitan("James Kirk", 15, Origen.TERRICOLA),
+                new Teniente("Spock", 12, Origen.VULCANO),
+                new Alferez("Hikaru Sulu", 5, Origen.TERRICOLA),
+                new Alferez("Pavel Chekov", 2, Origen.MARCIANO),
+                new Alferez("Nyota Uhura", 3, Origen.TERRICOLA))));
+
+        realizar(asistente, vista, new MisionRecoleccion(vacio, destino, new Random(1)));
+        esperarEdt();
+        assertEquals(new Posicion(1, 7), vista.getObjetivoMostrado(), "M-02: el objetivo que eligió el tablero.");
+
+        realizar(asistente, vista, new MisionRetorno(vacio, destino));
+        esperarEdt();
+
+        assertEquals(new Posicion(1, 7), vacio.getObjetivo(), "El tablero sigue guardando el objetivo de la M-02.");
+        assertEquals(new Posicion(10, 10), vista.getPosicionNaveMostrada());
+        assertEquals(new Posicion(10, 10), vista.getObjetivoMostrado(), "M-03: la base de origen.");
+    }
+
+    /**
+     * Encomienda la misión, la vista la sigue antes de ejecutarla (como al lanzarla el controlador) y la realiza en
+     * este hilo, que hace de hilo de la misión.
+     */
+    private static void realizar(AsistenteComando asistente, VistaTablero vista, Mision mision) throws Exception {
+        mision.configurarPausaPorTurno(0);
+        asistente.encomendarMision(mision);
+        vista.seguirMision(mision);
+        assertTrue(asistente.ejecutarMision().isExitosa());
     }
 
     @Test

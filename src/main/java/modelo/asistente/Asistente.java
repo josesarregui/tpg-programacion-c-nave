@@ -39,11 +39,26 @@ public interface Asistente {
     
     
     // --- Consultas sobre la Tripulacion ---
-    
+
+    /**
+     * @pre tieneTripulacion().
+     * @post El valor retornado no es nulo y no puede modificarse.
+     * @return los tripulantes de la nave.
+     */
     public List<Tripulante> getTripulantes();
-    
+
+    /**
+     * @pre tieneTripulacion().
+     * @post El valor retornado no es nulo (toda tripulación tiene un/a capitán/a).
+     * @return el/la capitán/a de la nave.
+     */
     public Tripulante getCapitan();
-    
+
+    /**
+     * @pre tieneTripulacion().
+     * @post El valor retornado es mayor o igual al tamaño mínimo de la tripulación.
+     * @return la cantidad de tripulantes de la nave.
+     */
     public int getCantidadTripulantes();
 
     // --- Consultas sobre la nave que opera ---

@@ -24,6 +24,8 @@ import modelo.warp.MotorWarp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -265,6 +267,90 @@ public class TravesiaTest {
         assertFalse(informe.isExitosa());
         assertEquals(2, informe.getRuta().size(), "Terminó en la pausa del primer turno");
         assertTrue(informe.getAcciones().stream().anyMatch(a -> a.contains("se interrumpió")));
+    }
+
+    @Test
+    @DisplayName("Cancelación en el turno de llegada: la misión falla y el cierre no aplica nada")
+    public void testCancelacionEnElTurnoDeLlegada() throws Exception {
+        Posicion objetivoVecino = new Posicion(5, 6); // a una casilla de la nave: llega en el primer turno
+        TableroDePrueba tablero = new TableroDePrueba(10, 10);
+        tablero.fijarObjetivo(objetivoVecino);
+        Mision mision = new MisionRecoleccion(tablero, new DestinoSinMovimiento(tablero), new Random(1));
+        mision.configurarPausaPorTurno(1);
+        asistente.encomendarMision(mision);
+
+        Thread.currentThread().interrupt();
+        InformeMision informe = asistente.ejecutarMision();
+        boolean interrumpido = Thread.interrupted(); // consulta y limpia la marca para las demás pruebas
+
+        assertTrue(interrumpido, "La interrupción no se silencia");
+        assertEquals(objetivoVecino, tablero.getPosicionNave(), "La nave llegó en el turno de la cancelación");
+        assertFalse(informe.isExitosa());
+        assertEquals(0, informe.getBalance().getGemasObtenidas());
+        assertEquals(0, asistente.getGemas(), "El cierre no acredita gemas");
+        assertTrue(informe.getAcciones().stream().anyMatch(a -> a.contains("se interrumpió")));
+        assertTrue(informe.getAcciones().stream().noneMatch(a -> a.startsWith("Ejecución: llegó")),
+                "No se realiza la acción de la misión");
+    }
+
+    @Test
+    @DisplayName("Cancelación durante la maniobra warp: se completa la maniobra y la nave queda lista para operar")
+    public void testCancelacionDuranteLaManiobraWarp() throws Exception {
+        asistente.consumirRecursos(58, 0, 0); // combustible 2: sólo puede avanzar con la maniobra warp
+        TableroDePrueba tablero = new TableroDePrueba(10, 10);
+        tablero.fijarObjetivo(new Posicion(5, 9));
+        Mision mision = new MisionRecoleccion(tablero, new DestinoSinMovimiento(tablero), new Random(1));
+        mision.configurarPausaPorTurno(1);
+        asistente.encomendarMision(mision);
+
+        Thread.currentThread().interrupt();
+        InformeMision informe = asistente.ejecutarMision();
+        boolean interrumpido = Thread.interrupted(); // consulta y limpia la marca para las demás pruebas
+
+        assertTrue(interrumpido, "La interrupción no se silencia");
+        assertFalse(informe.isExitosa());
+        assertFalse(asistente.naveDestruida());
+        assertEquals("Disponible", asistente.getEstadoMotor(), "La maniobra iniciada se completa");
+        assertTrue(asistente.naveListaParaOperar(), "La nave puede realizar otra misión");
+        assertEquals(3, informe.getRuta().size(), "Partida más las 2 casillas del salto warp");
+        assertRecorridoValido(informe.getRuta(), tablero);
+        assertEquals(1, informe.getAcciones().stream().filter(a -> a.contains("se interrumpió")).count());
+    }
+
+    // --- Recursos para avanzar sin destruir la nave ---
+
+    @ParameterizedTest(name = "energía {0} tras el despegue")
+    @ValueSource(ints = {7, 8, 9, 10, 11})
+    @DisplayName("Sin combustible para un salto normal: la maniobra warp sólo se inicia si la energía alcanza para completarla")
+    public void testManiobraWarpSinEnergiaParaCompletarla(int energiaTrasDespegue) throws Exception {
+        // combustible 2 y la energía indicada después del despegue
+        asistente.consumirRecursos(58, 80 - (energiaTrasDespegue + Mision.ENERGIA_ESCANEO_LARGO), 0);
+        TableroDePrueba tablero = new TableroDePrueba(10, 10);
+        tablero.fijarObjetivo(new Posicion(5, 9));
+
+        InformeMision informe = realizar(new MisionRecoleccion(tablero, new DestinoSinMovimiento(tablero), new Random(1)));
+
+        assertFalse(informe.isExitosa());
+        assertFalse(asistente.naveDestruida(), "La misión no destruye la nave con sus propios consumos");
+        assertEquals("Disponible", asistente.getEstadoMotor());
+        assertTrue(informe.getAcciones().stream().anyMatch(a -> a.contains("no tiene recursos para avanzar")));
+    }
+
+    @Test
+    @DisplayName("Sin energía para el escaneo de corto alcance, la misión se aborta antes de escanear, sin destruir la nave")
+    public void testSinEnergiaParaEscanear() throws Exception {
+        asistente.consumirRecursos(0, 80 - (6 + Mision.ENERGIA_ESCANEO_LARGO), 0); // 6 de energía tras el despegue
+        TableroDePrueba tablero = new TableroDePrueba(20, 20);
+        tablero.fijarObjetivo(new Posicion(10, 19)); // 9 casillas: no alcanza la energía para escanear cada turno
+
+        InformeMision informe = realizar(new MisionRecoleccion(tablero, new DestinoSinMovimiento(tablero), new Random(1)));
+
+        assertFalse(informe.isExitosa());
+        assertFalse(asistente.naveDestruida(), "El escaneo no deja la energía en 0");
+        assertEquals(1, asistente.getEnergia());
+        assertEquals(6, informe.getRuta().size(), "Partida más una casilla por cada escaneo posible");
+        assertRecorridoValido(informe.getRuta(), tablero);
+        assertTrue(informe.getAcciones().stream().anyMatch(a -> a.contains("no tiene recursos para avanzar")));
     }
 
     // --- Universo de 20 x 20 (Guía 4.2) con el Destino de la cátedra ---

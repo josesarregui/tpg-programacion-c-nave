@@ -155,6 +155,30 @@ public class ControladorMisionTest {
     }
 
     @Test
+    @DisplayName("Tras una M-02, la grilla marca como objetivo de la M-03 la base de origen y no el de la misión anterior")
+    public void retornoMuestraLaBaseComoObjetivo() throws Exception {
+        ControladorControl control = crearControl(0);
+        vista.select.seleccionar("M-02");
+        vista.select.iniciar();
+        assertNotNull(vista.curso.finalizaciones.poll(ESPERA_SEGUNDOS, TimeUnit.SECONDS), "Terminó la M-02.");
+        assertEquals(OBJETIVO, vista.curso.grilla.getObjetivoVisto());
+
+        // El tablero conserva el objetivo de la M-02: la M-03 vuelve al centro sin registrarlo en el tablero.
+        vista.curso.controlador.actionPerformed(evento(IVistaCursoMision.COMANDO_VOLVER));
+        vista.select.seleccionar("M-03");
+        vista.select.iniciar();
+        String fin = vista.curso.finalizaciones.poll(ESPERA_SEGUNDOS, TimeUnit.SECONDS);
+
+        assertNotNull(fin, "Terminó la M-03.");
+        assertTrue(fin.contains("M-03") && fin.contains("EXITOSA") && !fin.contains("NO EXITOSA"), fin);
+        assertFalse(control.hayMisionEnCurso());
+        Posicion base = new Posicion(10, 10);
+        assertEquals(OBJETIVO, tablero.getObjetivo(), "El tablero sigue guardando el objetivo de la M-02.");
+        assertEquals(base, vista.curso.grilla.getNaveVista());
+        assertEquals(base, vista.curso.grilla.getObjetivoVisto(), "La grilla marca la base de la M-03.");
+    }
+
+    @Test
     @DisplayName("Cancelar interrumpe el hilo, espera su fin con join y la misión termina fallida e informada")
     public void cancelarTerminaLaMisionYLaInforma() throws Exception {
         ControladorControl control = crearControl(PAUSA_LARGA_MS);

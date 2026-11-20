@@ -308,6 +308,7 @@ classDiagram
         ~ DisponibleState(motor: MotorWarp)
         + saltar() int throws RecursoInsuficienteException
         + saltarWarp() int
+        + estaDisponible() boolean
     }
     class PreparandoSaltoState {
         - int turnosCompletados
@@ -315,16 +316,19 @@ classDiagram
         + saltar() int throws EstadoMotorInvalidoException
         + saltarWarp() int
         ~ prepararTurno()
+        + estaDisponible() boolean
     }
     class EnWarpState {
         ~ EnWarpState(motor: MotorWarp)
         + saltar() int throws EstadoMotorInvalidoException
         + saltarWarp() int
+        + estaDisponible() boolean
     }
     class EnfriamientoState {
         ~ EnfriamientoState(motor: MotorWarp)
         + saltar() int throws EstadoMotorInvalidoException
         + saltarWarp() int
+        + estaDisponible() boolean
     }
     State <|.. DisponibleState
     State <|.. PreparandoSaltoState
@@ -356,6 +360,7 @@ classDiagram
         + int ENERGIA_RECALCULO = 2$
         + int DESGASTE_POR_CELDA = 1$
         + int PAUSA_POR_TURNO_MS = 400$
+        - int ENERGIA_MANIOBRA_WARP = 9$
         - String codigo
         - String nombre
         - Tablero tablero
@@ -549,7 +554,8 @@ classDiagram
 ```
 
 **Ciclo de travesía (Enunciado E2, Fase 2).** `ejecutar()` cobra el despegue (escaneo de largo alcance) y repite, mientras
-la nave no esté destruida, no haya llegado y pueda avanzar (con un tope de x·y turnos):
+la nave no esté destruida, no haya llegado y pueda avanzar (con un tope de x·y turnos; una maniobra warp en curso
+se completa aunque se interrumpa la travesía o se alcance el tope):
 
 1. **Turno de la nave:** `tablero.inspeccionarPosicion()` y, si hay elemento, `elemento.interactuarCon(asistente)`;
    `tablero.observarAlrededores()` (radar de corto alcance, 1 de energía); el `Navegador` da el próximo paso de la ruta y, si
@@ -557,9 +563,11 @@ la nave no esté destruida, no haya llegado y pueda avanzar (con un tope de x·y
    turno de `saltarWarp()` (Anexo) y la misión mueve la nave con `tablero.moverNave(...)` a una casilla vecina dentro del
    tablero (dos casillas en el turno del salto warp), con 1 de desgaste por casilla.
 2. **Turno del tablero:** `destino.turnoDestino()`.
-3. **Pausa:** `Thread.sleep(pausaPorTurno)`; si se interrumpe, se restaura la interrupción y termina la travesía.
+3. **Pausa:** `Thread.sleep(pausaPorTurno)`; si se interrumpe, se restaura la interrupción y termina la travesía (la misión
+   falla aunque la nave haya llegado en ese turno).
 
-Al llegar, completa el enfriamiento si llegó con warp, verifica en destino los recursos de la acción final y la entrega, y
+Sin energía para el escaneo, la nave no avanza; la maniobra warp se inicia sólo con energía para completarla
+(`ENERGIA_MANIOBRA_WARP`). Al llegar, completa el enfriamiento si llegó con warp, verifica en destino los recursos de la acción final y la entrega, y
 realiza la acción. `evaluar()` confecciona el informe con el balance; `cerrar()` aplica `aplicarCierre()` si fue exitosa.
 
 ## 5. Asistente, centro de control y Bitácora (E1-03, E1-05; Aclaración R1, R2, R4 y R5)
@@ -568,6 +576,9 @@ realiza la acción. `evaluar()` confecciona el informe con el balance; `cerrar()
 classDiagram
     class Asistente {
         <<interface>>
+        + getTripulantes() List~Tripulante~
+        + getCapitan() Tripulante
+        + getCantidadTripulantes() int
         + getNave() Nave
         + getIdNave() int
         + getTipoNave() TipoNave
@@ -612,6 +623,9 @@ classDiagram
         - Mision misionPendiente
         - Mision misionEnEjecucion
         + AsistenteComando(nave: Nave)
+        + getTripulantes() List~Tripulante~
+        + getCapitan() Tripulante
+        + getCantidadTripulantes() int
         + getNave() Nave
         + getIdNave() int
         + getTipoNave() TipoNave
@@ -1308,11 +1322,14 @@ classDiagram
     class IVistaTablero {
         <<interface>>
         + observar(tablero: Tablero)
+        + seguirMision(mision: Mision)
         + dejarDeObservar()
     }
     class VistaTablero {
         - Tablero tablero
+        - Mision mision
         + observar(tablero: Tablero)
+        + seguirMision(mision: Mision)
         + dejarDeObservar()
         + actualizar(mensaje: String)
     }
@@ -1342,6 +1359,7 @@ classDiagram
     Observador <|-- IVistaTablero
     IVistaTablero <|.. VistaTablero
     VistaTablero --> Tablero : observa, se suscribe y consulta verTablero() (pull)
+    VistaTablero --> Mision : objetivo de la misión que sigue (pull)
     IVistaRecursos ..> Asistente : recursos (pull)
     IVistaSelectMision ..> Asistente : copia de la Bitácora (pull)
     IVistaCursoMision ..> Asistente : consola (push)
@@ -1521,6 +1539,9 @@ classDiagram
         + naveCreada(asistente: Asistente)
         + tripulacionCreada()
         + getAsistente() Asistente
+        + tieneAsistente() boolean
+        + getUsuario() Usuario
+        + getControladorTripulacion() ControladorTripulacion
         + getControladorControl() ControladorControl
         + getControladorConcurrencia() ControladorConcurrencia
         + actionPerformed(e: ActionEvent)
@@ -1532,7 +1553,12 @@ classDiagram
         + getPanelTripulacion() IVistaTripulacion
         + getPanelControl() IVistaControl
         + getPanelVisor() IVistaConcurrencia
+        + mostrarOperador(nombreUsuario: String)
+        + setControlador(controlador: ActionListener)
         + mostrarPanel(nombrePanel: String)
+        + habilitarTripulacion(habilitar: boolean)
+        + habilitarControlNave(habilitar: boolean)
+        + mostrarError(mensaje: String)
         + arrancar()
         + cerrar()
     }
@@ -1544,6 +1570,7 @@ classDiagram
     class ControladorDetallesNave
     class ControladorTripulacion
     class ControladorCrearTripulacion {
+        + int MAXIMO_CONSEJOS_INICIALES = 999$
         + actionPerformed(e: ActionEvent)
     }
     class ControladorDetallesTripulacion {
@@ -1600,6 +1627,9 @@ classDiagram
         + hayMisionEnCurso() boolean
         + cancelarMision() boolean
         + detener() boolean
+        + getControladorSelectMision() ControladorSelectMision
+        + getControladorCursoMision() ControladorCursoMision
+        + getAsistente() Asistente
         + getTablero() Tablero
     }
     class ControladorSelectMision {
@@ -1608,6 +1638,7 @@ classDiagram
         - Mision misionSeleccionada
         + actualizarVista()
         + desuscribir()
+        + getMisionSeleccionada() Mision
         + actionPerformed(e: ActionEvent)
         - iniciarMision()
     }
@@ -1645,9 +1676,14 @@ classDiagram
         <<interface>>
         + observar(asistente: Asistente)
         + dejarDeObservar()
+        + setControlador(controlador: ActionListener)
         + mostrarBitacora(eventos: List~Evento~)
+        + mostrarMisionesDisponibles(misiones: List~Mision~)
+        + getMisionSeleccionada() String
         + mostrarDetallesMision(mision: Mision, naveListaParaOperar: boolean, combustibleActual: int, energiaActual: int)
+        + habilitarIniciarMision(habilitar: boolean)
         + mostrarError(mensaje: String)
+        + mostrarMensaje(mensaje: String)
     }
     class IVistaCursoMision {
         <<interface>>
@@ -1661,6 +1697,7 @@ classDiagram
     class IVistaTablero {
         <<interface>>
         + observar(tablero: Tablero)
+        + seguirMision(mision: Mision)
         + dejarDeObservar()
     }
     class IVistaResultadosMision {
@@ -1681,6 +1718,7 @@ classDiagram
     ControladorCursoMision --> IVistaCursoMision
     ControladorCursoMision o-- Thread : hilo de la misión (0..1)
     ControladorCursoMision ..> Asistente : ejecutarMision() en el hilo
+    ControladorCursoMision ..> IVistaTablero : seguirMision(mision) antes de start()
     ControladorResultadosMision --> IVistaResultadosMision
     IVistaControl o-- IVistaRecursos
     IVistaControl o-- IVistaSelectMision
@@ -1690,8 +1728,8 @@ classDiagram
 ```
 
 **Hilo de la misión.** `ControladorSelectMision` rechaza iniciar si `hayMisionEnCurso()`; si no, encomienda la misión y
-`ControladorControl.lanzarMision()` delega en `ControladorCursoMision`, que crea el `Thread` "Misión M-0x" y lo lanza con
-`start()`. El hilo ejecuta `asistente.ejecutarMision()`; sus excepciones se informan con `mostrarError` y, al terminar,
+`ControladorControl.lanzarMision()` delega en `ControladorCursoMision`, que le indica a la vista del tablero la misión cuyo
+objetivo debe mostrar (`seguirMision`) y crea el `Thread` "Misión M-0x" y lo lanza con `start()`. El hilo ejecuta `asistente.ejecutarMision()`; sus excepciones se informan con `mostrarError` y, al terminar,
 libera `hiloMision` y llama a `misionFinalizada(resumen)` (la vista aplica ambos con `invokeLater`). `cancelarMision()`
 interrumpe el hilo y espera con `join(ESPERA_MAXIMA_FIN_MS)`; `detener()` (cierre de sesión) cancela y, con el hilo
 terminado, todas las vistas de la sección dejan de observar.
