@@ -1322,11 +1322,14 @@ classDiagram
     class IVistaTablero {
         <<interface>>
         + observar(tablero: Tablero)
+        + seguirMision(mision: Mision)
         + dejarDeObservar()
     }
     class VistaTablero {
         - Tablero tablero
+        - Mision mision
         + observar(tablero: Tablero)
+        + seguirMision(mision: Mision)
         + dejarDeObservar()
         + actualizar(mensaje: String)
     }
@@ -1356,6 +1359,7 @@ classDiagram
     Observador <|-- IVistaTablero
     IVistaTablero <|.. VistaTablero
     VistaTablero --> Tablero : observa, se suscribe y consulta verTablero() (pull)
+    VistaTablero --> Mision : objetivo de la misión que sigue (pull)
     IVistaRecursos ..> Asistente : recursos (pull)
     IVistaSelectMision ..> Asistente : copia de la Bitácora (pull)
     IVistaCursoMision ..> Asistente : consola (push)
@@ -1566,6 +1570,7 @@ classDiagram
     class ControladorDetallesNave
     class ControladorTripulacion
     class ControladorCrearTripulacion {
+        + int MAXIMO_CONSEJOS_INICIALES = 999$
         + actionPerformed(e: ActionEvent)
     }
     class ControladorDetallesTripulacion {
@@ -1692,6 +1697,7 @@ classDiagram
     class IVistaTablero {
         <<interface>>
         + observar(tablero: Tablero)
+        + seguirMision(mision: Mision)
         + dejarDeObservar()
     }
     class IVistaResultadosMision {
@@ -1712,6 +1718,7 @@ classDiagram
     ControladorCursoMision --> IVistaCursoMision
     ControladorCursoMision o-- Thread : hilo de la misión (0..1)
     ControladorCursoMision ..> Asistente : ejecutarMision() en el hilo
+    ControladorCursoMision ..> IVistaTablero : seguirMision(mision) antes de start()
     ControladorResultadosMision --> IVistaResultadosMision
     IVistaControl o-- IVistaRecursos
     IVistaControl o-- IVistaSelectMision
@@ -1721,8 +1728,8 @@ classDiagram
 ```
 
 **Hilo de la misión.** `ControladorSelectMision` rechaza iniciar si `hayMisionEnCurso()`; si no, encomienda la misión y
-`ControladorControl.lanzarMision()` delega en `ControladorCursoMision`, que crea el `Thread` "Misión M-0x" y lo lanza con
-`start()`. El hilo ejecuta `asistente.ejecutarMision()`; sus excepciones se informan con `mostrarError` y, al terminar,
+`ControladorControl.lanzarMision()` delega en `ControladorCursoMision`, que le indica a la vista del tablero la misión cuyo
+objetivo debe mostrar (`seguirMision`) y crea el `Thread` "Misión M-0x" y lo lanza con `start()`. El hilo ejecuta `asistente.ejecutarMision()`; sus excepciones se informan con `mostrarError` y, al terminar,
 libera `hiloMision` y llama a `misionFinalizada(resumen)` (la vista aplica ambos con `invokeLater`). `cancelarMision()`
 interrumpe el hilo y espera con `join(ESPERA_MAXIMA_FIN_MS)`; `detener()` (cierre de sesión) cancela y, con el hilo
 terminado, todas las vistas de la sección dejan de observar.

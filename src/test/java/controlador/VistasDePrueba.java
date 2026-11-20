@@ -806,11 +806,13 @@ public final class VistasDePrueba {
 
     /**
      * Vista de prueba del tablero: como la real, consulta verTablero(), la nave y el objetivo en el hilo que
-     * notifica. Lo que ve se guarda y se lee con métodos {@code synchronized} (sin {@code volatile}); las consultas
-     * al tablero se hacen fuera de esos métodos.
+     * notifica; el objetivo es el de la misión que sigue o, mientras sea null, el del tablero. Lo que ve se guarda y
+     * se lee con métodos {@code synchronized} (sin {@code volatile}); las consultas al tablero y a la misión se hacen
+     * fuera de esos métodos.
      */
     public static class GrillaDePrueba implements IVistaTablero {
         private Tablero observado;
+        private Mision misionSeguida;
         public final AtomicInteger notificaciones = new AtomicInteger();
         public final Set<Thread> hilosQueNotificaron = ConcurrentHashMap.newKeySet();
         public final CountDownLatch primeraNotificacion = new CountDownLatch(1);
@@ -846,6 +848,15 @@ public final class VistasDePrueba {
         }
 
         @Override
+        public synchronized void seguirMision(Mision mision) {
+            misionSeguida = mision;
+        }
+
+        public synchronized Mision getMisionSeguida() {
+            return misionSeguida;
+        }
+
+        @Override
         public void actualizar(String mensaje) {
             hilosQueNotificaron.add(Thread.currentThread());
             notificaciones.incrementAndGet();
@@ -861,8 +872,11 @@ public final class VistasDePrueba {
                     elementos += elemento != null && !elemento.getSimbolo().isEmpty() ? 1 : 0;
                 }
             }
+            Mision seguida = getMisionSeguida();
+            Posicion objetivo = seguida != null && seguida.getObjetivo() != null
+                    ? seguida.getObjetivo() : tablero.getObjetivo();
             registrarLoVisto(matriz.length, matriz.length > 0 ? matriz[0].length : 0, elementos,
-                    tablero.getPosicionNave(), tablero.getObjetivo());
+                    tablero.getPosicionNave(), objetivo);
         }
 
         private synchronized void registrarLoVisto(int filas, int columnas, int elementos, Posicion nave,

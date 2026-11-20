@@ -14,6 +14,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
+import modelo.mision.Mision;
 import modelo.nave.TipoNave;
 import modelo.universo.Asteroide;
 import modelo.universo.ElementoDelUniverso;
@@ -27,7 +28,8 @@ import vista.principal.panelcontrol.EstiloControl;
  *
  * Observa el {@link Tablero} (patrón Observer, Versión 2 de la cátedra). En {@link #actualizar(String)} consulta,
  * en el hilo que notifica (el hilo de la misión), la matriz de {@link Tablero#verTablero()}, la posición de la nave
- * y el objetivo (modelo pull), y arma una instantánea con el símbolo de cada elemento, obtenido por polimorfismo con
+ * y el objetivo de la misión que sigue (modelo pull; ver {@link #seguirMision(Mision)}), y arma una instantánea con
+ * el símbolo de cada elemento, obtenido por polimorfismo con
  * {@link ElementoDelUniverso#getSimbolo()}, sin condicionales de tipo. La instantánea sólo contiene textos y
  * posiciones inmutables; se aplica y se repinta en el hilo de eventos de Swing con invokeLater. También muestra el
  * mensaje recibido (modelo push).
@@ -47,6 +49,13 @@ public class VistaTablero extends JPanel implements IVistaTablero {
      * asignación a ese hilo) y se anula cuando el hilo ya terminó ({@code join}).
      */
     private Tablero tablero;
+
+    /**
+     * Misión cuyo objetivo se muestra, o null si todavía no se lanzó ninguna. Se asigna en el hilo de eventos antes de
+     * lanzar el hilo de la misión ({@code Thread.start()} hace visible la asignación a ese hilo, que la consulta en
+     * cada notificación).
+     */
+    private Mision mision;
 
     /** Último estado del tablero que se dibuja. Confinado al hilo de eventos de Swing. */
     private Instantanea instantanea;
@@ -78,9 +87,15 @@ public class VistaTablero extends JPanel implements IVistaTablero {
         dejarDeObservar();
         this.tablero = tablero;
         this.tablero.agregarObservador(this);
-        final Instantanea inicial = Instantanea.de(tablero, "Tablero de " + tablero.getX() + " x " + tablero.getY()
-                + " listo.");
+        final Instantanea inicial = Instantanea.de(tablero, mision, "Tablero de " + tablero.getX() + " x "
+                + tablero.getY() + " listo.");
         SwingUtilities.invokeLater(() -> aplicar(inicial));
+    }
+
+    @Override
+    public void seguirMision(Mision mision) {
+        assert mision != null : "La vista debe seguir una misión.";
+        this.mision = mision;
     }
 
     @Override
@@ -102,7 +117,7 @@ public class VistaTablero extends JPanel implements IVistaTablero {
     public void actualizar(String mensaje) {
         Tablero observado = this.tablero;
         assert observado != null : "La vista recibió una notificación sin observar un tablero.";
-        final Instantanea nueva = Instantanea.de(observado, mensaje);
+        final Instantanea nueva = Instantanea.de(observado, mision, mensaje);
         SwingUtilities.invokeLater(() -> aplicar(nueva));
     }
 
@@ -163,9 +178,12 @@ public class VistaTablero extends JPanel implements IVistaTablero {
         }
 
         /**
-         * @pre Se invoca en el hilo que modifica el tablero (o sin ningún hilo modificándolo).
+         * El objetivo es el de la misión seguida: M-03 no registra la base como objetivo del tablero, que conserva el
+         * de la misión anterior. Si no hay misión o todavía no fijó su objetivo, es el del tablero.
+         *
+         * @pre Se invoca en el hilo que modifica el tablero (o sin ningún hilo modificándolo); mision puede ser null.
          */
-        static Instantanea de(Tablero tablero, String mensaje) {
+        static Instantanea de(Tablero tablero, Mision mision, String mensaje) {
             ElementoDelUniverso[][] matriz = tablero.verTablero();
             String[][] simbolos = new String[matriz.length][];
             for (int fila = 0; fila < matriz.length; fila++) {
@@ -175,7 +193,9 @@ public class VistaTablero extends JPanel implements IVistaTablero {
                     simbolos[fila][columna] = elemento != null ? elemento.getSimbolo() : "";
                 }
             }
-            return new Instantanea(simbolos, tablero.getPosicionNave(), tablero.getObjetivo(), mensaje);
+            Posicion objetivo = mision != null && mision.getObjetivo() != null
+                    ? mision.getObjetivo() : tablero.getObjetivo();
+            return new Instantanea(simbolos, tablero.getPosicionNave(), objetivo, mensaje);
         }
     }
 

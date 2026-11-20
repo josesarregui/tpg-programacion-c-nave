@@ -66,7 +66,7 @@ recursos y mantenimiento con el **Escenario D**; el **Escenario B** y el **Escen
 ```
 mvn clean test
 ```
-Ejecuta las 368 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
+Ejecuta las 371 pruebas JUnit 5 de `src/test/java` (Surefire activa las aserciones). Todas deben terminar en verde.
 Para una sola clase: `mvn test -Dtest=EsquemaSQLTest`.
 Las pruebas de misiones son deterministas: usan un tablero de prueba con los elementos ubicados por la prueba, un Destino que
 no mueve elementos (o que los mueve como indica la prueba), un `Random` con semilla y pausa 0 entre turnos. La única
@@ -147,13 +147,13 @@ hay entorno gráfico.
 | Caso | Qué se verifica (resultado esperado) | Prueba automática |
 |---|---|---|
 | Sección de Creación: nave | La nave se crea con `NaveFactory`, se asocia a un `AsistenteComando`, queda registrada y seleccionada en `CentroDeControl` y la vista de detalles la observa. Aceptar sin elegir el tipo muestra "Debe seleccionar una nave." y no registra nada. | `ControladorPrincipalTest` |
-| Sección de Creación: tripulación | Se dan de alta Capitán, Consejero (con sus consejos), Teniente y Alférez y la tripulación se asigna a la nave; se habilita Control de la Nave. Nombre vacío, capitán repetido, antigüedad o consejos con formato inválido y tripulación incompleta se rechazan en la vista con el mensaje del modelo, sin cambiar la nave. | `ControladorPrincipalTest`, `ControladorCrearTripulacionTest` |
+| Sección de Creación: tripulación | Se dan de alta Capitán, Consejero (con sus consejos), Teniente y Alférez y la tripulación se asigna a la nave; se habilita Control de la Nave. Nombre vacío, capitán repetido, antigüedad o consejos con formato inválido, más de 999 consejos iniciales (`MAXIMO_CONSEJOS_INICIALES`, para no congelar la interfaz) y tripulación incompleta se rechazan en la vista con su mensaje, sin cambiar la nave. | `ControladorPrincipalTest`, `ControladorCrearTripulacionTest` |
 | Sección de Tripulantes | Cada tripulante figura con el sueldo de `LiquidadorHaberes` (Decorator) y su recibo con el desglose por concepto (total = suma de conceptos); el total de la nómina es la suma de los sueldos. Un rechazo del liquidador se informa en la vista. | `ControladorPrincipalTest`, `ControladorDetallesTripulacionTest`, `VistaDetallesTripulacionTest` |
 | Menú | Tripulación y Control de la Nave se rechazan hasta tener nave y tripulación; luego muestran su sección. | `ControladorPrincipalTest` |
 | Control: suscripciones y Bitácora | Al crearse la sección, las vistas de recursos, Bitácora, misión en curso e informes observan al asistente y la del tablero observa el tablero; cada evento nuevo llega a la Bitácora (copiada en el hilo que notifica) y a la consola. Sin `instanceof` ni `switch` por tipo: cada misión se describe con `getNombre()` y `getCondicionDeExito()`. | `ControladorControlTest`, `VistaSelectMisionTest` |
 | Iniciar no bloquea | Iniciar una misión vuelve enseguida (con una pausa de 60 s por turno), la misión corre en el hilo "Misión M-0x" y la sección pasa a la misión en curso. | `ControladorMisionTest` |
 | Una misión a la vez | Con una misión en curso, iniciar otra muestra el error y no toca la que corre; tampoco se puede volver a la selección. | `ControladorMisionTest` |
-| Actualización automática | Durante la misión, desde su hilo: la grilla de 20 x 20 muestra la nave y el objetivo (`verTablero()` y símbolos por polimorfismo), los recursos bajan, la Bitácora crece, la consola recibe "Informe de ..." y el informe exitoso aparece en el historial. | `ControladorMisionTest`, `VistaTableroTest`, `VistaRecursosTest`, `VistaResultadosMisionTest`, `VistaCursoMisionTest` |
+| Actualización automática | Durante la misión, desde su hilo: la grilla de 20 x 20 muestra la nave y el objetivo de la misión en curso (`verTablero()` y símbolos por polimorfismo; en M-03, la base, aunque el tablero conserve el objetivo de la misión anterior), los recursos bajan, la Bitácora crece, la consola recibe "Informe de ..." y el informe exitoso aparece en el historial. | `ControladorMisionTest`, `VistaTableroTest`, `VistaRecursosTest`, `VistaResultadosMisionTest`, `VistaCursoMisionTest` |
 | Cancelar la misión | Cancelar interrumpe el hilo y espera su fin con `join`: el hilo terminó, la misión resulta fallida con su informe en el historial y se informa como cancelada. | `ControladorMisionTest` |
 | Excepciones del hilo | Una misión rechazada en su hilo (recursos insuficientes) se informa en la vista desde ese hilo, queda pendiente y puede reintentarse. | `ControladorMisionTest` |
 | Componentes en el EDT | Con el EDT bloqueado, una notificación desde otro hilo vuelve sin esperar y los componentes no cambian; al liberar el EDT muestran el cambio. | `VistaTableroTest`, `VistaCursoMisionTest`, `VistaRecursosTest`, `VistaResultadosMisionTest`, `VistaSelectMisionTest` |
